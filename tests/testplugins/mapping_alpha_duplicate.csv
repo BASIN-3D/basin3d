@@ -1,0 +1,6 @@
+basin3d_id,datasource_name,sampling_medium,description
+ACT,Acetate,WATER,
+Ag,Silver,WATER,
+Al,Aluminum,WATER,
+As,As,WATER,
+Al,Aluminum_gas,GAS,

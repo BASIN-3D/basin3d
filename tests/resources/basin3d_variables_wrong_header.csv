@@ -1,0 +1,170 @@
+the_id,description,categories,units
+ACT,Acetate (CH3COO),"Biogeochemistry,Anions",mM
+Br,Bromide (Br),"Biogeochemistry,Anions",mM
+Br,Bromide ions,"Biogeochemistry,Anions",mM
+Cl,Chloride (Cl),"Biogeochemistry,Anions",mM
+DIN,Dissolved Inorganic Nitrogen (Nitrate + Nitrite),"Biogeochemistry,Anions",mg/L
+DTN,Dissolved Total Nitrogen (DTN),"Biogeochemistry,Anions",mM
+F,Fluoride (F),"Biogeochemistry,Anions",mM
+NO3,Nitrate (NO3),"Biogeochemistry,Anions",mM
+NO2,Nitrite (NO2),"Biogeochemistry,Anions",mM
+PO4,Phosphate (PO4),"Biogeochemistry,Anions",mM
+SO4,Sulfate (SO4),"Biogeochemistry,Anions",mM
+S2,Sulfide (S),"Biogeochemistry,Anions",mM
+S2O3,Thiosulfate (S2O3),"Biogeochemistry,Anions",mg/L
+HCO3,Bicarbonate,"Biogeochemistry,Carbon",mg/L
+DIC,Dissolved Inorganic C (DIC),"Biogeochemistry,Carbon",mg/L
+DOC,Dissolved Organic Carbon (DOC),"Biogeochemistry,Carbon",mg/L
+NPOC,Non-Purgable Organic Carbon (NPOC),"Biogeochemistry,Carbon",mg/L
+POC,Particulate Organic C (POC),"Biogeochemistry,Carbon",mg/L
+TIC,Total Inorganic Carbon (TIC),"Biogeochemistry,Carbon",mg/L
+TOC,Total Organic Carbon (TOC),"Biogeochemistry,Carbon",mg/L
+d13C,Carbon (d13C),"Biogeochemistry,Isotopes",per mil
+CO2_d13C_soilgas,Carbon in Carbon Dioxide soil gas (CO2-d13C),"Biogeochemistry,Isotopes",per mil
+CH4_d13C_soilgas,Carbon in Methane soil gas (CH4-d13C),"Biogeochemistry,Isotopes",per mil
+d15N,Nitrogen in Air (Air-d15N),"Biogeochemistry,Isotopes",per mil
+N2O_d15N_soilgas,Nitrogen in Nitrous Oxide soil gas (N2O-d15N),"Biogeochemistry,Isotopes",per mil
+CO2_d18O_soilgas,Oxygen in Carbon Dioxide soil gas (CO2-d18O),"Biogeochemistry,Isotopes",per mil
+N2O_d18O_soilgas,Oxygen in Nitrous Oxide soil gas (N2O-d18O),"Biogeochemistry,Isotopes",per mil
+SO4_d34S,Sulfur in Sulfate (SO4-d34S),"Biogeochemistry,Isotopes",per mil
+U235,Uranium (U235),"Biogeochemistry,Isotopes",mg/L
+H2O_d18O,Water - d18O,"Biogeochemistry,Isotopes",mg/L
+H2O_dD,Water - Deuterium (dD),"Biogeochemistry,Isotopes",mg/L
+NH4,Ammonium (NH4),"Biogeochemistry,Major Cations",mg/L
+Ca,Calcium (Ca),"Biogeochemistry,Major Cations",mg/L
+Mg,Magnesium (Mg),"Biogeochemistry,Major Cations",mg/L
+K,Potassium (K),"Biogeochemistry,Major Cations",mg/L
+Si,Silicon (Si),"Biogeochemistry,Major Cations",mg/L
+Na,Sodium (Na),"Biogeochemistry,Major Cations",mg/L
+MICRO_COV,Coverage / Relative Abundance,"Biogeochemistry,Microbiology",
+MGO1,Coverage- Organisms in O2 Injection Experiment (0.1 um filter),"Biogeochemistry,Microbiology",
+MGO2,Coverage- Organisms in O2 Injection Experiment (0.2 um filter),"Biogeochemistry,Microbiology",
+MGO3,Coverage- Organisms in O2 Injection Experiment (1.2 um filter),"Biogeochemistry,Microbiology",
+GENE_TRAN,Gene Expression from Transcriptomics,"Biogeochemistry,Microbiology",
+MICRO_PEP,Peptide Counts,"Biogeochemistry,Microbiology",
+MICRO_PLFA,Phosph Lipid Analysis,"Biogeochemistry,Microbiology",
+NH3,Ammonia (NH3),"Biogeochemistry,Soil Gases",mg/L
+CO2,Carbon Dioxide (CO2),"Biogeochemistry,Soil Gases",mg/L
+H2,Hydrogen (H2),"Biogeochemistry,Soil Gases",mg/L
+H2S,Hydrogen Sulfide (H2S),"Biogeochemistry,Soil Gases",mg/L
+CH4,Methane (CH4),"Biogeochemistry,Soil Gases",mg/L
+N2,Nitrogen (N2),"Biogeochemistry,Soil Gases",mg/L
+N2O,Nitrous Oxide (N2O),"Biogeochemistry,Soil Gases",mg/L
+O2,Oxygen (O2),"Biogeochemistry,Soil Gases",mg/L
+Al,Aluminum (Al),"Biogeochemistry,Trace elements",mg/L
+Sb,Antimony (Sb),"Biogeochemistry,Trace elements",mg/L
+As,Arsenic (As),"Biogeochemistry,Trace elements",mg/L
+Ba,Barium (Ba),"Biogeochemistry,Trace elements",mg/L
+Be,Beryllium (Be),"Biogeochemistry,Trace elements",mg/L
+B,Boron (B),"Biogeochemistry,Trace elements",mg/L
+Cd,Cadmium (Cd),"Biogeochemistry,Trace elements",mg/L
+Cs,Cesium (Cs),"Biogeochemistry,Trace elements",mg/L
+Co,Cobalt (Co),"Biogeochemistry,Trace elements",mg/L
+Cu,Copper (Cu),"Biogeochemistry,Trace elements",mg/L
+Eu,Europium (Eu),"Biogeochemistry,Trace elements",mg/L
+Ge,Germanium (Ge),"Biogeochemistry,Trace elements",mg/L
+Fe2,Iron (II) (Fe2),"Biogeochemistry,Trace elements",mg/L
+Hg,Mercury (Hg),"Biogeochemistry,Trace elements",mg/L
+Pb,Lead (Pb),"Biogeochemistry,Trace elements",mg/L
+Li,Lithium (Li),"Biogeochemistry,Trace elements",mg/L
+Mn2,Manganese (II) (Mn2),"Biogeochemistry,Trace elements",mg/L
+Mo,Molybdenum (Mo),"Biogeochemistry,Trace elements",mg/L
+Ni,Nickel (Ni),"Biogeochemistry,Trace elements",mg/L
+Rb,Rubidium (Rb),"Biogeochemistry,Trace elements",mg/L
+Se,Selenium (Se),"Biogeochemistry,Trace elements",mg/L
+Ag,Silver (Ag),"Biogeochemistry,Trace elements",mg/L
+Sr,Strontium (Sr),"Biogeochemistry,Trace elements",mg/L
+Th,Thorium (Th),"Biogeochemistry,Trace elements",mg/L
+Sn,Tin (Sn),"Biogeochemistry,Trace elements",mg/L
+Ti,Titanium (Ti),"Biogeochemistry,Trace elements",mg/L
+Cr,Total Chromium (Cr),"Biogeochemistry,Trace elements",mg/L
+FeT,Total Iron (Fe),"Biogeochemistry,Trace elements",mg/L
+Mn,Total Manganese (Mn),"Biogeochemistry,Trace elements",mg/L
+P,Total Phosphorous (P),"Biogeochemistry,Trace elements",mg/L
+U,Uranium (U),"Biogeochemistry,Trace elements",mg/L
+V,Vanadium (V),"Biogeochemistry,Trace elements",mg/L
+Zn,Zinc (Zn),"Biogeochemistry,Trace elements",mg/L
+Zr,Zirconium (Zr),"Biogeochemistry,Trace elements",
+AT,Air Temperature,"Climate,Weather",C
+ALB,Albedo,"Climate,Weather",
+APA,Atmospheric Pressure (Absolute),"Climate,Weather",mm Hg
+APR,Atmospheric Pressure (Relative to Sea Level),"Climate,Weather",mm Hg
+DP,Dewpoint,"Climate,Weather",F
+ET,Evapotranspiration,"Climate,Weather",
+HI,Heat Index,"Climate,Weather",F
+PPT,Precipitation (Instantaneous),"Climate,Weather",mm
+PPT_TOT_5,Precipitation Accumulation (5 min interval),"Climate,Weather",mm/5 min
+PPT_TOT_10,Precipitation Accumulation (10 min interval),"Climate,Weather",mm/10 min
+PPT_TOT_60,Precipitation Accumulation (1 hr interval),"Climate,Weather",mm/hr
+PPT_TOT_DAY,Daily Precipitation Accumulation/ Total Daily Rainfall,"Climate,Weather",mm
+UV_IN,Incoming Ultraviolet Radiation,"Climate,Weather",W/m2
+UV_REF,Reflected Ultraviolet Radiation,"Climate,Weather",W/m2
+NIR_IN,Near Infrared Incoming Radiation,"Climate,Weather",W/m2
+NIR_REF,Near Infrared Reflected Radiation,"Climate,Weather",W/m2
+PAR_IN,Incoming PAR,"Climate,Weather",W/m2
+PAR_REF,Reflected PAR,"Climate,Weather",W/m2
+LWIR_IN,Incoming Longwave Infrared Radiation,"Climate,Weather",W/m2
+LWIR_REF,Reflected Longwave Infrared Radiation,"Climate,Weather",W/m2
+BB_IN,Incoming Broadband Radiation,"Climate,Weather",W/m2
+BB_REF,Reflected Broadband Radiation,"Climate,Weather",W/m2
+RH,Relative Humidity,"Climate,Weather",
+SD,Snow Depth,"Hydrogeology, Snow",m
+SWE,Snow Water Equivalent,"Hydrogeology, Snow",
+SDEN,Snow Density,"Hydrogeology, Snow",
+ST,Snow Temperature,"Hydrogeology, Snow",
+PPT_SF,Snowfall,"Climate,Weather",mm
+SRAD,Solar Radiation,"Climate,Weather",W/m2
+WBT,Wetbulb Temperature,"Climate,Weather",F
+W_DIR,Wind Direction,"Climate,Weather",degrees
+W_GS,Wind Gust Speed,"Climate,Weather",mph
+W_SPD,Wind Speed,"Climate,Weather",mph
+W_CH,Windchill,"Climate,Weather",F
+ERT,ERT Time lapse data,"Hydrogeology,Geophysics",
+CEC,Cation Exchange Capacity (CEC),"Hydrogeology,Mineralogy",meq/100 g
+EXAFS,EXAFS,"Hydrogeology,Mineralogy",
+SEQ,Solid Phase Sequential/Selective Extractions,"Hydrogeology,Mineralogy",
+XRD,X-ray Diffraction (XRD),"Hydrogeology,Mineralogy",
+XRF,X-ray Fluorescence (XRF),"Hydrogeology,Mineralogy",
+XANES,XANES,"Hydrogeology,Mineralogy",
+HCND,Hydraulic Conductivity,"Hydrogeology,Physical",m/day
+SED_SIZE,Particle size distribution,"Hydrogeology,Physical",
+HCND_Sat,Permeability/Saturated hydraulic conductivity,"Hydrogeology,Physical",m/day
+Porosity,Porosity,"Hydrogeology,Physical",
+SBD,Soil/Sediment Bulk Density,"Hydrogeology,Physical",g/cc
+SYD,Specific Yield,"Hydrogeology,Physical",
+HCND_Unsat,Unsaturated Hydraulic Conductivity,"Hydrogeology,Physical",m/day
+RET_CUR,Water retention curves,"Hydrogeology,Physical",
+LSE,Land Surface Elevation,Hydrogeology/surface,
+GWF,Groundwater Flux,"Hydrogeology,Subsurface",
+Well logs,Lithological columns borehole information,"Hydrogeology,Subsurface",
+SAT,Saturation (Neutron Probe),"Hydrogeology,Subsurface",
+SDE,Soil Dielectric Constant,"Hydrogeology,Subsurface",unitless
+SMO,Soil Moisture,"Hydrogeology,Subsurface",
+STM,Soil Temperature,"Hydrogeology,Subsurface",C
+SWP,Soil Water Potential/Tensiometer Head,"Hydrogeology,Subsurface",
+SEC,Soil Electrical Conductivity,"Hydrogeology,Subsurface",uS/cm
+FDOM,Colored Dissolved Organic Matter (FDOM),"Hydrogeology,Water Physical/Quality Parameters",QSU
+DO,Dissolved Oxygen (DO),"Hydrogeology,Water Physical/Quality Parameters",mg/L
+EC,Electrical Conductivity (EC),"Hydrogeology,Water Physical/Quality Parameters",uS/cm
+SC,Specific Conductance (SC),"Hydrogeology,Water Physical/Quality Parameters",uS/cm
+SAL,Salinity ,"Hydrogeology,Water Physical/Quality Parameters",PSU
+GWL,Ground Water Level,"Hydrogeology,Water Physical/Quality Parameters",m bgs
+PH,pH,"Hydrogeology,Water Physical/Quality Parameters",m bgs
+ORP,Redox Potential (ORP),"Hydrogeology,Water Physical/Quality Parameters",
+RDC,River Discharge,"Hydrogeology,Water Physical/Quality Parameters",mV
+SWL,Surface Water Level/ River Stage,"Hydrogeology,Water Physical/Quality Parameters",m2/s
+WLH,Water Level Head (Height of Water Column),"Hydrogeology,Water Physical/Quality Parameters",m
+WLE,Water Level Elevation,"Hydrogeology,Water Physical/Quality Parameters",m
+WT,Water Temperature,"Hydrogeology,Water Physical/Quality Parameters",C
+TDS,Total Dissolved Solids (TDS),"Hydrogeology,Water Physical/Quality Parameters",mg/L
+TSS,Total Suspended Solids (TSS),"Hydrogeology,Water Physical/Quality Parameters",mg/L
+TRB,Turbidity,"Hydrogeology,Water Physical/Quality Parameters",NTU
+STO_RES,Stomatal resistance parameters,"Vegetation, Hydraulic Traits",
+LAI,Leaf Area Index,"Vegetation, Plant Traits",
+PLT_HT,Canopy/plant Height,"Vegetation,Plant Traits",m
+PAI,Plant Area Index,"Vegetation,Plant Traits",
+PFT,Plant functional types,"Vegetation,Plant Traits",
+SAP,Sap Flow,"Vegetation,Plant Response",
+RGB,RGB pixel color values in an image,Remote Sensing,
+GCC,Green Chromatic Coordinate,Remote Sensing,
+NDVI,Normalized Difference Vegetation Index (NDVI),Remote Sensing,

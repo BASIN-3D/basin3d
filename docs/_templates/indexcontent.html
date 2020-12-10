@@ -1,0 +1,54 @@
+{% extends "!layout.html" %}
+{%- set render_sidebar = True %}
+{% block body %}
+<p align='center' >
+<div align="center" class='admonition note'>
+	<cite>Download {{project}} {{release}}
+        <a href="https://github.com/Watershed-Function-SFA/basin3d-core/releases" >here</a><br/>Contact support-email at lbl.gov for support</cite></div></p>
+  <p><strong>Overview and Hands-on:</strong></p>
+  <table class="contentstable" align="center"><tr>
+    <td width="50%">
+      <p class="biglink"><a class="biglink" href="{{ pathto("intro") }}">What is basin3d-core?</a><br/>
+         <span class="linkdescr">Introduction to BASIN-3D</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("concepts") }}">Concepts in BASIN-3D</a><br/>
+         <span class="linkdescr">Short summary of the basic concepts</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("examples") }}">Examples</a><br/>
+         <span class="linkdescr">Examples for using BASIN-3D</span></p>
+    </td><td width="50%">
+
+      <p class="biglink"><a class="biglink" href="{{ pathto("getting_started") }}#">Getting Started</a><br/>
+         <span class="linkdescr">Instructions on setting up getting started</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("models") }}">Models</a><br/>
+         <span class="linkdescr">BASIN-3D Data Types</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("api") }}">Library Reference</a><br/>
+         <span class="linkdescr">A reference guide for using basin3d-core</span></p>
+    </td></tr>
+  </table>
+
+  <p><strong>Indices:</strong></p>
+  <table class="contentstable" align="center"><tr>
+    <td width="50%">
+      <p class="biglink"><a class="biglink" href="{{ pathto("py-modindex") }}">Global Module Index</a><br/>
+         <span class="linkdescr">Quick access to all modules</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("genindex") }}"> Index</a><br/>
+         <span class="linkdescr">All functions, classes, terms</span></p>
+    </td><td width="50%">
+      <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
+         <span class="linkdescr">Search the documentation</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("contents") }}">Table of Contents</a><br/>
+         <span class="linkdescr">List of all sections and subsections</span></p>
+    </td></tr>
+  </table>
+
+  <p><strong>Additional Information:</strong></p>
+  <table class="contentstable" align="center"><tr>
+    <td width="50%">
+      <p class="biglink"><a class="biglink" href="{{ pathto("contact") }}">Contact Us</a>
+      <p class="biglink"><a class="biglink" href="{{ pathto("changelog") }}">Change Log</a></p>
+    </td>
+    <td width="50%">
+      <p class="biglink"><a class="biglink" href="{{ pathto("copyright_notice") }}">Copyright Notice</a></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("license_agreement") }}">License Agreement</a></p>
+    </td></tr>
+  </table>
+{% endblock %}

@@ -1,0 +1,14 @@
+[report]
+exclude_lines =
+   NotImplementedError
+   logger
+   def __repr__
+   version
+   release
+   logger.info
+   uvicorn
+   pass
+   ImportError
+omit = 
+   */asgi.py
+   */formparser.py

@@ -1,0 +1,3 @@
+sphinx
+PSphinxTheme
+sphinx-autodoc-typehints
