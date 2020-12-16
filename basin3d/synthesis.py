@@ -274,7 +274,7 @@ class DataSynthesizer:
                         datasource=datasource, results_quality=results_quality))
 
 
-def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str = 'DAY', **kwargs) -> Tuple[pd.DataFrame, dict]:
+def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str = 'DAY', **kwargs) -> Tuple[Union[pd.DataFrame, None], dict]:
     """
     User facing get_data wrapper for the DataSynthesizer. Currently only MeasurementTimeseriesTVPObservations are supported.
 
@@ -358,6 +358,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
     metadata_store = {}
     first_timestamp = dt.datetime.now()
     last_timestamp = dt.datetime(1990, 1, 1)
+    has_results = False
 
     # By using the temporary directory, all the files are eventually removed when the directory is removed.
     with tempfile.TemporaryDirectory() as temp_wd:
@@ -377,18 +378,21 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
 
             synthesized_variable_name = f'{sampling_feature_id}__{observed_property_variable_id}'
 
+            results_start = None
+            results_end = None
             results = data_obj.result_points
-            results_start = results[0][0]
-            results_end = results[-1][0]
-            iso_format = '%Y-%m-%dT%H:%M:%S.%f'
-            if isinstance(results_start, str):
-                results_start = dt.datetime.strptime(results_start, iso_format)
-            if isinstance(results_end, str):
-                results_end = dt.datetime.strptime(results_end, iso_format)
-            if results_start < first_timestamp:
-                first_timestamp = results_start
-            if results_end > last_timestamp:
-                last_timestamp = results_end
+            if results:
+                results_start = results[0][0]
+                results_end = results[-1][0]
+                iso_format = '%Y-%m-%dT%H:%M:%S.%f'
+                if isinstance(results_start, str):
+                    results_start = dt.datetime.strptime(results_start, iso_format)
+                if isinstance(results_end, str):
+                    results_end = dt.datetime.strptime(results_end, iso_format)
+                if results_start < first_timestamp:
+                    first_timestamp = results_start
+                if results_end > last_timestamp:
+                    last_timestamp = results_end
 
             # Collect rest of variable metadata and store it
             # ToDo: other metadata files
@@ -408,6 +412,12 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
                 'datasource': data_obj.datasource.name,
                 'datasource_variable': observed_property.datasource_variable}
 
+            if not results:
+                logger.info(f'{synthesized_variable_name} returned no data.')
+                continue
+
+            has_results = True
+
             # Write results to temp file
             with open(os.path.join(temp_wd, f'{synthesized_variable_name}.json'), mode='w') as f:
                 f.write('{')
@@ -415,6 +425,9 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
                 for result in results[1:]:
                     f.write(f',"{result[0]}": {result[1]}')
                 f.write('}')
+
+        if not has_results:
+            return None, metadata_store
 
         # Prep the dataframe
         time_index = pd.date_range(first_timestamp, last_timestamp,
@@ -425,12 +438,14 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
 
         # Fill the dataframe
         for synthesized_variable_name in metadata_store.keys():
+            num_records = metadata_store[synthesized_variable_name]['records']
+            if num_records == 0:
+                continue
             file_path = os.path.join(temp_wd, f'{synthesized_variable_name}.json')
             with open(file_path, mode='r') as f:
                 result_dict = json.load(f)
                 pd_series = pd.Series(result_dict, name=synthesized_variable_name)
                 output_df = output_df.join(pd_series)
-                num_records = metadata_store[synthesized_variable_name]['records']
                 logger.info(f'Added variable {synthesized_variable_name} with {num_records} records.')
 
     return output_df, metadata_store

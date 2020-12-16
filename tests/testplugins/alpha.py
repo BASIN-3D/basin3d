@@ -54,12 +54,15 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
     from datetime import datetime
     for num in range(1, 10):
         data.append((datetime(2016, 2, num), num * 0.3454))
+    data = [data, data, []]
+    observed_property_variables = ["Acetate", "Acetate", "Aluminum"]
+    units = ['nm', 'nm', 'mg/L']
 
-    for num in range(1, 3):
+    for num in range(1, 4):
         yield MeasurementTimeseriesTVPObservation(
             plugin_access=self,
             id=num,
-            observed_property_variable="Acetate",
+            observed_property_variable=observed_property_variables[num-1],
             utc_offset=-8 - num,
             feature_of_interest=MonitoringFeature(
                 plugin_access=self,
@@ -84,7 +87,7 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
                             distance_units=VerticalCoordinate.DISTANCE_UNITS_METERS)
                     )
                 ),
-                observed_property_variables=["Ag", "Acetate"],
+                observed_property_variables=["Ag", "Acetate", "Aluminum"],
                 related_sampling_feature_complex=[
                     RelatedSamplingFeature(plugin_access=self,
                                            related_sampling_feature="Region1",
@@ -92,12 +95,12 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
                                            role=RelatedSamplingFeature.ROLE_PARENT)]
             ),
             feature_of_interest_type=FeatureTypes.POINT,
-            unit_of_measurement="nm",
+            unit_of_measurement=units[num-1],
             aggregation_duration=TimeFrequency.DAY,
             result_quality="CHECKED",
             time_reference_position=None,
             statistic="MEAN",
-            result_points=data
+            result_points=data[num-1]
         )
 
 

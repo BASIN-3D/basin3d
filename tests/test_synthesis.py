@@ -72,7 +72,7 @@ def test_measurement_timeseries_tvp_observations_count():
         for mf in measurement_timeseries_tvp_observations:
             count += 1
 
-        assert count == 2
+        assert count == 3
     else:
         assert measurement_timeseries_tvp_observations is not None
 
@@ -142,7 +142,7 @@ def test_get_timeseries_data():
 
     alpha_df, alpha_metadata = get_timeseries_data(
         synthesizer=synthesizer,
-        monitoring_features=['A-1', 'A-2'], observed_property_variables=['ACT'], start_date='2016-02-01')
+        monitoring_features=['A-1', 'A-2', 'A-3'], observed_property_variables=['ACT', 'Al'], start_date='2016-02-01')
     # check the dataframe
     assert isinstance(alpha_df, pd.DataFrame) is True
     assert list(alpha_df.columns) == ['TIMESTAMP', 'A-1__ACT', 'A-2__ACT']
@@ -168,3 +168,18 @@ def test_get_timeseries_data():
     assert var_metadata['sampling_feature_id'] == 'A-1'
     assert var_metadata['datasource'] == 'Alpha'
     assert var_metadata['datasource_variable'] == 'Acetate'
+
+    var_metadata = alpha_metadata.get('A-3__Al')
+    assert var_metadata['data_start'] is None
+    assert var_metadata['data_end'] is None
+    assert var_metadata['records'] == 0
+    assert var_metadata['units'] == 'mg/L'
+    assert var_metadata['basin_3d_variable'] == 'Al'
+    assert var_metadata['basin_3d_variable_full_name'] == 'Aluminum (Al)'
+    assert var_metadata['statistic'] == 'MEAN'
+    assert var_metadata['temporal_aggregation'] == TimeFrequency.DAY
+    assert var_metadata['quality'] == ResultQuality.RESULT_QUALITY_CHECKED
+    assert var_metadata['sampling_medium'] == SamplingMedium.WATER
+    assert var_metadata['sampling_feature_id'] == 'A-3'
+    assert var_metadata['datasource'] == 'Alpha'
+    assert var_metadata['datasource_variable'] == 'Aluminum'
