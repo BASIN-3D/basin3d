@@ -84,6 +84,17 @@ def convert_discharge(data, parameter, units):
     return data, units
 
 
+def map_statistic_code(stat_cd):
+    if stat_cd == '00001':
+        return MeasurementMetadataMixin.STATISTIC_MAX
+    if stat_cd == '00002':
+        return MeasurementMetadataMixin.STATISTIC_MIN
+    if stat_cd == '00003':
+        return MeasurementMetadataMixin.STATISTIC_MEAN
+    else:
+        return 'NOT SUPPORTED'  # consider making this part of the Mixin Statistic type
+
+
 def generator_usgs_measurement_timeseries_tvp_observation(view, **kwargs):
     """
     Get the Data Points for USGS Daily Values
@@ -112,8 +123,18 @@ def generator_usgs_measurement_timeseries_tvp_observation(view, **kwargs):
         search_params.append(("endDT", kwargs[QUERY_PARAM_END_DATE]))
 
     search_params.append(("parameterCd", ",".join([str(o) for o in observed_property_variables])))
-    search_params.append(("statCd", "00003"))  # Only search for the mean statistic
-    search_params.append(("sites", ",".join(monitoring_features)))
+
+    if len(monitoring_features[0]) > 2:
+        # search for stations
+        search_params.append(("statCd", "00003"))  # Only search for the mean statistic for now
+        search_params.append(("sites", ",".join(monitoring_features)))
+    else:
+        # search for stations by specifying the huc
+        search_params.append(("huc", ",".join(monitoring_features)))
+        search_params.append(("siteStatus", "all"))  # per Charu's query
+
+    # look for station locations only
+    search_params.append(("siteType", "ST"))
 
     # JSON format
     search_params.append(("format", "json"))
@@ -527,6 +548,12 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         else:
             return 'NOT_SET'
 
+    def get_result_qualifiers(self, qualifiers):
+        timeseries_qualifiers = set()
+        for qualifier in qualifiers:
+            timeseries_qualifiers.add(self.result_quality(qualifier["qualifierCode"]))
+        return timeseries_qualifiers
+
     def list(self, **kwargs):
         """
         Get the Data Points for USGS Daily Values
@@ -548,6 +575,10 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         search_params = ",".join(kwargs[QUERY_PARAM_MONITORING_FEATURES])
 
         url = '{}site/?sites={}'.format(self.datasource.location, search_params)
+
+        if len(search_params) < 3:
+            url = '{}site/?huc={}'.format(self.datasource.location, search_params)
+
         usgs_site_response = None
         try:
             usgs_site_response = get_url(url)
@@ -560,14 +591,14 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 if v["site_no"]:
                     feature_obj_dict[v["site_no"]] = v
 
-        # Iterate over locations
+        # Iterate over data objects returned
         for data_json in generator_usgs_measurement_timeseries_tvp_observation(self, **kwargs):
             unit_of_measurement = data_json["variable"]["unit"]['unitCode']
             timezone_offset = data_json["sourceInfo"]["timeZoneInfo"]["defaultTimeZone"]["zoneOffset"]
 
             # name has agency, sitecode, parameter id and stat code
             #   e.g. "USGS:385106106571000:00060:00003"
-            _, feature_id, parameter, _ = data_json["name"].split(":")
+            _, feature_id, parameter, statistic = data_json["name"].split(":")
 
             if feature_id in feature_obj_dict.keys():
                 monitoring_feature = _load_point_obj(
@@ -575,12 +606,26 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                     json_obj=feature_obj_dict[feature_id], feature_observed_properties=dict(),
                     observed_property_variables="Find observed property variables at monitoring feature url")
             else:
+                # ToDo: expand this to use the info in the data return
+                # ToDo: log message
                 monitoring_feature = None
 
+            # deal with statistic
+            basin3d_statistic = "NOT SET"
+            if statistic:
+                basin3d_statistic = map_statistic_code(statistic)
+
             result_points = []
-            result_quality = None
+            # result_quality = None
+            result_quality_filter = None
+            result_qualifiers = set()
+            timeseries_result_quality = None
+
+            if QUERY_PARAM_RESULT_QUALITY in kwargs:
+                result_quality_filter = QUERY_PARAM_RESULT_QUALITY
 
             for values in data_json["values"]:
+                result_qualifiers.update(self.get_result_qualifiers(values["qualifier"]))
 
                 for value in values["value"]:
 
@@ -590,15 +635,16 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
                     # TODO: write some tests for this which will require mocking a data return.
                     # Only filter if quality_checked is True
-                    if QUERY_PARAM_RESULT_QUALITY not in kwargs or not kwargs[QUERY_PARAM_RESULT_QUALITY] or \
-                            (QUERY_PARAM_RESULT_QUALITY in kwargs and kwargs[
-                                QUERY_PARAM_RESULT_QUALITY] == result_quality):
+                    # if QUERY_PARAM_RESULT_QUALITY not in kwargs or not kwargs[QUERY_PARAM_RESULT_QUALITY] or \
+                            # (QUERY_PARAM_RESULT_QUALITY in kwargs and kwargs[
+                                # QUERY_PARAM_RESULT_QUALITY] == result_quality):
+                    if not result_quality_filter or result_quality_filter == result_quality:
 
                         # Get the broker parameter
                         try:
                             try:
                                 data = float(value['value'])
-                                # Hardcoded unit conversion
+                                # Hardcoded unit conversion for river discharge parameters
                                 data, unit_of_measurement = convert_discharge(data, parameter, unit_of_measurement)
                             except Exception as e:
                                 logger.error(str(e))
@@ -610,6 +656,16 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         except Exception as e:
                             logger.error(e)
 
+            timeseries_result_quality = result_quality_filter
+            if not timeseries_result_quality:
+                if ResultQuality.RESULT_QUALITY_CHECKED in result_qualifiers:
+                    timeseries_result_quality = ResultQuality.RESULT_QUALITY_CHECKED
+                if ResultQuality.RESULT_QUALITY_UNCHECKED in result_qualifiers:
+                    timeseries_result_quality = ResultQuality.RESULT_QUALITY_UNCHECKED
+                if (ResultQuality.RESULT_QUALITY_UNCHECKED in result_qualifiers and
+                        ResultQuality.RESULT_QUALITY_CHECKED in result_qualifiers):
+                    timeseries_result_quality = ResultQuality.RESULT_QUALITY_PARTIALLY_CHECKED
+
             measurement_timeseries_tvp_observation = MeasurementTimeseriesTVPObservation(
                 self,
                 id=feature_id,  # FYI: this field is not unique and thus kinda useless
@@ -619,10 +675,10 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 utc_offset=int(timezone_offset.split(":")[0]),
                 result_points=result_points,
                 observed_property_variable=parameter,
-                result_quality=ResultQuality.RESULT_QUALITY_CHECKED,
+                result_quality=timeseries_result_quality,
                 aggregation_duration=kwargs["aggregation_duration"],
                 time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,
-                statistic=MeasurementMetadataMixin.STATISTIC_MEAN
+                statistic=basin3d_statistic
             )
 
             yield measurement_timeseries_tvp_observation

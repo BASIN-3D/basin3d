@@ -93,6 +93,9 @@ class ResultQuality(object):
     #: The result is raw or unchecked for quality
     RESULT_QUALITY_UNCHECKED = "UNCHECKED"
 
+    #: The result contains checked and unchecked portions
+    RESULT_QUALITY_PARTIALLY_CHECKED = "PARTIALLY_CHECKED"
+
 
 class SamplingMedium:
     """
