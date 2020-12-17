@@ -125,9 +125,11 @@ def test_usgs_monitoring_features(query, expected_count):
 @pytest.mark.integration
 def test_usgs_get_data():
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
-    usgs_df, usgs_metadata = get_timeseries_data(
+    usgs_data = get_timeseries_data(
         synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
         observed_property_variables=['RDC', 'WT'], start_date='2019-10-25', end_date='2019-10-28')
+    usgs_df = usgs_data.data
+    usgs_metadata = usgs_data.metadata_store
 
     # check the dataframe
     assert isinstance(usgs_df, pd.DataFrame) is True
