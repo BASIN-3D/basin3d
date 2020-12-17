@@ -140,9 +140,13 @@ def test_get_timeseries_data():
         get_timeseries_data(synthesizer=synthesizer,
                             observed_property_variables=['ACT'], start_date='2019-01-01')
 
-    alpha_df, alpha_metadata = get_timeseries_data(
+    alpha_data = get_timeseries_data(
         synthesizer=synthesizer,
         monitoring_features=['A-1', 'A-2', 'A-3'], observed_property_variables=['ACT', 'Al'], start_date='2016-02-01')
+    alpha_df = alpha_data.data
+    alpha_metadata = alpha_data.metadata_store
+    alpha_metadata_df = alpha_data.metadata_dataframe
+
     # check the dataframe
     assert isinstance(alpha_df, pd.DataFrame) is True
     assert list(alpha_df.columns) == ['TIMESTAMP', 'A-1__ACT', 'A-2__ACT']
@@ -183,3 +187,6 @@ def test_get_timeseries_data():
     assert var_metadata['sampling_feature_id'] == 'A-3'
     assert var_metadata['datasource'] == 'Alpha'
     assert var_metadata['datasource_variable'] == 'Aluminum'
+
+    assert list(alpha_metadata_df.columns) == ['TIMESTAMP', 'A-1__ACT', 'A-2__ACT']
+    assert len(alpha_metadata_df) == 20

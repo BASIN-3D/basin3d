@@ -23,6 +23,7 @@ synthesis.DataSynthesizer
 Classes
 --------
 * :class:`DataSynthesizer` - Synthesis API
+* :class:`SynthesizedTimeseriesData` - Synthesized Timeseries Data Class
 
 Functions
 ----------
@@ -39,11 +40,10 @@ import os
 import pandas as pd
 import tempfile
 
-# Method to query (write query in basin3d language)
+from dataclasses import dataclass
 from importlib import import_module
 from typing import Iterator, List, Union, cast, Tuple
 
-# Get an instance of a logger
 from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import DataSource, MonitoringFeature, MeasurementTimeseriesTVPObservation, TimeMetadataMixin
 from basin3d.core.plugin import PluginMount
@@ -55,6 +55,78 @@ from basin3d.core.types import TimeFrequency
 class SynthesisException(Exception):
     """Special Exception for Synthesis module"""
     pass
+
+
+@dataclass
+class SynthesizedTimeseriesData:
+    """
+    Class used in the return for :func:`get_timeseries_data` function.
+
+    This class contains synthesized data with timestamp, monitoring feature id,
+    observed property variable id in a pandas DataFrame (optional) and metadata dictionary (optional).
+
+    Optional means a return value of ``None``.
+
+    """
+
+
+    data: Union[pd.DataFrame, None]
+    """**pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id 
+    
+    .. code-block::
+
+                    TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
+        2019-10-25 2019-10-25                3.2            4.247527
+        2019-10-26 2019-10-26                4.1            4.219210
+        2019-10-27 2019-10-27                4.3            4.134260
+        2019-10-28 2019-10-28                3.2            4.332478
+        2019-10-29 2019-10-29                2.2            4.219210
+        2019-10-30 2019-10-30                0.5            4.247527
+
+        # timestamp column: datetime, repr as ISO format
+        column name format = f'{start_date end_date}
+
+        # data columns: monitoring feature id and observed property variable id
+        column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
+        
+    
+    """
+
+
+    metadata_store: dict
+    """**A Metadata dictionary**
+
+    .. code-block::
+    
+        key = f'{monitoring_feature_id}__{observed_property_variable_id}',
+        value =
+        {
+            data_start = str
+            data_end = str
+            records = int
+            units = str
+            basin_3d_variable = str
+            basin_3d_variable_full_name = str
+            statistic = str
+            temporal_aggregation = str
+            quality = str
+            sampling_medium = str
+            sampling_feature_id = str
+            datasource = str
+            datasource_variable
+        }
+                
+    
+    """
+
+    metadata_dataframe: Union[pd.DataFrame, None]
+    """**pandas metadata** (same content as :data:`metadata_store`)"""
+
+    synthesized_var_with_records: list
+    """List of variables that have  data"""
+
+    synthesized_var_no_records: list
+    """List of variable that have **no data**"""
 
 
 def register(plugins: List[str] = None):
@@ -251,8 +323,8 @@ class DataSynthesizer:
                         datasource=datasource, results_quality=results_quality))
 
 
-def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str = 'DAY', **kwargs) -> Tuple[
-    Union[pd.DataFrame, None], dict]:
+def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = True,
+                        temporal_resolution: str = 'DAY', **kwargs) -> SynthesizedTimeseriesData:
     """
 
     Wrapper for *DataSynthesizer.get_data* for timeseries data types. Currently only *MeasurementTimeseriesTVPObservations* are supported.
@@ -260,8 +332,10 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
     >>> from basin3d.plugins import usgs
     >>> from basin3d import synthesis
     >>> synthesizer = synthesis.register()
-    >>> usgs_df, usgs_metadata = synthesis.get_timeseries_data(synthesizer, monitoring_features=['USGS-09110000'], observed_property_variables=['RDC','WT'], start_date='2019-10-25', end_date='2019-10-30')
-    >>> usgs_df
+    >>> usgs_data = synthesis.get_timeseries_data( \
+        synthesizer, monitoring_features=['USGS-09110000'], \
+        observed_property_variables=['RDC','WT'], start_date='2019-10-25', end_date='2019-10-30')
+    >>> usgs_data.data
                 TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
     2019-10-25 2019-10-25                3.2            4.247527
     2019-10-26 2019-10-26                4.1            4.219210
@@ -270,7 +344,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
     2019-10-29 2019-10-29                2.2            4.219210
     2019-10-30 2019-10-30                0.5            4.247527
 
-    >>> for k, v in usgs_metadata['USGS-09110000__WT'].items():
+    >>> for k, v in usgs_data.metadata_store['USGS-09110000__WT'].items():
     ...     print(f'{k} = {v}')
     data_start = 2019-10-25 00:00:00
     data_end = 2019-10-30 00:00:00
@@ -283,12 +357,21 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
     quality = CHECKED
     sampling_medium = WATER
     sampling_feature_id = USGS-09110000
+    sampling_feature_name = TAYLOR RIVER AT ALMONT, CO.
     datasource = USGS
     datasource_variable = 00010
+    sampling_feature_lat = 38.66443715
+    sampling_feature_long = -106.8453172
+    sampling_feature_lat_long_datum = NAD83
+    sampling_feature_altitude = 8010.76
+    sampling_feature_alt_units = None
+    sampling_feature_alt_datum = NGVD29
 
     :param synthesizer: DataSnythesizer object
+    :param location_lat_long: boolean: True = look for lat, long, elev coordinates and return in the metadata, False = ignore
     :param temporal_resolution: temporal resolution of output (in future, we can be smarter about this, e.g., detect it from the results or average higher frequency data)
-    :param kwargs:
+    :param kwargs: The minimum required arguments to return a pandas DataFrame are monitoring features, observed property variables, and start date
+
            Required parameters for a *MeasurementTimeseriesTVPObservation*:
                * **monitoring_features**
                * **observed_property_variables**
@@ -299,48 +382,8 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
                * **result_quality**
                * **datasource**
 
-    :return:
-         a Tuple: synthesized data with timestamp, monitoring feature id, observed property variable id in a pandas DataFrame (optional) and metadata dictionary.
+    :return: A Synthesized Timeseries Data Class
 
-         Optional means a return value of None for the pandas DataFrame if no arguments are passed into **kwargs. The min. required arguments to return a pandas DataFrame are monitoring features, observed property variables, and start date
-
-
-            **[optional] pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id ::
-
-                                TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
-                    2019-10-25 2019-10-25                3.2            4.247527
-                    2019-10-26 2019-10-26                4.1            4.219210
-                    2019-10-27 2019-10-27                4.3            4.134260
-                    2019-10-28 2019-10-28                3.2            4.332478
-                    2019-10-29 2019-10-29                2.2            4.219210
-                    2019-10-30 2019-10-30                0.5            4.247527
-
-                    # timestamp column: datetime, repr as ISO format
-                    column name format = f'{start_date end_date}
-
-                    # data columns: monitoring feature id and observed property variable id
-                    column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
-
-
-            **metadata dictionary**::
-
-                key = f'{monitoring_feature_id}__{observed_property_variable_id}',
-                value =
-                {
-                    data_start = str
-                    data_end = str
-                    records = int
-                    units = str
-                    basin_3d_variable = str
-                    basin_3d_variable_full_name = str
-                    statistic = str
-                    temporal_aggregation = str
-                    quality = str
-                    sampling_medium = str
-                    sampling_feature_id = str
-                    datasource = str
-                    datasource_variable
-                }
     """
     # Check that required parameters are provided. May have to rethink this when we expand to mulitple observation types
     if not all([QUERY_PARAM_MONITORING_FEATURES in kwargs, QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES in kwargs,
@@ -410,8 +453,35 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
                 'quality': data_obj.result_quality,
                 'sampling_medium': observed_property.sampling_medium,
                 'sampling_feature_id': sampling_feature_id,
+                'sampling_feature_name': feature_of_interest.name,
                 'datasource': data_obj.datasource.name,
                 'datasource_variable': observed_property.datasource_variable}
+
+            # not every observation type / sampling feature type will have simple lat long so set up with toggle
+            #    we may need to modify this for broader applicaiton with BASIN-3D
+            if location_lat_long:
+                latitude, longitude, lat_long_datum, altitude, alt_units, alt_datum = None, None, None, None, None, None
+
+                if len(feature_of_interest.coordinates.absolute.horizontal_position) > 0:
+                    latitude = feature_of_interest.coordinates.absolute.horizontal_position[0].latitude
+                    longitude = feature_of_interest.coordinates.absolute.horizontal_position[0].longitude
+                    lat_long_datum = feature_of_interest.coordinates.absolute.horizontal_position[0].datum
+
+                if len(feature_of_interest.coordinates.absolute.vertical_extent) > 0:
+                    if feature_of_interest.coordinates.absolute.vertical_extent[0].type == 'ALTITUDE':
+                        altitude = feature_of_interest.coordinates.absolute.vertical_extent[0].value
+                        alt_units = feature_of_interest.coordinates.absolute.vertical_extent[0].distance_units
+                        alt_datum = feature_of_interest.coordinates.absolute.vertical_extent[0].datum
+
+                metadata_store[synthesized_variable_name].update(
+                    {'sampling_feature_lat': latitude,
+                     'sampling_feature_long': longitude,
+                     'sampling_feature_lat_long_datum': lat_long_datum,
+                     'sampling_feature_altitude': altitude,
+                     'sampling_feature_alt_units': alt_units,
+                     'sampling_feature_alt_datum': alt_datum
+                     }
+                )
 
             if not results:
                 logger.info(f'{synthesized_variable_name} returned no data.')
@@ -428,16 +498,16 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
                 f.write('}')
 
         if not has_results:
-            return None, metadata_store
+            return SynthesizedTimeseriesData(None, metadata_store, None, [], [])
 
-        # Prep the dataframe
+        # Prep the data dataframe
         time_index = pd.date_range(first_timestamp, last_timestamp,
                                    freq=TimeFrequency.PANDAS_FREQUENCY_MAP[temporal_resolution])
         time_series = pd.Series(time_index, index=time_index)
         output_df = pd.DataFrame({'TIMESTAMP': time_series})
         # ToDo: expand to have TIMESTAMP_START and TIMESTAMP_END for resolutions HOUR, MINUTE
 
-        # Fill the dataframe
+        # Fill the data dataframe
         for synthesized_variable_name in metadata_store.keys():
             num_records = metadata_store[synthesized_variable_name]['records']
             if num_records == 0:
@@ -449,4 +519,33 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
                 output_df = output_df.join(pd_series)
                 logger.info(f'Added variable {synthesized_variable_name} with {num_records} records.')
 
-    return output_df, metadata_store
+        # generate the metadata_data_df -- only keep metadata info with data
+        # create a pd.Series of data column names
+        synthesized_var_list = list(output_df.columns)
+        metadata_fields_list = list(metadata_store[synthesized_var_list[-1]].keys())  # don't use first TIMESTAMP column
+        empty_list = [None] * len(metadata_fields_list)
+        metadata_fields = pd.Series(empty_list, index=metadata_fields_list)
+        metadata_data_df = pd.DataFrame({'TIMESTAMP': metadata_fields})
+        for synthesized_var in synthesized_var_list:
+            if synthesized_var == 'TIMESTAMP':
+                continue
+            metadata_data_df = metadata_data_df.join(pd.Series(empty_list, name=synthesized_var))
+
+        synthesized_var_with_data = []
+        synthesized_var_no_data = []
+        for synthesized_var in metadata_store.keys():
+            if synthesized_var not in synthesized_var_list:
+                synthesized_var_no_data.append(synthesized_var)
+                continue
+            synthesized_var_with_data.append(synthesized_var)
+            synthesized_var_metadata = metadata_store[synthesized_var]
+            synthesized_var_metadata_list = [synthesized_var_metadata[key] for key in metadata_fields_list]
+            metadata_data_df[synthesized_var] = pd.array(synthesized_var_metadata_list)
+
+        if len(synthesized_var_with_data) + len(synthesized_var_no_data) != len(metadata_store):
+            logger.warning(f'Metadata records mismatch. Please take a look')
+
+        if not all(output_df.columns == metadata_data_df.columns):
+            logger.warning(f'Data and metadata data frames columns do not match!')
+
+    return SynthesizedTimeseriesData(output_df, metadata_store, metadata_data_df, synthesized_var_with_data, synthesized_var_no_data)
