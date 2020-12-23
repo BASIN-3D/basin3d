@@ -200,7 +200,7 @@ class DataSynthesizer:
         if id:
             #  mypy casts are only used as hints for the type checker,
             #  and they don’t perform a runtime type check.
-            return cast(MonitoringFeature, self._monitoring_feature_access.retrieve(pk=id))
+            return cast(MonitoringFeature, self._monitoring_feature_access.retrieve(pk=id, feature_type=feature_type))
         else:
             #  mypy casts are only used as hints for the type checker,
             #  and they don’t perform a runtime type check.

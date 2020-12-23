@@ -61,9 +61,10 @@ def test_measurement_timeseries_tvp_observations_usgs():
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
-                                                 ({"id": "USGS-01020004"}, "subbasin")], ids=["region", "subregion",
-
-                                                                                              "basin", "subbasin"])
+                                                 ({"id": "USGS-01020004"}, "subbasin"),
+                                                 ({"id": "USGS-09129600", "feature_type": "POINT"}, "point"),
+                                                 ({"id": "USGS-383103106594200", "feature_type": "POINT"}, "point")],
+                         ids=["region", "subregion", "basin", "subbasin", "point", "point_long_id"])
 def test_usgs_monitoring_feature(query, feature_type):
     """Test USGS search by region  """
 

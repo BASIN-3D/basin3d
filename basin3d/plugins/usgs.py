@@ -406,7 +406,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         :return: a serialized ``MonitoringFeature`` object
         """
         feature_type = None
-        if QUERY_PARAM_FEATURE_TYPE in kwargs:
+        if QUERY_PARAM_FEATURE_TYPE in kwargs and kwargs[QUERY_PARAM_FEATURE_TYPE]:
             feature_type = kwargs[QUERY_PARAM_FEATURE_TYPE]
         else:
             if len(pk) == 2:
