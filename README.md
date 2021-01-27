@@ -25,8 +25,8 @@ BASIN-D3  requires:
 These instructions will get you a copy of the project up and running on your local machine for 
 development and testing purposes. 
 
-    $ git clone git@github.com:Watershed-Function-SFA/basin3d-core.git
-    $ cd basin3d-core
+    $ git clone git@github.com:BASIN-3D/basin3d.git
+    $ cd basin3d
     
 
 ## Develop
