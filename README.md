@@ -35,12 +35,12 @@ are in `tests/`.
   
 Create an Anaconda environment
 
-    conda create -y -n basin3d-core python=3.7
+    conda create -y -n basin3d python=3.7
 	
 Activate the new environment and prepare it for development
 
-	source activate basin3d-core
-	conda develop -npf -n basin3d-core .
+	source activate basin3d
+	conda develop -npf -n basin3d .
 
 Install  basin3d-core and its dependencies
 
@@ -65,7 +65,7 @@ Run the tests with coverage ONLY
 Sphinx is used to generate documentation. You first need
 to create a virtual environment for generating the docs.
 
-    $ source activate basin3d-core
+    $ source activate basin3d
     $ pip install -r docs/requirements.txt
     
 Generate the documentation
@@ -82,7 +82,7 @@ Review the generated documentation
  
 Install a source distribution with pip:
 
-    $ pip install basin3d-core-<version>.tar.gz
+    $ pip install basin3d-<version>.tar.gz
     
 To get started read the [setup](docs/getting_started.rst) documentation
 
