@@ -44,7 +44,7 @@ Activate the new environment and prepare it for development
 
 Install  basin3d-core and its dependencies
 
-	conda install $(cat requirements.txt) pytest
+	pip install $(cat requirements.txt) pytest
 	pip install pytest-flake8 pytest-mypy pytest-cov sphinx PSphinxTheme
 	python setup.py develop
 	
