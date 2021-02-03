@@ -18,7 +18,7 @@ A data synthesis framework for earth science data.
 BASIN-D3  requires:
 
 * Python (>= 3.7)
-
+* Anaconda
 
 ### Get the code
 
@@ -35,37 +35,37 @@ are in `tests/`.
   
 Create an Anaconda environment
 
-    conda create -y -n basin3d python=3.7
+    $ conda create -y -n basin3d python=3.7
 	
 Activate the new environment and prepare it for development
 
-	source activate basin3d
-	conda develop -npf -n basin3d .
+	$ conda activate basin3d
+	& conda develop -npf -n basin3d .
 
 Install  basin3d-core and its dependencies
 
-	pip install $(cat requirements.txt) pytest
-	pip install pytest-flake8 pytest-mypy pytest-cov sphinx PSphinxTheme
-	python setup.py develop
+	$ conda install $(cat requirements.txt) pytest
+	$ pip install pytest-flake8 pytest-mypy pytest-cov sphinx PSphinxTheme
+	$ python setup.py develop
 	
 Run the tests (mypy and flake8 tests executed by default)
 
-     pytest 
+    $ pytest 
      
 Run the tests with coverage
 
-    pytest --cov=basin3d
+    $ pytest --cov=basin3d
      
 Run the tests with coverage ONLY
 
-     pytest --cov=basin3d tests
-    
 
+    $ pytest --cov=basin3d tests
+    
 ## Documentation
 Sphinx is used to generate documentation. You first need
 to create a virtual environment for generating the docs.
 
-    $ source activate basin3d
+    $ conda activate basin3d
     $ pip install -r docs/requirements.txt
     
 Generate the documentation
@@ -93,10 +93,10 @@ see the [tags on this repository](https://github.com/Watershed-Function-SFA/basi
 
 Workflow for tagging and building release:
 
-1. checkout the version to tag from `master`
-1. `git tag -a v[version]-[release] -m "Tagging release v[version]-[release]"`
-1. build distribution with `setup.py`
-1. `git push origin v[version]-[release]`
+1. checkout the version to tag from `main`
+1. `$ git tag -a v[version]-[release] -m "Tagging release v[version]-[release]"`
+1. build distribution with `$ setup.py`
+1. `$ git push origin v[version]-[release]`
 
 ## Authors
 
