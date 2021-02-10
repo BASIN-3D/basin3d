@@ -1,3 +1,4 @@
 sphinx
 PSphinxTheme
 sphinx-autodoc-typehints
+graphviz
