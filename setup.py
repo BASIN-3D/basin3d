@@ -39,6 +39,10 @@ if sys.version_info.major == 3 and sys.version_info.minor < 7:
 
 packages = find_packages(exclude=["*.tests", ])
 
+# Get the requirements
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
 setup(name='basin3d-core',
       version=__release__,
       description='BASIN-3D Core Framework',
@@ -50,8 +54,6 @@ setup(name='basin3d-core',
       data_files=['basin3d/data/basin3d_variables_hydrology.csv',
                   'basin3d/plugins/mapping_usgs.csv'],
       include_package_data=True,
-      install_requires=[
-          "pyyaml",
-          "requests"
-      ]
+      python_requires=">=3.7",
+      install_requires=required
       )

@@ -3,19 +3,15 @@
 
 name: Python package
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: push
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -28,6 +24,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest pytest-flake8 pytest-mypy pytest-cov $(cat docs/requirements.txt)
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # Output dependency versions
+        pip freeze
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
