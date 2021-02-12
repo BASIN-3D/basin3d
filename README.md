@@ -40,11 +40,11 @@ Create an Anaconda environment
 Activate the new environment and prepare it for development
 
 	$ conda activate basin3d
-	& conda develop -npf -n basin3d .
+	$ conda develop -npf -n basin3d .
 
 Install  basin3d-core and its dependencies
 
-	$ conda install $(cat requirements.txt) pytest
+	$ pip install $(cat requirements.txt) pytest
 	$ pip install pytest-flake8 pytest-mypy pytest-cov sphinx PSphinxTheme
 	$ python setup.py develop
 	
