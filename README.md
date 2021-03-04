@@ -30,7 +30,7 @@ development and testing purposes.
     
 
 ## Develop
-Setup virtualenv for development and testing purposes. All basin-3d tests
+Setup virtualenv for development and testing purposes. All basin3d tests
 are in `tests/`.
   
 Create an Anaconda environment
