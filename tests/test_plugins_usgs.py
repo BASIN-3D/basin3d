@@ -125,11 +125,11 @@ def test_usgs_monitoring_features(query, expected_count):
 @pytest.mark.integration
 def test_usgs_get_data():
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
-    usgs_data = get_timeseries_data(
-        synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
-        observed_property_variables=['RDC', 'WT'], start_date='2019-10-25', end_date='2019-10-28')
+    usgs_data = get_timeseries_data(synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
+                                    observed_property_variables=['RDC', 'WT'], start_date='2019-10-25',
+                                    end_date='2019-10-28')
     usgs_df = usgs_data.data
-    usgs_metadata = usgs_data.metadata_store
+    usgs_metadata_df = usgs_data.metadata
 
     # check the dataframe
     assert isinstance(usgs_df, pd.DataFrame) is True
@@ -143,7 +143,8 @@ def test_usgs_get_data():
     temp_dir = os.path.join(os.getcwd(), 'temp_data')
     assert os.path.isdir(temp_dir) is False
     # check the metadata store
-    var_metadata = usgs_metadata.get('USGS-09110000__RDC')
+    # Get synthesized variable field names and values
+    var_metadata = usgs_metadata_df['USGS-09110000__RDC']
     assert var_metadata['data_start'] == dt.datetime(2019, 10, 25)
     assert var_metadata['data_end'] == dt.datetime(2019, 10, 28)
     assert var_metadata['records'] == 4
