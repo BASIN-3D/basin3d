@@ -14,12 +14,6 @@ A data synthesis framework for earth science data.
 
 ## Getting Started
 
-### Prerequisities
-BASIN-D3  requires:
-
-* Python (>= 3.7)
-* Anaconda
-
 ### Get the code
 
 These instructions will get you a copy of the project up and running on your local machine for 
