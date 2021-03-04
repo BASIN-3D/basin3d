@@ -1,13 +1,13 @@
-# basin3d-core
+# basin3d
 Broker for Assimilation, Synthesis and Integration of eNvironmental Diverse, Distributed Datasets.
 A data synthesis framework for earth science data.
 
 
 ## Development Practices
 
-* basin3d-core uses the [GitFlow model](https://datasift.github.io/gitflow/IntroducingGitFlow.html) 
+* basin3d uses the [GitFlow model](https://datasift.github.io/gitflow/IntroducingGitFlow.html) 
   of branching and code versioning in git. 
-* Code development will be performed in a feature/development branch of the repo. Commits will not be made directly to the master branch of basin3d-core repo.  Developers will submit a pull request that is then merged by another team member, if another team member is available.
+* Code development will be performed in a feature/development branch of the repo. Commits will not be made directly to the master branch of basin3d repo.  Developers will submit a pull request that is then merged by another team member, if another team member is available.
 * Each pull request should contain only related modifications to a feature or bug fix.  
 * Sensitive information (secret keys, usernames etc) and configuration data (e.g database host port) should not be checked into the repo.
 * A practice of rebasing with the main repo should be used rather than merge commits.  
@@ -42,7 +42,7 @@ Activate the new environment and prepare it for development
 	$ conda activate basin3d
 	$ conda develop -npf -n basin3d .
 
-Install  basin3d-core and its dependencies
+Install  basin3d and its dependencies
 
 	$ pip install $(cat requirements.txt) pytest
 	$ pip install pytest-flake8 pytest-mypy pytest-cov sphinx PSphinxTheme
@@ -89,7 +89,7 @@ To get started read the [setup](docs/getting_started.rst) documentation
 ## Versioning
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, 
-see the [tags on this repository](https://github.com/Watershed-Function-SFA/basin3d-core/tags). 
+see the [tags on this repository](https://github.com/BASIN-3D/basin3d/tags). 
 
 Workflow for tagging and building release:
 
@@ -100,14 +100,14 @@ Workflow for tagging and building release:
 
 ## Authors
 
-* **Charuleka Varadharajan** - [LBL](http://eesa.lbl.gov/profiles/charuleka-varadharajan/)
-* **Valerie Hendrix**  - [LBL](https://dst.lbl.gov/people.php?p=ValHendrix)
+* **Charuleka Varadharajan** - [LBL](https://eesa.lbl.gov/profiles/charuleka-varadharajan/)
+* **Valerie Hendrix**  - [LBL](https://crd.lbl.gov/departments/data-science-and-technology/uss/staff/valerie-hendrix)
 * **Danielle Svehla Christianson** - [LBL](https://crd.lbl.gov/departments/data-science-and-technology/uss/staff/danielle-christianson/)
 
 
 ## Copyright
 
-Broker for Assimilation, Synthesis and Integration of eNvironmental Diverse, Distributed Datasets Core  (basin3d-core) Copyright (c) 2019, The
+Broker for Assimilation, Synthesis and Integration of eNvironmental Diverse, Distributed Datasets (BASIN-3D) Copyright (c) 2019, The
 Regents of the University of California, through Lawrence Berkeley National
 Laboratory (subject to receipt of any required approvals from the U.S.
 Dept. of Energy).  All rights reserved.
