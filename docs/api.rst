@@ -1,6 +1,6 @@
 .. _apireference:
 
-API Reference
+Key Functions
 *************
 
 .. automodule:: basin3d
@@ -17,4 +17,4 @@ API Reference
     :members:
     :undoc-members:
     :show-inheritance:
-
+    :noindex:

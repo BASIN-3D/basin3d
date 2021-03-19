@@ -44,10 +44,6 @@ def register(plugins: List[str] = None):
     """
     Register the specified plugins or implicitly register loaded plugins
 
-    TODO: doctest here to show examples of registering plugins
-    TODO: <idea> add USGS to a package with default plugins
-
-    Register a list of plugins
 
     >>> from basin3d import synthesis
     >>> synthesizer = synthesis.register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
@@ -120,15 +116,21 @@ class DataSynthesizer:
 
         :param datasource_id:
         :param variable_names:
-        :return:
+        :return: a list of observed property variables
+
         """
         return self._catalog.find_observed_properties(datasource_id, variable_names)
 
     def observed_property_variables(self, datasource_id=None):
         """
-        Search for
+
+
+        Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
+
+
         :param datasource: filter observer properity variables by data source
-        :return:
+        :return: a list of observed property variables
+
         """
         return self._catalog.find_observed_property_variables(datasource_id=datasource_id)
 
@@ -136,9 +138,12 @@ class DataSynthesizer:
                             monitoring_features: List[str] = None, parent_features: List[str] = None) -> Union[
         Iterator[MonitoringFeature], MonitoringFeature]:
         """
-        Search for monitoring features or look for a single MonitoringFeature by id
+        Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
 
-        Search for a single monitoring feature by id
+        To see feature types for a given plugin: **<plugin_module>.<plugin_class>.feature_types**
+
+
+        **Search for a single monitoring feature by id:**
 
         >>> from basin3d.plugins import usgs
         >>> from basin3d import synthesis
@@ -148,65 +153,24 @@ class DataSynthesizer:
         USGS-0101 - SUBREGION: St. John
 
 
-        Search for all USGS Monitoring features
+        **Search for all USGS monitoring features:**
 
-        >>> for mf in synthesizer.monitoring_features(datasource='USGS', feature_type='region'):
-        ...    print(f"{mf.id} - {mf.description}")
+        >>> for mf in synthesizer.monitoring_features(datasource='USGS', feature_type='region'): # doctest: +ELLIPSIS
+        ...     print(f"{mf.id} - {mf.description}")
         USGS-01 - REGION: New England
         USGS-02 - REGION: Mid Atlantic
         USGS-03 - REGION: South Atlantic-Gulf
-        USGS-04 - REGION: Great Lakes
-        USGS-05 - REGION: Ohio
-        USGS-06 - REGION: Tennessee
-        USGS-07 - REGION: Upper Mississippi
-        USGS-08 - REGION: Lower Mississippi
-        USGS-09 - REGION: Souris-Red-Rainy
-        USGS-10 - REGION: Missouri
-        USGS-11 - REGION: Arkansas-White-Red
-        USGS-12 - REGION: Texas-Gulf
-        USGS-13 - REGION: Rio Grande
-        USGS-14 - REGION: Upper Colorado
-        USGS-15 - REGION: Lower Colorado
-        USGS-16 - REGION: Great Basin
-        USGS-17 - REGION: Pacific Northwest
-        USGS-18 - REGION: California
-        USGS-19 - REGION: Alaska
-        USGS-20 - REGION: Hawaii
-        USGS-21 - REGION: Caribbean
+        ...
 
 
+        **Search for USGS points by parent (subbasin) monitoring features:**
 
-        Search for USGS points by parent (subbasin) Monitoring features
-
-        >>> for mf in synthesizer.monitoring_features(feature_type='point',parent_features=['USGS-17040101']):
+        >>> for mf in synthesizer.monitoring_features(feature_type='point',parent_features=['USGS-17040101']): # doctest: +ELLIPSIS
         ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
         USGS-13010000 [(-110.6647222, 44.1336111)]
         USGS-13010065 [(-110.6675, 44.09888889)]
         USGS-13010450 [(-110.5874305, 43.9038296)]
-        USGS-13011000 [(-110.586597, 43.85855089)]
-        USGS-13011500 [(-110.5171505, 43.85105315)]
-        USGS-13011820 [(-110.1787222, 43.8071111)]
-        USGS-13011900 [(-110.4408333, 43.83805556)]
-        USGS-13012000 [(-110.508539, 43.8366086)]
-        USGS-13012465 [(-110.3145611, 43.7331083)]
-        USGS-13012475 [(-110.3237861, 43.7634833)]
-        USGS-13012490 [(-110.4838156, 43.7727187)]
-        USGS-13012500 [(-110.5379843, 43.7904954)]
-        USGS-13013000 [(-110.7138208, 43.67937728)]
-        USGS-13013500 [(-110.7007649, 43.68326659)]
-        USGS-13013650 [(-110.7154722, 43.65405556)]
-        USGS-13014000 [(-110.8007653, 43.56659567)]
-        USGS-13015500 [(-110.8007649, 43.54992886)]
-        USGS-433551110443501 [(-110.7437613, 43.5974143)]
-        USGS-433603110443501 [(-110.7437391, 43.60073657)]
-        USGS-433603110443502 [(-110.7437391, 43.60073657)]
-        USGS-433604110443402 [(-110.7426389, 43.60116667)]
-        USGS-433604110443403 [(-110.7426611, 43.60118056)]
-        USGS-433613110443501 [(-110.7438059, 43.60346716)]
-        USGS-433615110440001 [(-110.7339749, 43.6040424)]
-        USGS-433641110441501 [(-110.7372222, 43.6118333)]
-
-
+        ...
 
         :param id: Unique feature identifier
         :param feature_type: feature type
@@ -215,7 +179,6 @@ class DataSynthesizer:
         :param parent_features: List of parent monitoring features to search by
 
         :return: a single `MonitoringFeature` or a list
-
         """
 
         # Search for single or list?
@@ -269,20 +232,22 @@ class DataSynthesizer:
         #  and they don’t perform a runtime type check.
         return cast(Iterator[MeasurementTimeseriesTVPObservation],
                     self._measurement_timeseries_tvp_observation_access.list(
-                        monitoring_features=monitoring_features, observed_property_variables=observed_property_variables,
+                        monitoring_features=monitoring_features,
+                        observed_property_variables=observed_property_variables,
                         start_date=start_date, end_date=end_date, aggregation_duration=aggregation_duration,
                         datasource=datasource, results_quality=results_quality))
 
 
-def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str = 'DAY', **kwargs) -> Tuple[Union[pd.DataFrame, None], dict]:
+def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str = 'DAY', **kwargs) -> Tuple[
+    Union[pd.DataFrame, None], dict]:
     """
-    User facing get_data wrapper for the DataSynthesizer. Currently only MeasurementTimeseriesTVPObservations are supported.
+
+    Wrapper for *DataSynthesizer.get_data* for timeseries data types. Currently only *MeasurementTimeseriesTVPObservations* are supported.
 
     >>> from basin3d.plugins import usgs
     >>> from basin3d import synthesis
     >>> synthesizer = synthesis.register()
-    >>> usgs_df, usgs_metadata = synthesis.get_timeseries_data(synthesizer, monitoring_features=['USGS-09110000'], \
-        observed_property_variables=['RDC','WT'], start_date='2019-10-25', end_date='2019-10-30')
+    >>> usgs_df, usgs_metadata = synthesis.get_timeseries_data(synthesizer, monitoring_features=['USGS-09110000'], observed_property_variables=['RDC','WT'], start_date='2019-10-25', end_date='2019-10-30')
     >>> usgs_df
                 TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
     2019-10-25 2019-10-25                3.2            4.247527
@@ -311,35 +276,45 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
     :param synthesizer: DataSnythesizer object
     :param temporal_resolution: temporal resolution of output (in future, we can be smarter about this, e.g., detect it from the results or average higher frequency data)
     :param kwargs:
-           Required parameters for a MeasurementTimeseriesTVPObservation:
-               * monitoring_features
-               * observed_property_variables
-               * start_date
-           Optional parameters for MeasurementTimeseriesTVPObservation:
-               * end_date
-               * aggregation_duration = resolution = DAY  (only DAY is currently supported)
-               * result_quality
-               * datasource
+           Required parameters for a *MeasurementTimeseriesTVPObservation*:
+               * **monitoring_features**
+               * **observed_property_variables**
+               * **start_date**
+           Optional parameters for *MeasurementTimeseriesTVPObservation*:
+               * **end_date**
+               * **aggregation_duration** = resolution = DAY  (only DAY is currently supported)
+               * **result_quality**
+               * **datasource**
 
-    :return: synthesized data in a pandas dataframe
-             TIMESTAMP column: datetime, repr as ISO format
-             data columns: column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
-    :return: metadata store
-             key = f'{monitoring_feature_id}__{observed_property_variable_id}',
-             value = {
-             data_start = str
-             data_end = str
-             records = int
-             units = str
-             basin_3d_variable = str
-             basin_3d_variable_full_name = str
-             statistic = str
-             temporal_aggregation = str
-             quality = str
-             sampling_medium = str
-             sampling_feature_id = str
-             datasource = str
-             datasource_variable}
+    :return:
+        synthesized data in a pandas dataframe:
+
+            **TIMESTAMP column**: datetime, repr as ISO format
+
+            **data columns**::
+
+                    column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
+
+    :return:
+            **metadata store**::
+
+                key = f'{monitoring_feature_id}__{observed_property_variable_id}',
+                value =
+                {
+                    data_start = str
+                    data_end = str
+                    records = int
+                    units = str
+                    basin_3d_variable = str
+                    basin_3d_variable_full_name = str
+                    statistic = str
+                    temporal_aggregation = str
+                    quality = str
+                    sampling_medium = str
+                    sampling_feature_id = str
+                    datasource = str
+                    datasource_variable
+                }
     """
     # Check that required parameters are provided. May have to rethink this when we expand to mulitple observation types
     if not all([QUERY_PARAM_MONITORING_FEATURES in kwargs, QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES in kwargs,

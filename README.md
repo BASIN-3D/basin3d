@@ -21,7 +21,6 @@ development and testing purposes.
 
     $ git clone git@github.com:BASIN-3D/basin3d.git
     $ cd basin3d
-    
 
 ## Develop
 Setup virtualenv for development and testing purposes. All basin3d tests

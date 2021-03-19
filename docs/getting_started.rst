@@ -1,9 +1,9 @@
 ============================
-basin3d-core Getting Started
+BASIN-3D Getting Started
 ============================
 
-BASIN-3D is a Django app that acts as a Broker for Assimilation, Synthesis and Integration of eNvironmental
-Diverse, Distributed Datasets.
+BASIN-3D (Broker for Assimilation, Synthesis and Integration of eNvironmental
+Diverse, Distributed Datasets)
 
 
 Get Code
