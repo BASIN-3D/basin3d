@@ -1,0 +1,543 @@
+
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>basin3d.synthesis &#8212; basin3d-core  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/p_sphinx_theme.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <link rel="stylesheet" href="../../_static/local_fonts.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/jquery.cookie.js"></script>
+    <script src="../../_static/p_sphinx_theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+      <div class="relbar-top">
+            
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+      <li><a href="../../index.html">basin3d-core 0.0.1</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">basin3d.synthesis</a></li> 
+      </ul>
+    </div>
+      </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for basin3d.synthesis</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">`basin3d.synthesis`</span>
+<span class="sd">****************************</span>
+
+<span class="sd">.. currentmodule:: basin3d.synthesis</span>
+
+<span class="sd">:synopsis: BASIN-3D Synthesis API</span>
+<span class="sd">:module author: Val Hendrix &lt;vhendrix@lbl.gov&gt;</span>
+<span class="sd">:module author: Danielle Svehla Christianson &lt;dschristianson@lbl.gov&gt;</span>
+
+
+<span class="sd">&lt;place description here&gt;</span>
+
+<span class="sd">.. inheritance-diagram:: basin3d.synthesis</span>
+<span class="sd">    :parts: 2</span>
+
+<span class="sd">----------------------------------</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dt</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+
+<span class="c1"># Method to query (write query in basin3d language)</span>
+<span class="kn">from</span> <span class="nn">importlib</span> <span class="kn">import</span> <span class="n">import_module</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="c1"># Get an instance of a logger</span>
+<span class="kn">from</span> <span class="nn">basin3d.core.catalog</span> <span class="kn">import</span> <span class="n">CatalogTinyDb</span>
+<span class="kn">from</span> <span class="nn">basin3d.core.models</span> <span class="kn">import</span> <span class="n">DataSource</span><span class="p">,</span> <span class="n">MonitoringFeature</span><span class="p">,</span> <span class="n">MeasurementTimeseriesTVPObservation</span><span class="p">,</span> <span class="n">TimeMetadataMixin</span>
+<span class="kn">from</span> <span class="nn">basin3d.core.plugin</span> <span class="kn">import</span> <span class="n">PluginMount</span>
+<span class="kn">from</span> <span class="nn">basin3d.core.synthesis</span> <span class="kn">import</span> <span class="n">MeasurementTimeseriesTVPObservationAccess</span><span class="p">,</span> <span class="n">MonitoringFeatureAccess</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> \
+    <span class="n">QUERY_PARAM_MONITORING_FEATURES</span><span class="p">,</span> <span class="n">QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES</span><span class="p">,</span> <span class="n">QUERY_PARAM_START_DATE</span>
+<span class="kn">from</span> <span class="nn">basin3d.core.types</span> <span class="kn">import</span> <span class="n">TimeFrequency</span>
+
+
+<div class="viewcode-block" id="SynthesisException"><a class="viewcode-back" href="../../api.html#basin3d.synthesis.SynthesisException">[docs]</a><span class="k">class</span> <span class="nc">SynthesisException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Special Exception for Synthesis module&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="register"><a class="viewcode-back" href="../../models.html#basin3d.synthesis.register">[docs]</a><span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="n">plugins</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Register the specified plugins or implicitly register loaded plugins</span>
+
+
+<span class="sd">    &gt;&gt;&gt; from basin3d import synthesis</span>
+<span class="sd">    &gt;&gt;&gt; synthesizer = synthesis.register([&#39;basin3d.plugins.usgs.USGSDataSourcePlugin&#39;])</span>
+<span class="sd">    &gt;&gt;&gt; synthesizer.datasources</span>
+<span class="sd">    [DataSource(id=&#39;USGS&#39;, name=&#39;USGS&#39;, id_prefix=&#39;USGS&#39;, location=&#39;https://waterservices.usgs.gov/nwis/&#39;, credentials={})]</span>
+
+<span class="sd">    :param plugins: [Optional] plugins to registered</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">plugins</span><span class="p">:</span>
+        <span class="c1"># Implicit registration of loaded plugins</span>
+        <span class="n">plugins</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">PluginMount</span><span class="o">.</span><span class="n">plugins</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">plugins</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SynthesisException</span><span class="p">(</span><span class="s2">&quot;There are no plugins to register&quot;</span><span class="p">)</span>
+
+    <span class="n">plugin_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">catalog</span> <span class="o">=</span> <span class="n">CatalogTinyDb</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">plugin</span> <span class="ow">in</span> <span class="n">plugins</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plugin</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># If this is a string  convert to module and class then load</span>
+            <span class="n">class_name_list</span> <span class="o">=</span> <span class="n">plugin</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+            <span class="n">module_name</span> <span class="o">=</span> <span class="n">plugin</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">class_name_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+            <span class="n">plugin_class</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">class_name_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># This is already a class</span>
+            <span class="n">plugin_class</span> <span class="o">=</span> <span class="n">plugin</span>
+
+        <span class="c1"># Instantiate the plugin with the new catalog</span>
+        <span class="n">plugin</span> <span class="o">=</span> <span class="n">plugin_class</span><span class="p">(</span><span class="n">catalog</span><span class="p">)</span>
+        <span class="n">plugin_dict</span><span class="p">[</span><span class="n">plugin_class</span><span class="o">.</span><span class="n">get_meta</span><span class="p">()</span><span class="o">.</span><span class="n">id_prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">plugin</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading Plugin = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plugin_class</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+    <span class="c1"># Instantiate a synthesizer.</span>
+    <span class="k">return</span> <span class="n">DataSynthesizer</span><span class="p">(</span><span class="n">plugin_dict</span><span class="p">,</span> <span class="n">catalog</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataSynthesizer"><a class="viewcode-back" href="../../api.html#basin3d.synthesis.DataSynthesizer">[docs]</a><span class="k">class</span> <span class="nc">DataSynthesizer</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Synthesis API</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugins</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">catalog</span><span class="p">:</span> <span class="n">CatalogTinyDb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span> <span class="o">=</span> <span class="n">plugins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_catalog</span> <span class="o">=</span> <span class="n">catalog</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_datasources</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">datasource</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">get_datasource</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_datasources</span><span class="p">[</span><span class="n">datasource</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasource</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_catalog</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_monitoring_feature_access</span> <span class="o">=</span> <span class="n">MonitoringFeatureAccess</span><span class="p">(</span><span class="n">plugins</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalog</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_measurement_timeseries_tvp_observation_access</span> <span class="o">=</span> \
+            <span class="n">MeasurementTimeseriesTVPObservationAccess</span><span class="p">(</span><span class="n">plugins</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalog</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">datasources</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">DataSource</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The Datasources loaded in this synthesizer</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_datasources</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+<div class="viewcode-block" id="DataSynthesizer.observed_properties"><a class="viewcode-back" href="../../api.html#basin3d.synthesis.DataSynthesizer.observed_properties">[docs]</a>    <span class="k">def</span> <span class="nf">observed_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datasource_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">variable_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Search for observed properties</span>
+
+<span class="sd">        :param datasource_id:</span>
+<span class="sd">        :param variable_names:</span>
+<span class="sd">        :return: a list of observed property variables</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalog</span><span class="o">.</span><span class="n">find_observed_properties</span><span class="p">(</span><span class="n">datasource_id</span><span class="p">,</span> <span class="n">variable_names</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataSynthesizer.observed_property_variables"><a class="viewcode-back" href="../../api.html#basin3d.synthesis.DataSynthesizer.observed_property_variables">[docs]</a>    <span class="k">def</span> <span class="nf">observed_property_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datasource_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="sd">        Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.</span>
+
+
+<span class="sd">        :param datasource: filter observer properity variables by data source</span>
+<span class="sd">        :return: a list of observed property variables</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalog</span><span class="o">.</span><span class="n">find_observed_property_variables</span><span class="p">(</span><span class="n">datasource_id</span><span class="o">=</span><span class="n">datasource_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataSynthesizer.monitoring_features"><a class="viewcode-back" href="../../api.html#basin3d.synthesis.DataSynthesizer.monitoring_features">[docs]</a>    <span class="k">def</span> <span class="nf">monitoring_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">feature_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">datasource</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="n">monitoring_features</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">parent_features</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="n">Iterator</span><span class="p">[</span><span class="n">MonitoringFeature</span><span class="p">],</span> <span class="n">MonitoringFeature</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.</span>
+
+<span class="sd">        To see feature types for a given plugin: **&lt;plugin_module&gt;.&lt;plugin_class&gt;.feature_types**</span>
+
+
+<span class="sd">        **Search for a single monitoring feature by id:**</span>
+
+<span class="sd">        &gt;&gt;&gt; from basin3d.plugins import usgs</span>
+<span class="sd">        &gt;&gt;&gt; from basin3d import synthesis</span>
+<span class="sd">        &gt;&gt;&gt; synthesizer = synthesis.register()</span>
+<span class="sd">        &gt;&gt;&gt; mf = synthesizer.monitoring_features(id=&#39;USGS-0101&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; print(f&quot;{mf.id} - {mf.description}&quot;)</span>
+<span class="sd">        USGS-0101 - SUBREGION: St. John</span>
+
+
+<span class="sd">        **Search for all USGS monitoring features:**</span>
+
+<span class="sd">        &gt;&gt;&gt; for mf in synthesizer.monitoring_features(datasource=&#39;USGS&#39;, feature_type=&#39;region&#39;): # doctest: +ELLIPSIS</span>
+<span class="sd">        ...     print(f&quot;{mf.id} - {mf.description}&quot;)</span>
+<span class="sd">        USGS-01 - REGION: New England</span>
+<span class="sd">        USGS-02 - REGION: Mid Atlantic</span>
+<span class="sd">        USGS-03 - REGION: South Atlantic-Gulf</span>
+<span class="sd">        ...</span>
+
+
+<span class="sd">        **Search for USGS points by parent (subbasin) monitoring features:**</span>
+
+<span class="sd">        &gt;&gt;&gt; for mf in synthesizer.monitoring_features(feature_type=&#39;point&#39;,parent_features=[&#39;USGS-17040101&#39;]): # doctest: +ELLIPSIS</span>
+<span class="sd">        ...    print(f&quot;{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}&quot;)</span>
+<span class="sd">        USGS-13010000 [(-110.6647222, 44.1336111)]</span>
+<span class="sd">        USGS-13010065 [(-110.6675, 44.09888889)]</span>
+<span class="sd">        USGS-13010450 [(-110.5874305, 43.9038296)]</span>
+<span class="sd">        ...</span>
+
+<span class="sd">        :param id: Unique feature identifier</span>
+<span class="sd">        :param feature_type: feature type</span>
+<span class="sd">        :param datasource: Datasource id prefix (e.g USGS)</span>
+<span class="sd">        :param monitoring_features: List of monitoring feature identifiers (eg. USGS-0010)</span>
+<span class="sd">        :param parent_features: List of parent monitoring features to search by</span>
+
+<span class="sd">        :return: a single `MonitoringFeature` or a list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Search for single or list?</span>
+        <span class="k">if</span> <span class="nb">id</span><span class="p">:</span>
+            <span class="c1">#  mypy casts are only used as hints for the type checker,</span>
+            <span class="c1">#  and they don’t perform a runtime type check.</span>
+            <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">MonitoringFeature</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_monitoring_feature_access</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="nb">id</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1">#  mypy casts are only used as hints for the type checker,</span>
+            <span class="c1">#  and they don’t perform a runtime type check.</span>
+            <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">Iterator</span><span class="p">[</span><span class="n">MonitoringFeature</span><span class="p">],</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_monitoring_feature_access</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">feature_type</span><span class="o">=</span><span class="n">feature_type</span><span class="p">,</span> <span class="n">datasource</span><span class="o">=</span><span class="n">datasource</span><span class="p">,</span>
+                                                             <span class="n">monitoring_features</span><span class="o">=</span><span class="n">monitoring_features</span><span class="p">,</span>
+                                                             <span class="n">parent_features</span><span class="o">=</span><span class="n">parent_features</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DataSynthesizer.measurement_timeseries_tvp_observations"><a class="viewcode-back" href="../../api.html#basin3d.synthesis.DataSynthesizer.measurement_timeseries_tvp_observations">[docs]</a>    <span class="k">def</span> <span class="nf">measurement_timeseries_tvp_observations</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">monitoring_features</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">observed_property_variables</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">aggregation_duration</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">TimeMetadataMixin</span><span class="o">.</span><span class="n">AGGREGATION_DURATION_DAY</span><span class="p">,</span>
+            <span class="n">results_quality</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">datasource</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">MeasurementTimeseriesTVPObservation</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Search for Measurement Timeseries TVP Observations</span>
+
+<span class="sd">        Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables</span>
+
+<span class="sd">            &gt;&gt;&gt; from basin3d.plugins import usgs</span>
+<span class="sd">            &gt;&gt;&gt; from basin3d import synthesis</span>
+<span class="sd">            &gt;&gt;&gt; synthesizer = synthesis.register()</span>
+<span class="sd">            &gt;&gt;&gt; timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=[&#39;USGS-09110990&#39;], \</span>
+<span class="sd">                observed_property_variables=[&#39;RDC&#39;,&#39;WT&#39;], start_date=&#39;2019-10-01&#39;, end_date=&#39;2019-10-30&#39;, \</span>
+<span class="sd">                aggregation_duration=&#39;DAY&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; for timeseries in timeseries:</span>
+<span class="sd">            ...    print(f&quot;{timeseries.feature_of_interest.id} - {timeseries.observed_property_variable}&quot;)</span>
+<span class="sd">            USGS-09110990 - RDC</span>
+
+<span class="sd">        :param monitoring_features: List of monitoring_features ids (eg. USGS-09110990)</span>
+<span class="sd">        :param observed_property_variables: List of observed property variable ids (basin3d variable names)</span>
+<span class="sd">        :param start_date: start date YYYY-MM-DD</span>
+<span class="sd">        :param end_date: end date YYYY-MM-DD</span>
+<span class="sd">        :param aggregation_duration: aggregation time period, default = &#39;DAY&#39; enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND)</span>
+<span class="sd">        :param results_quality: enum (UNCHECKED|CHECKED)</span>
+<span class="sd">        :param datasource: Datasource id prefix (e.g USGS)</span>
+
+<span class="sd">        :return: generator that yields MeasurementTimeseriesTVPObservations</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">monitoring_features</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">observed_property_variables</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">start_date</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Values for one or more of the requred variables was not provided: &#39;</span>
+                         <span class="s1">&#39;monitoring_features, observed_property_variables, start_date.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SynthesisException</span>
+        <span class="c1">#  mypy casts are only used as hints for the type checker,</span>
+        <span class="c1">#  and they don’t perform a runtime type check.</span>
+        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">Iterator</span><span class="p">[</span><span class="n">MeasurementTimeseriesTVPObservation</span><span class="p">],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_measurement_timeseries_tvp_observation_access</span><span class="o">.</span><span class="n">list</span><span class="p">(</span>
+                        <span class="n">monitoring_features</span><span class="o">=</span><span class="n">monitoring_features</span><span class="p">,</span>
+                        <span class="n">observed_property_variables</span><span class="o">=</span><span class="n">observed_property_variables</span><span class="p">,</span>
+                        <span class="n">start_date</span><span class="o">=</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="o">=</span><span class="n">end_date</span><span class="p">,</span> <span class="n">aggregation_duration</span><span class="o">=</span><span class="n">aggregation_duration</span><span class="p">,</span>
+                        <span class="n">datasource</span><span class="o">=</span><span class="n">datasource</span><span class="p">,</span> <span class="n">results_quality</span><span class="o">=</span><span class="n">results_quality</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="get_timeseries_data"><a class="viewcode-back" href="../../models.html#basin3d.synthesis.get_timeseries_data">[docs]</a><span class="k">def</span> <span class="nf">get_timeseries_data</span><span class="p">(</span><span class="n">synthesizer</span><span class="p">:</span> <span class="n">DataSynthesizer</span><span class="p">,</span> <span class="n">temporal_resolution</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;DAY&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+    <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="nb">dict</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Wrapper for *DataSynthesizer.get_data* for timeseries data types. Currently only *MeasurementTimeseriesTVPObservations* are supported.</span>
+
+<span class="sd">    &gt;&gt;&gt; from basin3d.plugins import usgs</span>
+<span class="sd">    &gt;&gt;&gt; from basin3d import synthesis</span>
+<span class="sd">    &gt;&gt;&gt; synthesizer = synthesis.register()</span>
+<span class="sd">    &gt;&gt;&gt; usgs_df, usgs_metadata = synthesis.get_timeseries_data(synthesizer, monitoring_features=[&#39;USGS-09110000&#39;], observed_property_variables=[&#39;RDC&#39;,&#39;WT&#39;], start_date=&#39;2019-10-25&#39;, end_date=&#39;2019-10-30&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; usgs_df</span>
+<span class="sd">                TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC</span>
+<span class="sd">    2019-10-25 2019-10-25                3.2            4.247527</span>
+<span class="sd">    2019-10-26 2019-10-26                4.1            4.219210</span>
+<span class="sd">    2019-10-27 2019-10-27                4.3            4.134260</span>
+<span class="sd">    2019-10-28 2019-10-28                3.2            4.332478</span>
+<span class="sd">    2019-10-29 2019-10-29                2.2            4.219210</span>
+<span class="sd">    2019-10-30 2019-10-30                0.5            4.247527</span>
+
+<span class="sd">    &gt;&gt;&gt; for k, v in usgs_metadata[&#39;USGS-09110000__WT&#39;].items():</span>
+<span class="sd">    ...     print(f&#39;{k} = {v}&#39;)</span>
+<span class="sd">    data_start = 2019-10-25 00:00:00</span>
+<span class="sd">    data_end = 2019-10-30 00:00:00</span>
+<span class="sd">    records = 6</span>
+<span class="sd">    units = deg C</span>
+<span class="sd">    basin_3d_variable = WT</span>
+<span class="sd">    basin_3d_variable_full_name = Water Temperature</span>
+<span class="sd">    statistic = MEAN</span>
+<span class="sd">    temporal_aggregation = DAY</span>
+<span class="sd">    quality = CHECKED</span>
+<span class="sd">    sampling_medium = WATER</span>
+<span class="sd">    sampling_feature_id = USGS-09110000</span>
+<span class="sd">    datasource = USGS</span>
+<span class="sd">    datasource_variable = 00010</span>
+
+<span class="sd">    :param synthesizer: DataSnythesizer object</span>
+<span class="sd">    :param temporal_resolution: temporal resolution of output (in future, we can be smarter about this, e.g., detect it from the results or average higher frequency data)</span>
+<span class="sd">    :param kwargs:</span>
+<span class="sd">           Required parameters for a *MeasurementTimeseriesTVPObservation*:</span>
+<span class="sd">               * **monitoring_features**</span>
+<span class="sd">               * **observed_property_variables**</span>
+<span class="sd">               * **start_date**</span>
+<span class="sd">           Optional parameters for *MeasurementTimeseriesTVPObservation*:</span>
+<span class="sd">               * **end_date**</span>
+<span class="sd">               * **aggregation_duration** = resolution = DAY  (only DAY is currently supported)</span>
+<span class="sd">               * **result_quality**</span>
+<span class="sd">               * **datasource**</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">        synthesized data in a pandas dataframe:</span>
+
+<span class="sd">            **TIMESTAMP column**: datetime, repr as ISO format</span>
+
+<span class="sd">            **data columns**::</span>
+
+<span class="sd">                    column name format = f&#39;{monitoring_feature_id}__{observed_property_variable_id}&#39;</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">            **metadata store**::</span>
+
+<span class="sd">                key = f&#39;{monitoring_feature_id}__{observed_property_variable_id}&#39;,</span>
+<span class="sd">                value =</span>
+<span class="sd">                {</span>
+<span class="sd">                    data_start = str</span>
+<span class="sd">                    data_end = str</span>
+<span class="sd">                    records = int</span>
+<span class="sd">                    units = str</span>
+<span class="sd">                    basin_3d_variable = str</span>
+<span class="sd">                    basin_3d_variable_full_name = str</span>
+<span class="sd">                    statistic = str</span>
+<span class="sd">                    temporal_aggregation = str</span>
+<span class="sd">                    quality = str</span>
+<span class="sd">                    sampling_medium = str</span>
+<span class="sd">                    sampling_feature_id = str</span>
+<span class="sd">                    datasource = str</span>
+<span class="sd">                    datasource_variable</span>
+<span class="sd">                }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check that required parameters are provided. May have to rethink this when we expand to mulitple observation types</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">QUERY_PARAM_MONITORING_FEATURES</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">,</span>
+                <span class="n">QUERY_PARAM_START_DATE</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">]):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;One or more of the required parameters: </span><span class="si">{</span><span class="n">QUERY_PARAM_MONITORING_FEATURES</span><span class="si">}</span><span class="s1">, &#39;</span>
+                     <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES</span><span class="si">}</span><span class="s1">, or </span><span class="si">{</span><span class="n">QUERY_PARAM_START_DATE</span><span class="si">}</span><span class="s1"> was not provided.&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">SynthesisException</span>
+
+    <span class="c1"># For now set the aggregation_duration to match the resolution</span>
+    <span class="c1"># ToDo: expand to detect from results and/or aggregate higher-resolution data to specified resolution</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;aggregation_duration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">temporal_resolution</span>
+
+    <span class="c1"># Get the data</span>
+    <span class="n">data_generator</span> <span class="o">=</span> <span class="n">synthesizer</span><span class="o">.</span><span class="n">measurement_timeseries_tvp_observations</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">metadata_store</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">first_timestamp</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+    <span class="n">last_timestamp</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">1990</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">has_results</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># By using the temporary directory, all the files are eventually removed when the directory is removed.</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">temp_wd</span><span class="p">:</span>
+
+        <span class="k">for</span> <span class="n">data_obj</span> <span class="ow">in</span> <span class="n">data_generator</span><span class="p">:</span>
+
+            <span class="c1"># Collect stats</span>
+            <span class="n">feature_of_interest</span> <span class="o">=</span> <span class="n">data_obj</span><span class="o">.</span><span class="n">feature_of_interest</span>  <span class="c1"># In future will need feature of interest as a separate obj</span>
+            <span class="n">sampling_feature_id</span> <span class="o">=</span> <span class="n">feature_of_interest</span><span class="o">.</span><span class="n">id</span>
+            <span class="n">observed_property_variable_id</span> <span class="o">=</span> <span class="n">data_obj</span><span class="o">.</span><span class="n">observed_property_variable</span>
+            <span class="n">aggregation_duration</span> <span class="o">=</span> <span class="n">data_obj</span><span class="o">.</span><span class="n">aggregation_duration</span>
+            <span class="c1"># Double check that returned aggregation_duration matches resolution. They should be the same.</span>
+            <span class="k">if</span> <span class="n">aggregation_duration</span> <span class="o">!=</span> <span class="n">temporal_resolution</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Results aggregation_duration </span><span class="si">{</span><span class="n">aggregation_duration</span><span class="si">}</span><span class="s1"> does not match &#39;</span>
+                               <span class="sa">f</span><span class="s1">&#39;specified temporal_resolution </span><span class="si">{</span><span class="n">temporal_resolution</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">synthesized_variable_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">sampling_feature_id</span><span class="si">}</span><span class="s1">__</span><span class="si">{</span><span class="n">observed_property_variable_id</span><span class="si">}</span><span class="s1">&#39;</span>
+
+            <span class="n">results_start</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">results_end</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">data_obj</span><span class="o">.</span><span class="n">result_points</span>
+            <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
+                <span class="n">results_start</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">results_end</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">iso_format</span> <span class="o">=</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%S.</span><span class="si">%f</span><span class="s1">&#39;</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results_start</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">results_start</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">results_start</span><span class="p">,</span> <span class="n">iso_format</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results_end</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">results_end</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">results_end</span><span class="p">,</span> <span class="n">iso_format</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">results_start</span> <span class="o">&lt;</span> <span class="n">first_timestamp</span><span class="p">:</span>
+                    <span class="n">first_timestamp</span> <span class="o">=</span> <span class="n">results_start</span>
+                <span class="k">if</span> <span class="n">results_end</span> <span class="o">&gt;</span> <span class="n">last_timestamp</span><span class="p">:</span>
+                    <span class="n">last_timestamp</span> <span class="o">=</span> <span class="n">results_end</span>
+
+            <span class="c1"># Collect rest of variable metadata and store it</span>
+            <span class="c1"># ToDo: other metadata files</span>
+            <span class="n">observed_property</span> <span class="o">=</span> <span class="n">data_obj</span><span class="o">.</span><span class="n">observed_property</span>
+            <span class="n">metadata_store</span><span class="p">[</span><span class="n">synthesized_variable_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;data_start&#39;</span><span class="p">:</span> <span class="n">results_start</span><span class="p">,</span>
+                <span class="s1">&#39;data_end&#39;</span><span class="p">:</span> <span class="n">results_end</span><span class="p">,</span>
+                <span class="s1">&#39;records&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">),</span>
+                <span class="s1">&#39;units&#39;</span><span class="p">:</span> <span class="n">data_obj</span><span class="o">.</span><span class="n">unit_of_measurement</span><span class="p">,</span>
+                <span class="s1">&#39;basin_3d_variable&#39;</span><span class="p">:</span> <span class="n">observed_property_variable_id</span><span class="p">,</span>
+                <span class="s1">&#39;basin_3d_variable_full_name&#39;</span><span class="p">:</span> <span class="n">observed_property</span><span class="o">.</span><span class="n">observed_property_variable</span><span class="o">.</span><span class="n">full_name</span><span class="p">,</span>
+                <span class="s1">&#39;statistic&#39;</span><span class="p">:</span> <span class="n">data_obj</span><span class="o">.</span><span class="n">statistic</span><span class="p">,</span>
+                <span class="s1">&#39;temporal_aggregation&#39;</span><span class="p">:</span> <span class="n">aggregation_duration</span><span class="p">,</span>
+                <span class="s1">&#39;quality&#39;</span><span class="p">:</span> <span class="n">data_obj</span><span class="o">.</span><span class="n">result_quality</span><span class="p">,</span>
+                <span class="s1">&#39;sampling_medium&#39;</span><span class="p">:</span> <span class="n">observed_property</span><span class="o">.</span><span class="n">sampling_medium</span><span class="p">,</span>
+                <span class="s1">&#39;sampling_feature_id&#39;</span><span class="p">:</span> <span class="n">sampling_feature_id</span><span class="p">,</span>
+                <span class="s1">&#39;datasource&#39;</span><span class="p">:</span> <span class="n">data_obj</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s1">&#39;datasource_variable&#39;</span><span class="p">:</span> <span class="n">observed_property</span><span class="o">.</span><span class="n">datasource_variable</span><span class="p">}</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">synthesized_variable_name</span><span class="si">}</span><span class="s1"> returned no data.&#39;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">has_results</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># Write results to temp file</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_wd</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">synthesized_variable_name</span><span class="si">}</span><span class="s1">.json&#39;</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;{&#39;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;: </span><span class="si">{</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;,&quot;</span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;}&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">has_results</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata_store</span>
+
+        <span class="c1"># Prep the dataframe</span>
+        <span class="n">time_index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">first_timestamp</span><span class="p">,</span> <span class="n">last_timestamp</span><span class="p">,</span>
+                                   <span class="n">freq</span><span class="o">=</span><span class="n">TimeFrequency</span><span class="o">.</span><span class="n">PANDAS_FREQUENCY_MAP</span><span class="p">[</span><span class="n">temporal_resolution</span><span class="p">])</span>
+        <span class="n">time_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">time_index</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">time_index</span><span class="p">)</span>
+        <span class="n">output_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;TIMESTAMP&#39;</span><span class="p">:</span> <span class="n">time_series</span><span class="p">})</span>
+        <span class="c1"># ToDo: expand to have TIMESTAMP_START and TIMESTAMP_END for resolutions HOUR, MINUTE</span>
+
+        <span class="c1"># Fill the dataframe</span>
+        <span class="k">for</span> <span class="n">synthesized_variable_name</span> <span class="ow">in</span> <span class="n">metadata_store</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">num_records</span> <span class="o">=</span> <span class="n">metadata_store</span><span class="p">[</span><span class="n">synthesized_variable_name</span><span class="p">][</span><span class="s1">&#39;records&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">num_records</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_wd</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">synthesized_variable_name</span><span class="si">}</span><span class="s1">.json&#39;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">result_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="n">pd_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">result_dict</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">synthesized_variable_name</span><span class="p">)</span>
+                <span class="n">output_df</span> <span class="o">=</span> <span class="n">output_df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pd_series</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added variable </span><span class="si">{</span><span class="n">synthesized_variable_name</span><span class="si">}</span><span class="s1"> with </span><span class="si">{</span><span class="n">num_records</span><span class="si">}</span><span class="s1"> records.&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">output_df</span><span class="p">,</span> <span class="n">metadata_store</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinxglobaltoc">
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">What is BASIN-3D?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../concepts.html">BASIN-3D Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">BASIN-3D Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Key Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../models.html">Quick Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contact.html">Contact Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license_agreement.html">License Agreement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../copyright_notice.html">Copyright Notice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contents.html">Table of Contents</a></li>
+</ul>
+</div>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+      <div class="relbar-bottom">
+            
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+      <li><a href="../../index.html">basin3d-core 0.0.1</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">basin3d.synthesis</a></li> 
+      </ul>
+    </div>
+      </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory 
+(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved..
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.5.3.
+    </div>
+      <!-- PSphinxTheme -->
+  </body>
+</html>

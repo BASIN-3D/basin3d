@@ -1,0 +1,202 @@
+
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BASIN-3D Concepts &#8212; basin3d-core  documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/p_sphinx_theme.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <link rel="stylesheet" href="_static/local_fonts.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/jquery.cookie.js"></script>
+    <script src="_static/p_sphinx_theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Examples" href="examples.html" />
+    <link rel="prev" title="What is BASIN-3D?" href="intro.html" /> 
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+      <div class="relbar-top">
+            
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="examples.html" title="Examples"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="intro.html" title="What is BASIN-3D?"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+      <li><a href="index.html">basin3d-core 0.0.1</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">BASIN-3D Concepts</a></li> 
+      </ul>
+    </div>
+      </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="basin-3d-concepts">
+<h1>BASIN-3D Concepts<a class="headerlink" href="#basin-3d-concepts" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="a-brief-overview-of-basin-3d-terms-and-concepts">
+<h2>A brief overview of BASIN-3D terms and concepts<a class="headerlink" href="#a-brief-overview-of-basin-3d-terms-and-concepts" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="plugins-aka-data-sources">
+<h3>Plugins (aka, data sources)<a class="headerlink" href="#plugins-aka-data-sources" title="Permalink to this headline">¶</a></h3>
+<p>BASIN-3D translates queries of BASIN-3D’s data model to queries of individual data sources whose plugins have been registered.</p>
+<blockquote>
+<div><p>A <em>plugin</em> is a software component that extends functionality. In this case, a plugin will add access to data sources desired for synthesis. A <em>data source</em> is where the data originates.</p>
+<p>A plugin to USGS Daily Water service is available with BASIN-3D. Future releases will provide additional plugins and custom plugins can be built.</p>
+</div></blockquote>
+<p>BASIN-3D allows scientists to make a single query to multiple data sources.</p>
+<img alt="_images/basin3d_flow.png" class="align-center" src="_images/basin3d_flow.png" />
+<p>BASIN-3D accesses data sources on-demand. Plugins map the data source query and return (meta)data to BASIN-3D’s data model (see Observations, Monitoring Features, Observed Properties below).</p>
+</div>
+<div class="section" id="observations-aka-data">
+<h3>Observations (aka, data)<a class="headerlink" href="#observations-aka-data" title="Permalink to this headline">¶</a></h3>
+<p>BASIN-3D is designed to support diverse types of data, which we call observations. Examples of observation types include: time series, images, gridded layers, results of lab analyses, qualitative descriptions. BASIN-3D currently supports time series observations.</p>
+<dl class="simple">
+<dt><strong>Features of Interest</strong></dt><dd><p>Observations typically describe an aspect of something. Features of interest include organisms or physical entities.</p>
+</dd>
+<dt><strong>Monitoring Features</strong></dt><dd><p>Features of interest are often physical entities more commonly referred to as locations or samples, which we collectively call <em>monitoring features</em>:</p>
+</dd>
+</dl>
+<img alt="_images/basin3d_monitoring_features.png" class="align-center" src="_images/basin3d_monitoring_features.png" />
+<dl class="simple">
+<dt><strong>Observed Properties</strong></dt><dd><p>The aspect of something that the observation describes is called the <em>observed property</em>; these are variables.</p>
+</dd>
+</dl>
+<p><em>IMPORTANT: To query many observation types using BASIN-3D, monitoring features and observed properties must be specified.</em></p>
+<dl class="simple">
+<dt><strong>Additional Metadata</strong></dt><dd><p>Observations have many other metadata, including when it occurs in time. See XXX for additional metadata available for observations.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="monitoring-features-e-g-locations-and-samples">
+<h3>Monitoring Features (e.g., Locations and Samples)<a class="headerlink" href="#monitoring-features-e-g-locations-and-samples" title="Permalink to this headline">¶</a></h3>
+<p><em>Monitoring features</em> are what an observation is characterizing.</p>
+<dl>
+<dt><strong>Feature Types</strong></dt><dd><p>Data often characterize physical entities. In Earth Science monitoring features can be categories of <em>feature types</em> such as basins, watersheds, and points.</p>
+<p>BASIN-3D is currently bundled with feature types for hydrological earth science data (See xxx to get a list of these feature types).  However, the design allows for the definition of other domain specific feature types.</p>
+</dd>
+<dt><strong>Parent Features</strong></dt><dd><p>Monitoring features can be organized into hierarchies to enable queries by <em>parent features</em>:</p>
+</dd>
+<dt><strong>Additional Metadata</strong></dt><dd><p>Monitoring features have metadata that include their geo-reference. See XXX for additional metadata available for monitoring features.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="observed-properties-e-g-variables">
+<h3>Observed Properties (e.g., Variables)<a class="headerlink" href="#observed-properties-e-g-variables" title="Permalink to this headline">¶</a></h3>
+<p>An <em>observed property</em> is the aspect of a monitoring feature being characterized by the observation.</p>
+<blockquote>
+<div><p>Observed properties are commonly called variables. Examples include stream discharge, air temperature, aluminum concentration</p>
+<p>BASIN-3D uses a defined list of observed properties and their units to which data source variable names and units are mapped. By default, BASIN-3D uses a list of variables commonly used in hydrological-focused Earth Science.</p>
+</div></blockquote>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinxglobaltoc">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">What is BASIN-3D?</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">BASIN-3D Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#a-brief-overview-of-basin-3d-terms-and-concepts">A brief overview of BASIN-3D terms and concepts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#plugins-aka-data-sources">Plugins (aka, data sources)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#observations-aka-data">Observations (aka, data)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#monitoring-features-e-g-locations-and-samples">Monitoring Features (e.g., Locations and Samples)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#observed-properties-e-g-variables">Observed Properties (e.g., Variables)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">BASIN-3D Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Key Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Quick Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact.html">Contact Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license_agreement.html">License Agreement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="copyright_notice.html">Copyright Notice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contents.html">Table of Contents</a></li>
+</ul>
+</div>
+
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/concepts.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+      <div class="relbar-bottom">
+            
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="examples.html" title="Examples"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="intro.html" title="What is BASIN-3D?"
+             >previous</a> &nbsp; &nbsp;</li>
+      <li><a href="index.html">basin3d-core 0.0.1</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">BASIN-3D Concepts</a></li> 
+      </ul>
+    </div>
+      </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory 
+(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved..
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.5.3.
+    </div>
+      <!-- PSphinxTheme -->
+  </body>
+</html>
