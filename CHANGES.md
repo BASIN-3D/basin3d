@@ -1,13 +1,11 @@
-Change Log
-**********
+# Changelog
 
-Version 0.0.2
-##############
-Project Updates:
+## Version 0.0.2
+Project Updates:   
    + Enable Github Actions
    + Temporarily freeze Pandas v1.1.5 due to NaN errors
    + Handle empty data returns
-
+    
 Install Updates:
    + Issue #29, #7: Fix install commands
 
@@ -20,7 +18,6 @@ Documentation Updates:
    + Remove prerequisites section in README
    + Update license to the BASIN-3D license
 
-Version 0.0.1
-###############
+## Version 0.0.1
 Project Updates:
    + Prepare version for open-source release
