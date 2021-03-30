@@ -5,10 +5,10 @@ Welcome to basin3d-core |release| documentation!
 
    intro
    concepts
-   examples
    getting_started
-   api
-   models
+   quick_guide
+   examples
+   key_functions
    contact
    license_agreement
    copyright_notice

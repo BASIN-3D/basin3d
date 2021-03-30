@@ -1,4 +1,4 @@
-.. _apireference:
+.. _keyfunctionsreference:
 
 Key Functions
 *************

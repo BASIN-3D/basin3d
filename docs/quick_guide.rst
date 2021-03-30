@@ -1,4 +1,4 @@
-.. _modelsreference:
+.. _quickguidereference:
 
 Quick Guide
 ******************
@@ -34,10 +34,3 @@ Get a List of Variables Supported by a Data Source
 Get Time Series Data
 ----------------------
 .. autofunction:: basin3d.synthesis.get_timeseries_data
-
-
-
-
-
-
-

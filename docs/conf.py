@@ -19,7 +19,7 @@ master_doc = "index"
 # -- Project information -----------------------------------------------------
 
 # General information about the project.
-project = 'basin3d-core'
+project = 'basin3d'
 copyright = '2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory \n(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.'
 author = 'Charuleka Varadharajan, Valerie Hendrix, Danielle Christianson'
 
@@ -33,7 +33,7 @@ author = 'Charuleka Varadharajan, Valerie Hendrix, Danielle Christianson'
 #
 # import os
 # import sys
-version = "0.0.1"
+version = "0.0.2"
 
 # -- General configuration ---------------------------------------------------
 
@@ -102,7 +102,7 @@ html_theme_path = p
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #
 # html_short_title = None
-html_short_title = 'basin3d-core {}'.format(version)
+html_short_title = 'basin3d {}'.format(version)
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -201,7 +201,7 @@ html_split_index = False
 # html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'basin3d-coredoc'
+htmlhelp_basename = 'basin3d-doc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -231,7 +231,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'basin3d-core-{}.tex'.format(version), 'basin3d-core Documentation',
+    (master_doc, 'basin3d-{}.tex'.format(version), 'basin3d Documentation',
      'Charuleka Varadharajan, Valerie Hendrix', 'manual'),
 ]
 
@@ -272,7 +272,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'basin-3d', 'basin3d-core Documentation',
+    (master_doc, 'basin-3d', 'basin3d Documentation',
      [author], 1)
 ]
 
@@ -287,8 +287,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'basin3d-core', 'basin3d-core Documentation',
-     author, 'basin3d-core', 'One line description of project.',
+    (master_doc, 'basin3d', 'basin3d Documentation',
+     author, 'basin3d', 'One line description of project.',
      'Miscellaneous'),
 ]
 
