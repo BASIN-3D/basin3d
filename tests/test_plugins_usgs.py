@@ -2,6 +2,11 @@ import json
 import datetime as dt
 import os
 from unittest.mock import Mock, MagicMock
+
+import basin3d
+from basin3d.plugins.usgs import USGSMonitoringFeatureAccess
+from tests.utilities import get_text, get_json
+
 import pandas as pd
 import pytest
 
@@ -9,13 +14,10 @@ from typing import Iterator
 
 from pydantic import ValidationError
 
-import basin3d
 from basin3d.core.models import Base
 from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum
 from basin3d.core.types import SamplingMedium
-from basin3d.plugins.usgs import USGSMonitoringFeatureAccess
 from basin3d.synthesis import register, get_timeseries_data
-from tests.utilities import get_text, get_json
 
 
 def get_url(data):
@@ -37,6 +39,7 @@ def get_url_text(text):
     :param data:
     :return:
     """
+
 
     return type('Dummy', (object,), {
         "text": text,
@@ -72,13 +75,17 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         "aggregation_duration": "DAY",
         "results_quality": "CHECKED"
     }
+
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
+
+    # loop through generator and serialized the object, get actual object and compare
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
         count = 0
         for timeseries in measurement_timeseries_tvp_observations:
             print(timeseries.to_json())
+            data = json.loads(timeseries.to_json())
             count += 1
-
+            assert data["statistic"] == "MEAN"
         assert count == 2
     else:
         pytest.fail("Returned object must be iterator")
@@ -101,9 +108,9 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
                                                  ({"id": "USGS-09129600"}, "point"),
                                                  ({"id": "USGS-383103106594200", "feature_type": "POINT"}, "point")],
                          ids=["region", "subregion", "basin", "subbasin", "point", "point_long_id"])
-
 def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     """Test USGS search by region  """
+
 
     def mock_get_huc_codes(*args):
         return get_text("new_huc_rdb.txt")
@@ -120,6 +127,7 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     assert monitoring_feature.feature_type == feature_type.upper()
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count", [({"datasource": "USGS"}, 2889),
                                                    ({"monitoring_features": ['USGS-02']}, 1),
                                                    ({"feature_type": "region"}, 21),
@@ -147,7 +155,6 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
                               "point", "point_by_id", "all_by_region",
                               "points_by_subbasin",
                               "subbasin_by_subregion", "invalid_points"])
-
 def test_usgs_monitoring_features(query, expected_count, monkeypatch):
     """Test USGS search by region  """
 

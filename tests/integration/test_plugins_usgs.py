@@ -75,6 +75,7 @@ def test_usgs_monitoring_feature(query, feature_type):
     assert FeatureTypes.TYPES[monitoring_feature.feature_type] == feature_type.upper()
 
 
+<<<<<<< HEAD
 # @pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count",
                          [({"datasource": "USGS"}, 2889),
@@ -96,12 +97,38 @@ def test_usgs_monitoring_feature(query, feature_type):
                           ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
                           ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
                          ids=["all", "region_by_id", "region", "subregion",
+=======
+@pytest.mark.integration
+@pytest.mark.parametrize("query, expected_count", [({}, 2889),
+                                                   ({"feature_type": "region"}, 21),
+                                                   ({"feature_type": "subregion"}, 222),
+                                                   ({"feature_type": "basin"}, 379),
+                                                   ({"feature_type": "subbasin"}, 2267),
+                                                   ({"feature_type": "watershed"}, 0),
+                                                   ({"feature_type": "subwatershed"}, 0),
+                                                   ({"feature_type": "site"}, 0),
+                                                   ({"feature_type": "plot"}, 0),
+                                                   ({"feature_type": "vertical path"}, 0),
+                                                   ({"feature_type": "horizontal path"}, 0),
+                                                   ({"feature_type": "point"}, 0),
+                                                   ({"parent_features": ['USGS-02']}, 118),
+                                                   (
+                                                           {"parent_features": ['USGS-02020004'],
+                                                            "feature_type": "point"}, 48),
+                                                   ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
+                                                   ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
+                         ids=["all", "region", "subregion",
+>>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
                               "basin", "subbasin",
                               "watershed", "subwatershed",
                               "site", "plot",
                               "vertical_path",
                               "horizontal_path",
+<<<<<<< HEAD
                               "point", "point_by_id", "all_by_region",
+=======
+                              "point", "all_by_region",
+>>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
                               "points_by_subbasin",
                               "subbasin_by_subregion", "invalid_points"])
 def test_usgs_monitoring_features(query, expected_count):
@@ -122,6 +149,7 @@ def test_usgs_monitoring_features(query, expected_count):
     assert count == expected_count
 
 
+<<<<<<< HEAD
 @pytest.mark.parametrize("query, expected_count", [
     ({"feature_type": ['USGS-02']}, 1)],
                          ids=["region_by_id"])
@@ -149,6 +177,8 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
     assert count == expected_count
 
 
+=======
+>>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
 @pytest.mark.integration
 def test_usgs_get_data():
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
