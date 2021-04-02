@@ -43,17 +43,21 @@ packages = find_packages(exclude=["*.tests", ])
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
-setup(name='basin3d-core',
+setup(name='basin3d',
       version=__release__,
       description='BASIN-3D Core Framework',
       long_description=README,
-      author='Val Hendrix',
-      author_email='vchendrix@lbl.gov',
-      url='https://github.com/Watershed-Function-SFA/basin3d-core',
+      author='Val Hendrix, Danielle Svehla Christianson, Charuleka Varadharajan, Catherine Wong',
+      author_email='vchendrix@lbl.gov, dschristianson@lbl.gov, cvaradharajan@lbl.gov, catwong@lbl.gov' ,
+      url='https://github.com/BASIN-3D/basin3d',
       packages=packages,
       data_files=['basin3d/data/basin3d_variables_hydrology.csv',
                   'basin3d/plugins/mapping_usgs.csv'],
       include_package_data=True,
-      python_requires=">=3.7",
-      install_requires=required
+      install_requires=[
+         "pandas",
+         "pyyaml",
+         "requests",
+         "tinydb"
+      ]
       )

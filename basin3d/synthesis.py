@@ -5,14 +5,31 @@
 .. currentmodule:: basin3d.synthesis
 
 :synopsis: BASIN-3D Synthesis API
-:module author: Val Hendrix <vhendrix@lbl.gov>
-:module author: Danielle Svehla Christianson <dschristianson@lbl.gov>
+:module author: Val Hendrix <vhendrix@lbl.gov>, Danielle Svehla Christianson <dschristianson@lbl.gov>. Catherine Wong <catwong@lbl.gov>
 
 
-<place description here>
+Functions
+----------------
+* :func:`register` - Register the specified plugins or implicitly register loaded plugins
+* :func:`get_timeseries_data` - Wrapper for DataSynthesizer.get_data for timeseries data types. Currently only MeasurementTimeseriesTVPObservations are supported.
 
-.. inheritance-diagram:: basin3d.synthesis
-    :parts: 2
+Exceptions
+-----------
+* :py:exc:`SynthesisException` - Special Exception for Synthesis module
+
+
+synthesis.DataSynthesizer
+---------------------------
+Classes
+--------
+* :class:`DataSynthesizer` - Synthesis API
+
+Functions
+----------
+* :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
+* :func:`DataSynthesizer.monitoring_features`- Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
+* :func:`DataSynthesizer.observed_properties`- Search for observed properties
+* :func:`DataSynthesizer.observed_property_variables`- Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
 
 ----------------------------------
 """
@@ -51,7 +68,7 @@ def register(plugins: List[str] = None):
     [DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/', credentials={})]
 
     :param plugins: [Optional] plugins to registered
-    :return:
+    :return: DataSynthesizer(plugin_dict, catalog)
     """
 
     if not plugins:
@@ -114,9 +131,9 @@ class DataSynthesizer:
         """
         Search for observed properties
 
-        :param datasource_id:
-        :param variable_names:
-        :return: a list of observed property variables
+        :param datasource_id: Unique feature identifier of datasource
+        :param variable_names: Observed property variables
+        :return: a list of observed properties
 
         """
         return self._catalog.find_observed_properties(datasource_id, variable_names)
@@ -124,11 +141,9 @@ class DataSynthesizer:
     def observed_property_variables(self, datasource_id=None):
         """
 
-
         Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
 
-
-        :param datasource: filter observer properity variables by data source
+        :param datasource_id: filter observer properity variables by data source
         :return: a list of observed property variables
 
         """
@@ -199,8 +214,6 @@ class DataSynthesizer:
             end_date: str = None, aggregation_duration: str = TimeMetadataMixin.AGGREGATION_DURATION_DAY,
             results_quality: str = None, datasource: str = None) -> Iterator[MeasurementTimeseriesTVPObservation]:
         """
-        Search for Measurement Timeseries TVP Observations
-
         Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
 
             >>> from basin3d.plugins import usgs
@@ -287,16 +300,29 @@ def get_timeseries_data(synthesizer: DataSynthesizer, temporal_resolution: str =
                * **datasource**
 
     :return:
-        synthesized data in a pandas dataframe:
+         a Tuple: synthesized data with timestamp, monitoring feature id, observed property variable id in a pandas DataFrame (optional) and metadata dictionary.
 
-            **TIMESTAMP column**: datetime, repr as ISO format
+         Optional means a return value of None for the pandas DataFrame if no arguments are passed into **kwargs. The min. required arguments to return a pandas DataFrame are monitoring features, observed property variables, and start date
 
-            **data columns**::
 
+            **[optional] pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id ::
+
+                                TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
+                    2019-10-25 2019-10-25                3.2            4.247527
+                    2019-10-26 2019-10-26                4.1            4.219210
+                    2019-10-27 2019-10-27                4.3            4.134260
+                    2019-10-28 2019-10-28                3.2            4.332478
+                    2019-10-29 2019-10-29                2.2            4.219210
+                    2019-10-30 2019-10-30                0.5            4.247527
+
+                    # timestamp column: datetime, repr as ISO format
+                    column name format = f'{start_date end_date}
+
+                    # data columns: monitoring feature id and observed property variable id
                     column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
 
-    :return:
-            **metadata store**::
+
+            **metadata dictionary**::
 
                 key = f'{monitoring_feature_id}__{observed_property_variable_id}',
                 value =

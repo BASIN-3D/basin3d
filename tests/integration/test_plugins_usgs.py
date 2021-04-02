@@ -1,8 +1,5 @@
-import json
 import datetime as dt
 import os
-from unittest.mock import Mock, MagicMock
-
 import pandas as pd
 import pytest
 
@@ -11,48 +8,24 @@ from typing import Iterator
 from basin3d.core.models import Base
 from basin3d.core.types import FeatureTypes, TimeFrequency, ResultQuality, SamplingMedium
 from basin3d.synthesis import register, SynthesisException, get_timeseries_data
-from tests.utilities import get_text, get_json
-import basin3d.plugins.usgs
-from basin3d.plugins.usgs import USGSMonitoringFeatureAccess
 
 
-def get_url(data):
-    """
-    Creates a get_url call for mocking with the specified return data
-    :param data:
-    :return:
-    """
-
-    return type('Dummy', (object,), {
-        "json": lambda: data,
-        "status_code": 200,
-        "url": "/testurl"})
-
-
-def get_url_text(text):
-    """
-    Creates a get_url call for mocking with the specified return data
-    :param data:
-    :return:
-    """
-
-    return type('Dummy', (object,), {
-        "text": text,
-        "status_code": 200,
-        "url": "/testurl"})
-
-
-def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
+@pytest.mark.integration
+def test_measurement_timeseries_tvp_observations_usgs():
     """ Test USGS Timeseries data query"""
 
-    import basin3d
-
-    mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_mtvp_sites.rdb")),
-                                               get_url(
-                                                   get_json("usgs_nwis_dv_p00060_l09110990_l09111250.json"))]))
-    monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
-
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
+
+    query0 = {
+        "monitoring_features": ["USGS-09110990", "USGS-09111250"],
+        "observed_property_variables": [],
+        "start_date": "2020-04-01",
+        "end_date": "2020-04-30",
+        "aggregation_duration": "DAY",
+        "results_quality": "CHECKED"
+    }
+    with pytest.raises(SynthesisException):
+        synthesizer.measurement_timeseries_tvp_observations(**query0)
 
     query1 = {
         "monitoring_features": ["USGS-09110990", "USGS-09111250"],
@@ -62,37 +35,37 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         "aggregation_duration": "DAY",
         "results_quality": "CHECKED"
     }
-
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
-
-    # loop through generator and serialized the object, get actual object and compare
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
         count = 0
         for timeseries in measurement_timeseries_tvp_observations:
             print(timeseries.to_json())
-            data = json.loads(timeseries.to_json())
             count += 1
-            assert data["statistic"] == "MEAN"
+
         assert count == 2
     else:
         pytest.fail("Returned object must be iterator")
 
+    query2 = {
+        "observed_property_variables": ["RDC"],
+        "start_date": "2020-04-01",
+        "end_date": "2020-04-30",
+        "aggregation_duration": "DAY",
+        "results_quality": "CHECKED"
+    }
+    with pytest.raises(TypeError):
+        synthesizer.measurement_timeseries_tvp_observations(**query2)
 
+
+@pytest.mark.integration
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
                                                  ({"id": "USGS-01020004"}, "subbasin")], ids=["region", "subregion",
 
                                                                                               "basin", "subbasin"])
-def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
+def test_usgs_monitoring_feature(query, feature_type):
     """Test USGS search by region  """
-
-    import basin3d
-
-    def mock_get_huc_codes(*args):
-        return get_text("new_huc_rdb.txt")
-
-    monkeypatch.setattr(USGSMonitoringFeatureAccess, 'get_hydrological_unit_codes', mock_get_huc_codes)
 
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     monitoring_feature = synthesizer.monitoring_features(**query)
@@ -100,9 +73,9 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     assert monitoring_feature is not None
     assert isinstance(monitoring_feature, Base)
     assert FeatureTypes.TYPES[monitoring_feature.feature_type] == feature_type.upper()
-    # add more asserts
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count", [({}, 2889),
                                                    ({"feature_type": "region"}, 21),
                                                    ({"feature_type": "subregion"}, 222),
@@ -148,6 +121,7 @@ def test_usgs_monitoring_features(query, expected_count):
     assert count == expected_count
 
 
+@pytest.mark.integration
 def test_usgs_get_data():
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     usgs_df, usgs_metadata = get_timeseries_data(
