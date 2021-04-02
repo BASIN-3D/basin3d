@@ -3,7 +3,6 @@ import pytest
 from basin3d.core.models import DataSource, MeasurementTimeseriesTVPObservation
 from basin3d.plugins.usgs import USGSMeasurementTimeseriesTVPObservationAccess
 
-
 def pytest_addoption(parser):
     """
     Add execution options to the commandline

@@ -31,7 +31,7 @@ Activate the new environment and prepare it for development
 	$ conda activate basin3d
 	$ conda develop -npf -n basin3d .
 
-Install basin3d and its dependencies
+Install  basin3d and its dependencies
 
 	$ pip install $(cat requirements.txt) pytest flake8 pytest-flake8 pytest-mypy pytest-cov types-PyYAML types-chardet types-cryptography types-requests 
 	$ python setup.py develop

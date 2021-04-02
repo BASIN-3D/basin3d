@@ -102,9 +102,9 @@ class SynthesizedTimeseriesData:
     data: pd.DataFrame
     """The time series data
     **pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id
-
+    
     .. code-block::
-
+    
                     TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
         2019-10-25 2019-10-25                3.2            4.247527
         2019-10-26 2019-10-26                4.1            4.219210
@@ -112,14 +112,14 @@ class SynthesizedTimeseriesData:
         2019-10-28 2019-10-28                3.2            4.332478
         2019-10-29 2019-10-29                2.2            4.219210
         2019-10-30 2019-10-30                0.5            4.247527
-
+        
         # timestamp column: datetime, repr as ISO format
         column name format = f'{start_date end_date}
-
+        
         # data columns: monitoring feature id and observed property variable id
         column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
-
-
+    
+    
     """
 
     metadata: pd.DataFrame
