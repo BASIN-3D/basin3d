@@ -31,11 +31,7 @@ BASIN-3D is designed to support diverse types of data, which we call observation
     Observations typically describe an aspect of something. Features of interest include organisms or physical entities.
 
 **Monitoring Features**
-    Features of interest are often physical entities more commonly referred to as locations or samples, which we collectively call *monitoring features*:
-
-.. image:: _static/images/basin3d_monitoring_features.png
-    :align: center
-
+    Features of interest are often physical entities more commonly referred to as locations or samples. Read more below.
 
 **Observed Properties**
     The aspect of something that the observation describes is called the *observed property*; these are variables.
@@ -49,7 +45,10 @@ BASIN-3D is designed to support diverse types of data, which we call observation
 Monitoring Features (e.g., Locations and Samples)
 ====================================================
 
-*Monitoring features* are what an observation is characterizing.
+*Monitoring features* are what an observation is characterizing and can be organized into hierarchies:
+
+.. image:: _static/images/basin3d_monitoring_features.png
+    :align: center
 
 **Feature Types**
     Data often characterize physical entities. In Earth Science monitoring features can be categories of *feature types* such as basins, watersheds, and points.
