@@ -8,6 +8,9 @@ BASIN-3D is a software ecosystem that synthesizes diverse earth science data fro
 
 basin3d is the core BASIN-3D application that uses a generalized data synthesis model that applies across a variety of earth science observation types (hydrology, geochemistry, climate etc.). The synthesis models, basin3d’s abstract formats, are based on the Open Geospatial Consortium (OGC) and ISO “Observations and Measurements” (OGC 10-004r3 / ISO 19156: 2013) and OGC “Timeseries Profile of Observations and Measurement “(OGC 15-043r3) data standards.
 
+.. image:: _static/images/basin3d_data_diversity.png
+    :align: center
+
 The current version of basin3d can be used to integrate time-series earth science observations across a hierarchy of spatial locations. The use of the OGC/ISO framework makes basin3d extensible to other data types, and in the future we plan to add support for remote sensing and gridded (e.g. model output) data. basin3d is able to handle multi-scale data, through the use of the OGC/ISO framework that allows for specification of hierarchies of spatial features (e.g., points, plots, sites, watersheds, basin).  This allows users to retrieve data for a specific point location or river basin.
 
 basin3d has available plugins that can connect to specific data sources of interest, and map the data source vocabularies to the basin3d synthesis models.

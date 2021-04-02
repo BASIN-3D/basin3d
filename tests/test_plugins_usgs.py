@@ -1,19 +1,55 @@
+import json
 import datetime as dt
 import os
+from unittest.mock import Mock, MagicMock
 import pandas as pd
 import pytest
 
 from typing import Iterator
 
+from pydantic import ValidationError
+
 from basin3d.core.models import Base
 from basin3d.core.types import FeatureTypes, TimeFrequency, ResultQuality, SamplingMedium
 from basin3d.synthesis import register, SynthesisException, get_timeseries_data
+from tests.utilities import get_text, get_json
+import basin3d.plugins.usgs
+from basin3d.plugins.usgs import USGSMonitoringFeatureAccess
 
 
-@pytest.mark.integration
-def test_measurement_timeseries_tvp_observations_usgs():
+def get_url(data):
+    """
+    Creates a get_url call for mocking with the specified return data
+    :param data:
+    :return:
+    """
+
+    return type('Dummy', (object,), {
+        "json": lambda: data,
+        "status_code": 200,
+        "url": "/testurl"})
+
+
+def get_url_text(text):
+    """
+    Creates a get_url call for mocking with the specified return data
+    :param data:
+    :return:
+    """
+
+    return type('Dummy', (object,), {
+        "text": text,
+        "status_code": 200,
+        "url": "/testurl"})
+
+
+def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
     """ Test USGS Timeseries data query"""
 
+    import basin3d
+    mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_mtvp_sites.rdb")),
+                                               get_url(get_json("usgs_nwis_dv_p00060_l09110990_l09111250.json"))]))
+    monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
 
     query0 = {
@@ -24,7 +60,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "aggregation_duration": "DAY",
         "results_quality": "CHECKED"
     }
-    with pytest.raises(SynthesisException):
+
+    with pytest.raises(ValidationError):
         synthesizer.measurement_timeseries_tvp_observations(**query0)
 
     query1 = {
@@ -35,7 +72,9 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "aggregation_duration": "DAY",
         "results_quality": "CHECKED"
     }
+
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
+
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
         count = 0
         for timeseries in measurement_timeseries_tvp_observations:
@@ -53,20 +92,27 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "aggregation_duration": "DAY",
         "results_quality": "CHECKED"
     }
-    with pytest.raises(TypeError):
+
+    with pytest.raises(ValidationError):
         synthesizer.measurement_timeseries_tvp_observations(**query2)
 
 
-@pytest.mark.integration
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
                                                  ({"id": "USGS-01020004"}, "subbasin"),
-                                                 ({"id": "USGS-09129600", "feature_type": "POINT"}, "point"),
+                                                 ({"id": "USGS-09129600"}, "point"),
                                                  ({"id": "USGS-383103106594200", "feature_type": "POINT"}, "point")],
                          ids=["region", "subregion", "basin", "subbasin", "point", "point_long_id"])
-def test_usgs_monitoring_feature(query, feature_type):
+def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     """Test USGS search by region  """
+
+    import basin3d
+
+    def mock_get_huc_codes(*args):
+        return get_text("new_huc_rdb.txt")
+
+    monkeypatch.setattr(USGSMonitoringFeatureAccess, 'get_hydrological_unit_codes', mock_get_huc_codes)
 
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     monitoring_feature = synthesizer.monitoring_features(**query)
@@ -74,10 +120,11 @@ def test_usgs_monitoring_feature(query, feature_type):
     assert monitoring_feature is not None
     assert isinstance(monitoring_feature, Base)
     assert FeatureTypes.TYPES[monitoring_feature.feature_type] == feature_type.upper()
+    # add more asserts
 
 
-@pytest.mark.integration
-@pytest.mark.parametrize("query, expected_count", [({}, 2889),
+@pytest.mark.parametrize("query, expected_count", [({"datasource": "USGS"}, 2889),
+                                                   ({"monitoring_features": ['USGS-02']}, 1),
                                                    ({"feature_type": "region"}, 21),
                                                    ({"feature_type": "subregion"}, 222),
                                                    ({"feature_type": "basin"}, 379),
@@ -88,30 +135,27 @@ def test_usgs_monitoring_feature(query, feature_type):
                                                    ({"feature_type": "plot"}, 0),
                                                    ({"feature_type": "vertical path"}, 0),
                                                    ({"feature_type": "horizontal path"}, 0),
-                                                   ({"feature_type": "point"}, 0),
-                                                   ({"parent_features": ['USGS-02']}, 118),
-                                                   (
-                                                           {"parent_features": ['USGS-02020004'],
-                                                            "feature_type": "point"}, 48),
-                                                   ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
-                                                   ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
-                         ids=["all", "region", "subregion",
+                                                   ],
+                         ids=["all",  "region_by_id", "region", "subregion",
                               "basin", "subbasin",
                               "watershed", "subwatershed",
                               "site", "plot",
                               "vertical_path",
                               "horizontal_path",
-                              "point", "all_by_region",
-                              "points_by_subbasin",
-                              "subbasin_by_subregion", "invalid_points"])
-def test_usgs_monitoring_features(query, expected_count):
+                              ])
+def test_usgs_monitoring_features(query, expected_count, monkeypatch):
     """Test USGS search by region  """
+
+    mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("new_huc_rdb.txt"))]))
+    monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
 
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     monitoring_featurues = synthesizer.monitoring_features(**query)
 
     # TODO should there be some kind of exeption handling for invalid queries that don't return anything?
     count = 0
+    print(query.values(), "count:", count, "expected:", expected_count)
+
     for mf in monitoring_featurues:
         count += 1
         print(
@@ -119,11 +163,76 @@ def test_usgs_monitoring_features(query, expected_count):
         if 'feature_type' in query:
             assert FeatureTypes.TYPES[mf.feature_type] == query['feature_type'].upper()
 
+    print(query.values(), "count:", count, "expected:", expected_count)
+
     assert count == expected_count
 
 
-@pytest.mark.integration
-def test_usgs_get_data():
+
+@pytest.mark.parametrize("query, expected_count", [
+    ({"monitoring_features": ['USGS-02']}, 1)],
+                         ids=["region_by_id"])
+def test_usgs_monitoring_features1(query, expected_count, monkeypatch):
+    """Test USGS search by region  """
+
+    mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("new_huc_rdb.txt"))]))
+    monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
+
+    synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
+    monitoring_featurues = synthesizer.monitoring_features(**query)
+
+    # TODO should there be some kind of exeption handling for invalid queries that don't return anything?
+    count = 0
+    print(query.values(), "count:", count, "expected:", expected_count)
+
+    for mf in monitoring_featurues:
+        count += 1
+        print(
+            f"{mf.id} ({FeatureTypes.TYPES[mf.feature_type]}) {mf.description} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
+        if 'feature_type' in query:
+            assert FeatureTypes.TYPES[mf.feature_type] == query['feature_type'].upper()
+
+    print(query.values(), "count:", count, "expected:", expected_count)
+
+    assert count == expected_count
+
+
+
+@pytest.mark.parametrize("query, expected_count", [
+    ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 49)],
+                         ids=["points_by_subbasin"])
+def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
+    """Test USGS search by region  """
+
+    mock_get_url = MagicMock(side_effect=list([
+        get_url(get_json("usgs_monitoring_features_query_02020004.json")),
+        get_url_text(get_text("usgs_monitoring_features_query_point_02020004.rdb"))]))
+
+    monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
+    synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
+    monitoring_featurues = synthesizer.monitoring_features(**query)
+
+    # TODO should there be some kind of exeption handling for invalid queries that don't return anything?
+    count = 0
+    print(query.values(), "count:", count, "expected:", expected_count)
+
+    for mf in monitoring_featurues:
+        count += 1
+        print(
+            f"{mf.id} ({FeatureTypes.TYPES[mf.feature_type]}) {mf.description} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
+        if 'feature_type' in query:
+            assert FeatureTypes.TYPES[mf.feature_type] == query['feature_type'].upper()
+
+    print(query.values(), "count:", count, "expected:", expected_count)
+
+    assert count == expected_count
+
+
+def test_usgs_get_data(monkeypatch):
+    mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_data_09110000.rdb")),
+                                               get_url(get_json("usgs_get_data_09110000.json"))]))
+    monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
+
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     usgs_data = get_timeseries_data(synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
                                     observed_property_variables=['RDC', 'WT'], start_date='2019-10-25',

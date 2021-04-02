@@ -53,9 +53,12 @@ import pandas as pd
 from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import DataSource, MeasurementTimeseriesTVPObservation, MonitoringFeature, TimeMetadataMixin
 from basin3d.core.plugin import PluginMount
-from basin3d.core.synthesis import MeasurementTimeseriesTVPObservationAccess, MonitoringFeatureAccess, \
-    QUERY_PARAM_MONITORING_FEATURES, QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES, QUERY_PARAM_START_DATE, logger
-from basin3d.core.types import TimeFrequency
+from basin3d.core.schema.enum import PANDAS_TIME_FREQUENCY_MAP
+from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
+    QueryMonitoringFeature, SynthesisResponse
+from basin3d.core.synthesis import DataSourceModelIterator, MeasurementTimeseriesTVPObservationAccess, \
+    MonitoringFeatureAccess, logger
+
 
 
 class SynthesisException(Exception):
@@ -469,7 +472,6 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
 
     :return: A Synthesized Timeseries Data Class
 
-=======
 
 
     :param kwargs:
@@ -482,6 +484,48 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                * aggregation_duration = resolution = DAY  (only DAY is currently supported)
                * result_quality
                * datasource
+    :return:
+         a Tuple: synthesized data with timestamp, monitoring feature id, observed property variable id in a pandas DataFrame (optional) and metadata dictionary.
+
+         Optional means a return value of None for the pandas DataFrame if no arguments are passed into **kwargs. The min. required arguments to return a pandas DataFrame are monitoring features, observed property variables, and start date
+
+
+            **[optional] pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id ::
+
+                                TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
+                    2019-10-25 2019-10-25                3.2            4.247527
+                    2019-10-26 2019-10-26                4.1            4.219210
+                    2019-10-27 2019-10-27                4.3            4.134260
+                    2019-10-28 2019-10-28                3.2            4.332478
+                    2019-10-29 2019-10-29                2.2            4.219210
+                    2019-10-30 2019-10-30                0.5            4.247527
+
+                    # timestamp column: datetime, repr as ISO format
+                    column name format = f'{start_date end_date}
+
+                    # data columns: monitoring feature id and observed property variable id
+                    column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
+
+
+            **metadata dictionary**::
+
+                key = f'{monitoring_feature_id}__{observed_property_variable_id}',
+                value =
+                {
+                    data_start = str
+                    data_end = str
+                    records = int
+                    units = str
+                    basin_3d_variable = str
+                    basin_3d_variable_full_name = str
+                    statistic = str
+                    temporal_aggregation = str
+                    quality = str
+                    sampling_medium = str
+                    sampling_feature_id = str
+                    datasource = str
+                    datasource_variable
+                }
     """
 
     # Check that required parameters are provided. May have to rethink this when we expand to mulitple observation types
