@@ -1,0 +1,495 @@
+[
+  {
+    "aggregation_duration": "DAY",
+    "datasource": {
+        "credentials": {},
+        "id": "USGS",
+        "id_prefix": "USGS",
+        "location": "https://waterservices.usgs.gov/nwis/",
+        "name": "USGS"
+    },
+    "datasource_ids": null,
+    "feature_of_interest": {
+        "coordinates": {
+            "absolute": {
+                "datasource": null,
+                "datasource_ids": null,
+                "horizontal_position": [
+                    {
+                        "datasource": null,
+                        "datasource_ids": null,
+                        "datum": "NAD83",
+                        "id": null,
+                        "original_id": null,
+                        "type": "GEOGRAPHIC",
+                        "units": "DD",
+                        "x": -107.0597722,
+                        "y": 38.85665
+                    }
+                ],
+                "id": null,
+                "original_id": null,
+                "vertical_extent": [
+                    {
+                        "datasource": null,
+                        "datasource_ids": null,
+                        "datum": "NAVD88",
+                        "distance_units": null,
+                        "encoding_method": null,
+                        "id": null,
+                        "original_id": null,
+                        "resolution": 4.3,
+                        "type": "ALTITUDE",
+                        "value": 9570.0
+                    }
+                ]
+            },
+            "datasource": null,
+            "datasource_ids": null,
+            "id": null,
+            "original_id": null,
+            "representative": null
+        },
+        "datasource": {
+            "credentials": {},
+            "id": "USGS",
+            "id_prefix": "USGS",
+            "location": "https://waterservices.usgs.gov/nwis/",
+            "name": "USGS"
+        },
+        "datasource_ids": null,
+        "description": null,
+        "description_reference": null,
+        "feature_type": 10,
+        "id": "USGS-09110990",
+        "name": "ELK CREEK AT COAL CREEK ABV CRESTED BUTTE, CO",
+        "observed_property_variables": [
+            "Find observed property variables at monitoring feature url"
+        ],
+        "original_id": "09110990",
+        "related_party": [],
+        "related_sampling_feature_complex": [
+            {
+                "datasource": {
+                    "credentials": {},
+                    "id": "USGS",
+                    "id_prefix": "USGS",
+                    "location": "https://waterservices.usgs.gov/nwis/",
+                    "name": "USGS"
+                },
+                "datasource_ids": [
+                    "related_sampling_feature"
+                ],
+                "id": null,
+                "original_id": null,
+                "related_sampling_feature": "USGS-14020001",
+                "related_sampling_feature_type": 3,
+                "role": "PARENT"
+            }
+        ],
+        "shape": "POINT",
+        "utc_offset": null
+    },
+    "feature_of_interest_type": 10,
+    "id": "USGS-09110990",
+    "observed_property": {
+        "datasource": {
+            "credentials": {},
+            "id": "USGS",
+            "id_prefix": "USGS",
+            "location": "https://waterservices.usgs.gov/nwis/",
+            "name": "USGS"
+        },
+        "datasource_description": "Discharge, cubic feet per second",
+        "datasource_variable": "00060",
+        "observed_property_vriable": {
+            "basin3d_id": "RDC",
+            "categories": [
+                "Hydrogeology",
+                "Water Physical/Quality Parameters"
+            ],
+            "full_name": "River Discharge",
+            "units": "mV"
+        },
+        "sampling_medium": "WATER"
+    },
+    "observed_property_variable": "RDC",
+    "original_id": "09110990",
+    "phenomenon_time": null,
+    "result_points": [
+        [
+            "2020-04-01T00:00:00.000",
+            0.008211885629999999
+        ],
+        [
+            "2020-04-02T00:00:00.000",
+            0.008211885629999999
+        ],
+        [
+            "2020-04-03T00:00:00.000",
+            0.008211885629999999
+        ],
+        [
+            "2020-04-04T00:00:00.000",
+            0.008211885629999999
+        ],
+        [
+            "2020-04-05T00:00:00.000",
+            0.008211885629999999
+        ],
+        [
+            "2020-04-06T00:00:00.000",
+            0.00962772798
+        ],
+        [
+            "2020-04-07T00:00:00.000",
+            0.01529109738
+        ],
+        [
+            "2020-04-08T00:00:00.000",
+            0.023219814539999998
+        ],
+        [
+            "2020-04-09T00:00:00.000",
+            0.033697047929999994
+        ],
+        [
+            "2020-04-10T00:00:00.000",
+            0.040209922739999994
+        ],
+        [
+            "2020-04-11T00:00:00.000",
+            0.039360417329999994
+        ],
+        [
+            "2020-04-12T00:00:00.000",
+            0.04332477591
+        ],
+        [
+            "2020-04-13T00:00:00.000",
+            0.032847542519999995
+        ],
+        [
+            "2020-04-14T00:00:00.000",
+            0.0254851623
+        ],
+        [
+            "2020-04-15T00:00:00.000",
+            0.02180397219
+        ],
+        [
+            "2020-04-16T00:00:00.000",
+            0.01897228749
+        ],
+        [
+            "2020-04-17T00:00:00.000",
+            0.01670693973
+        ],
+        [
+            "2020-04-18T00:00:00.000",
+            0.015857434320000002
+        ],
+        [
+            "2020-04-19T00:00:00.000",
+            0.01529109738
+        ],
+        [
+            "2020-04-20T00:00:00.000",
+            0.01529109738
+        ],
+        [
+            "2020-04-21T00:00:00.000",
+            0.01840595055
+        ],
+        [
+            "2020-04-22T00:00:00.000",
+            0.02633466771
+        ],
+        [
+            "2020-04-23T00:00:00.000",
+            0.03341387946
+        ],
+        [
+            "2020-04-24T00:00:00.000",
+            0.03426338487
+        ],
+        [
+            "2020-04-25T00:00:00.000",
+            0.04304160744
+        ],
+        [
+            "2020-04-26T00:00:00.000",
+            0.0651287481
+        ],
+        [
+            "2020-04-27T00:00:00.000",
+            0.09656044827
+        ],
+        [
+            "2020-04-28T00:00:00.000",
+            0.1472476044
+        ],
+        [
+            "2020-04-29T00:00:00.000",
+            0.19368723348
+        ],
+        [
+            "2020-04-30T00:00:00.000",
+            0.22964962916999998
+        ]
+    ],
+    "result_quality": "CHECKED",
+    "statistic": "MEAN",
+    "time_reference_position": "MIDDLE",
+    "type": "MEASUREMENT_TVP_TIMESERIES",
+    "unit_of_measurement": "m^3/s",
+    "utc_offset": -7
+},
+
+{
+    "aggregation_duration": "DAY",
+    "datasource": {
+        "credentials": {},
+        "id": "USGS",
+        "id_prefix": "USGS",
+        "location": "https://waterservices.usgs.gov/nwis/",
+        "name": "USGS"
+    },
+    "datasource_ids": null,
+    "feature_of_interest": {
+        "coordinates": {
+            "absolute": {
+                "datasource": null,
+                "datasource_ids": null,
+                "horizontal_position": [
+                    {
+                        "datasource": null,
+                        "datasource_ids": null,
+                        "datum": "NAD83",
+                        "id": null,
+                        "original_id": null,
+                        "type": "GEOGRAPHIC",
+                        "units": "DD",
+                        "x": -106.9852972,
+                        "y": 38.87155556
+                    }
+                ],
+                "id": null,
+                "original_id": null,
+                "vertical_extent": [
+                    {
+                        "datasource": null,
+                        "datasource_ids": null,
+                        "datum": "NAVD88",
+                        "distance_units": null,
+                        "encoding_method": null,
+                        "id": null,
+                        "original_id": null,
+                        "resolution": 4.3,
+                        "type": "ALTITUDE",
+                        "value": 8903.0
+                    }
+                ]
+            },
+            "datasource": null,
+            "datasource_ids": null,
+            "id": null,
+            "original_id": null,
+            "representative": null
+        },
+        "datasource": {
+            "credentials": {},
+            "id": "USGS",
+            "id_prefix": "USGS",
+            "location": "https://waterservices.usgs.gov/nwis/",
+            "name": "USGS"
+        },
+        "datasource_ids": null,
+        "description": null,
+        "description_reference": null,
+        "feature_type": 10,
+        "id": "USGS-09111250",
+        "name": "COAL CREEK ABV MCCORMICK DTCH AT CRESTED BUTTE, CO",
+        "observed_property_variables": [
+            "Find observed property variables at monitoring feature url"
+        ],
+        "original_id": "09111250",
+        "related_party": [],
+        "related_sampling_feature_complex": [
+            {
+                "datasource": {
+                    "credentials": {},
+                    "id": "USGS",
+                    "id_prefix": "USGS",
+                    "location": "https://waterservices.usgs.gov/nwis/",
+                    "name": "USGS"
+                },
+                "datasource_ids": [
+                    "related_sampling_feature"
+                ],
+                "id": null,
+                "original_id": null,
+                "related_sampling_feature": "USGS-14020001",
+                "related_sampling_feature_type": 3,
+                "role": "PARENT"
+            }
+        ],
+        "shape": "POINT",
+        "utc_offset": null
+    },
+    "feature_of_interest_type": 10,
+    "id": "USGS-09111250",
+    "observed_property": {
+        "datasource": {
+            "credentials": {},
+            "id": "USGS",
+            "id_prefix": "USGS",
+            "location": "https://waterservices.usgs.gov/nwis/",
+            "name": "USGS"
+        },
+        "datasource_description": "Discharge, cubic feet per second",
+        "datasource_variable": "00060",
+        "observed_property_variable": {
+            "basin3d_id": "RDC",
+            "categories": [
+                "Hydrogeology",
+                "Water Physical/Quality Parameters"
+            ],
+            "full_name": "River Discharge",
+            "units": "mV"
+        },
+        "sampling_medium": "WATER"
+    },
+    "observed_property_variable": "RDC",
+    "original_id": "09111250",
+    "phenomenon_time": null,
+    "result_points": [
+        [
+            "2020-04-01T00:00:00.000",
+            0.12119610516
+        ],
+        [
+            "2020-04-02T00:00:00.000",
+            0.12091293668999999
+        ],
+        [
+            "2020-04-03T00:00:00.000",
+            0.11609907269999999
+        ],
+        [
+            "2020-04-04T00:00:00.000",
+            0.1189307574
+        ],
+        [
+            "2020-04-05T00:00:00.000",
+            0.12600996915
+        ],
+        [
+            "2020-04-06T00:00:00.000",
+            0.15404364768
+        ],
+        [
+            "2020-04-07T00:00:00.000",
+            0.20246545605
+        ],
+        [
+            "2020-04-08T00:00:00.000",
+            0.24720607431
+        ],
+        [
+            "2020-04-09T00:00:00.000",
+            0.29732689349999997
+        ],
+        [
+            "2020-04-10T00:00:00.000",
+            0.3369704793
+        ],
+        [
+            "2020-04-11T00:00:00.000",
+            0.3652873263
+        ],
+        [
+            "2020-04-12T00:00:00.000",
+            0.37378238039999995
+        ],
+        [
+            "2020-04-13T00:00:00.000",
+            0.30582194760000003
+        ],
+        [
+            "2020-04-14T00:00:00.000",
+            0.23559616704
+        ],
+        [
+            "2020-04-15T00:00:00.000",
+            0.21888922731000002
+        ],
+        [
+            "2020-04-16T00:00:00.000",
+            0.19623574971
+        ],
+        [
+            "2020-04-17T00:00:00.000",
+            0.17896247304000001
+        ],
+        [
+            "2020-04-18T00:00:00.000",
+            0.18490901091
+        ],
+        [
+            "2020-04-19T00:00:00.000",
+            0.20303179299
+        ],
+        [
+            "2020-04-20T00:00:00.000",
+            0.19481990736
+        ],
+        [
+            "2020-04-21T00:00:00.000",
+            0.21747338496
+        ],
+        [
+            "2020-04-22T00:00:00.000",
+            0.2803367853
+        ],
+        [
+            "2020-04-23T00:00:00.000",
+            0.34546553339999997
+        ],
+        [
+            "2020-04-24T00:00:00.000",
+            0.3624556416
+        ],
+        [
+            "2020-04-25T00:00:00.000",
+            0.424752705
+        ],
+        [
+            "2020-04-26T00:00:00.000",
+            0.6088122105
+        ],
+        [
+            "2020-04-27T00:00:00.000",
+            0.8466737253
+        ],
+        [
+            "2020-04-28T00:00:00.000",
+            1.2062976822
+        ],
+        [
+            "2020-04-29T00:00:00.000",
+            1.472476044
+        ],
+        [
+            "2020-04-30T00:00:00.000",
+            1.7301593517
+        ]
+    ],
+    "result_quality": "CHECKED",
+    "statistic": "MEAN",
+    "time_reference_position": "MIDDLE",
+    "type": "MEASUREMENT_TVP_TIMESERIES",
+    "unit_of_measurement": "m^3/s",
+    "utc_offset": -7
+  }
+]
