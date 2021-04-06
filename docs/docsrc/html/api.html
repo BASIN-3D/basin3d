@@ -1,0 +1,415 @@
+
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Key Functions &#8212; basin3d-core  documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/p_sphinx_theme.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <link rel="stylesheet" href="_static/local_fonts.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/jquery.cookie.js"></script>
+    <script src="_static/p_sphinx_theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Quick Guide" href="models.html" />
+    <link rel="prev" title="BASIN-3D Getting Started" href="getting_started.html" /> 
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+      <div class="relbar-top">
+            
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="models.html" title="Quick Guide"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="getting_started.html" title="BASIN-3D Getting Started"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+      <li><a href="index.html">basin3d-core 0.0.1</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Key Functions</a></li> 
+      </ul>
+    </div>
+      </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-basin3d">
+<span id="key-functions"></span><span id="apireference"></span><h1>Key Functions<a class="headerlink" href="#module-basin3d" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-basin3d.plugins"></span><div class="section" id="basin3d-synthesis">
+<h2><cite>basin3d.synthesis</cite><a class="headerlink" href="#basin3d-synthesis" title="Permalink to this headline">¶</a></h2>
+<dl class="field-list simple">
+<dt class="field-odd">synopsis</dt>
+<dd class="field-odd"><p>BASIN-3D Synthesis API</p>
+</dd>
+<dt class="field-even">module author</dt>
+<dd class="field-even"><p>Val Hendrix &lt;<a class="reference external" href="mailto:vhendrix&#37;&#52;&#48;lbl&#46;gov">vhendrix<span>&#64;</span>lbl<span>&#46;</span>gov</a>&gt;</p>
+</dd>
+<dt class="field-odd">module author</dt>
+<dd class="field-odd"><p>Danielle Svehla Christianson &lt;<a class="reference external" href="mailto:dschristianson&#37;&#52;&#48;lbl&#46;gov">dschristianson<span>&#64;</span>lbl<span>&#46;</span>gov</a>&gt;</p>
+</dd>
+</dl>
+<p>&lt;place description here&gt;</p>
+<div class="graphviz"><img src="_images/inheritance-d2a3e36ba441ba4dbbe3de86fde0fee5e0af8514.png" alt="Inheritance diagram of basin3d.synthesis" class="inheritance graphviz" /></div>
+<hr class="docutils" />
+<dl class="py class">
+<dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">basin3d.synthesis.</span></code><code class="sig-name descname"><span class="pre">DataSynthesizer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plugins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">catalog</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/basin3d/synthesis.html#DataSynthesizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Synthesis API</p>
+<dl class="py method">
+<dt>
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">datasources</span></code></dt>
+<dd><p>The Datasources loaded in this synthesizer
+:rtype: <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code>]
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt>
+<code class="sig-name descname"><span class="pre">measurement_timeseries_tvp_observations</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monitoring_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observed_property_variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregation_duration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DAY'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results_quality</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datasource</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/basin3d/synthesis.html#DataSynthesizer.measurement_timeseries_tvp_observations"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Search for Measurement Timeseries TVP Observations</p>
+<p>Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">basin3d.plugins</span> <span class="kn">import</span> <span class="n">usgs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">basin3d</span> <span class="kn">import</span> <span class="n">synthesis</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">synthesizer</span> <span class="o">=</span> <span class="n">synthesis</span><span class="o">.</span><span class="n">register</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">timeseries</span> <span class="o">=</span> <span class="n">synthesizer</span><span class="o">.</span><span class="n">measurement_timeseries_tvp_observations</span><span class="p">(</span><span class="n">monitoring_features</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;USGS-09110990&#39;</span><span class="p">],</span>                 <span class="n">observed_property_variables</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;RDC&#39;</span><span class="p">,</span><span class="s1">&#39;WT&#39;</span><span class="p">],</span> <span class="n">start_date</span><span class="o">=</span><span class="s1">&#39;2019-10-01&#39;</span><span class="p">,</span> <span class="n">end_date</span><span class="o">=</span><span class="s1">&#39;2019-10-30&#39;</span><span class="p">,</span>                 <span class="n">aggregation_duration</span><span class="o">=</span><span class="s1">&#39;DAY&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">timeseries</span> <span class="ow">in</span> <span class="n">timeseries</span><span class="p">:</span>
+<span class="gp">... </span>   <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">timeseries</span><span class="o">.</span><span class="n">feature_of_interest</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">timeseries</span><span class="o">.</span><span class="n">observed_property_variable</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">USGS-09110990 - RDC</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>monitoring_features</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – List of monitoring_features ids (eg. USGS-09110990)</p></li>
+<li><p><strong>observed_property_variables</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – List of observed property variable ids (basin3d variable names)</p></li>
+<li><p><strong>start_date</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – start date YYYY-MM-DD</p></li>
+<li><p><strong>end_date</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – end date YYYY-MM-DD</p></li>
+<li><p><strong>aggregation_duration</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – aggregation time period, default = ‘DAY’ enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND)</p></li>
+<li><p><strong>results_quality</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – enum (UNCHECKED|CHECKED)</p></li>
+<li><p><strong>datasource</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – Datasource id prefix (e.g USGS)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">MeasurementTimeseriesTVPObservation</span></code>]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>generator that yields MeasurementTimeseriesTVPObservations</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt>
+<code class="sig-name descname"><span class="pre">monitoring_features</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datasource</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitoring_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/basin3d/synthesis.html#DataSynthesizer.monitoring_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.</p>
+<p>To see feature types for a given plugin: <strong>&lt;plugin_module&gt;.&lt;plugin_class&gt;.feature_types</strong></p>
+<p><strong>Search for a single monitoring feature by id:</strong></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">basin3d.plugins</span> <span class="kn">import</span> <span class="n">usgs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">basin3d</span> <span class="kn">import</span> <span class="n">synthesis</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">synthesizer</span> <span class="o">=</span> <span class="n">synthesis</span><span class="o">.</span><span class="n">register</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mf</span> <span class="o">=</span> <span class="n">synthesizer</span><span class="o">.</span><span class="n">monitoring_features</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;USGS-0101&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mf</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">mf</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">USGS-0101 - SUBREGION: St. John</span>
+</pre></div>
+</div>
+<p><strong>Search for all USGS monitoring features:</strong></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">mf</span> <span class="ow">in</span> <span class="n">synthesizer</span><span class="o">.</span><span class="n">monitoring_features</span><span class="p">(</span><span class="n">datasource</span><span class="o">=</span><span class="s1">&#39;USGS&#39;</span><span class="p">,</span> <span class="n">feature_type</span><span class="o">=</span><span class="s1">&#39;region&#39;</span><span class="p">):</span> 
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mf</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">mf</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">USGS-01 - REGION: New England</span>
+<span class="go">USGS-02 - REGION: Mid Atlantic</span>
+<span class="go">USGS-03 - REGION: South Atlantic-Gulf</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<p><strong>Search for USGS points by parent (subbasin) monitoring features:</strong></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">mf</span> <span class="ow">in</span> <span class="n">synthesizer</span><span class="o">.</span><span class="n">monitoring_features</span><span class="p">(</span><span class="n">feature_type</span><span class="o">=</span><span class="s1">&#39;point&#39;</span><span class="p">,</span><span class="n">parent_features</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;USGS-17040101&#39;</span><span class="p">]):</span> 
+<span class="gp">... </span>   <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mf</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mf</span><span class="o">.</span><span class="n">coordinates</span> <span class="ow">and</span> <span class="p">[(</span><span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">mf</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">absolute</span><span class="o">.</span><span class="n">horizontal_position</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">USGS-13010000 [(-110.6647222, 44.1336111)]</span>
+<span class="go">USGS-13010065 [(-110.6675, 44.09888889)]</span>
+<span class="go">USGS-13010450 [(-110.5874305, 43.9038296)]</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – Unique feature identifier</p></li>
+<li><p><strong>feature_type</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – feature type</p></li>
+<li><p><strong>datasource</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – Datasource id prefix (e.g USGS)</p></li>
+<li><p><strong>monitoring_features</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]) – List of monitoring feature identifiers (eg. USGS-0010)</p></li>
+<li><p><strong>parent_features</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]) – List of parent monitoring features to search by</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoringFeature</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoringFeature</span></code>]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a single <cite>MonitoringFeature</cite> or a list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt>
+<code class="sig-name descname"><span class="pre">observed_properties</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datasource_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variable_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/basin3d/synthesis.html#DataSynthesizer.observed_properties"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Search for observed properties</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>datasource_id</strong> – </p></li>
+<li><p><strong>variable_names</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a list of observed property variables</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt>
+<code class="sig-name descname"><span class="pre">observed_property_variables</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datasource_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/basin3d/synthesis.html#DataSynthesizer.observed_property_variables"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>datasource</strong> – filter observer properity variables by data source</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a list of observed property variables</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property"><span class="pre">exception</span> </em><code class="sig-prename descclassname"><span class="pre">basin3d.synthesis.</span></code><code class="sig-name descname"><span class="pre">SynthesisException</span></code><a class="reference internal" href="_modules/basin3d/synthesis.html#SynthesisException"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Special Exception for Synthesis module</p>
+</dd></dl>
+
+<dl class="py function">
+<dt>
+<code class="sig-prename descclassname"><span class="pre">basin3d.synthesis.</span></code><code class="sig-name descname"><span class="pre">get_timeseries_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">synthesizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temporal_resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DAY'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/basin3d/synthesis.html#get_timeseries_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Wrapper for <em>DataSynthesizer.get_data</em> for timeseries data types. Currently only <em>MeasurementTimeseriesTVPObservations</em> are supported.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">basin3d.plugins</span> <span class="kn">import</span> <span class="n">usgs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">basin3d</span> <span class="kn">import</span> <span class="n">synthesis</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">synthesizer</span> <span class="o">=</span> <span class="n">synthesis</span><span class="o">.</span><span class="n">register</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usgs_df</span><span class="p">,</span> <span class="n">usgs_metadata</span> <span class="o">=</span> <span class="n">synthesis</span><span class="o">.</span><span class="n">get_timeseries_data</span><span class="p">(</span><span class="n">synthesizer</span><span class="p">,</span> <span class="n">monitoring_features</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;USGS-09110000&#39;</span><span class="p">],</span> <span class="n">observed_property_variables</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;RDC&#39;</span><span class="p">,</span><span class="s1">&#39;WT&#39;</span><span class="p">],</span> <span class="n">start_date</span><span class="o">=</span><span class="s1">&#39;2019-10-25&#39;</span><span class="p">,</span> <span class="n">end_date</span><span class="o">=</span><span class="s1">&#39;2019-10-30&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usgs_df</span>
+<span class="go">            TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC</span>
+<span class="go">2019-10-25 2019-10-25                3.2            4.247527</span>
+<span class="go">2019-10-26 2019-10-26                4.1            4.219210</span>
+<span class="go">2019-10-27 2019-10-27                4.3            4.134260</span>
+<span class="go">2019-10-28 2019-10-28                3.2            4.332478</span>
+<span class="go">2019-10-29 2019-10-29                2.2            4.219210</span>
+<span class="go">2019-10-30 2019-10-30                0.5            4.247527</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">usgs_metadata</span><span class="p">[</span><span class="s1">&#39;USGS-09110000__WT&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1"> = </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="go">data_start = 2019-10-25 00:00:00</span>
+<span class="go">data_end = 2019-10-30 00:00:00</span>
+<span class="go">records = 6</span>
+<span class="go">units = deg C</span>
+<span class="go">basin_3d_variable = WT</span>
+<span class="go">basin_3d_variable_full_name = Water Temperature</span>
+<span class="go">statistic = MEAN</span>
+<span class="go">temporal_aggregation = DAY</span>
+<span class="go">quality = CHECKED</span>
+<span class="go">sampling_medium = WATER</span>
+<span class="go">sampling_feature_id = USGS-09110000</span>
+<span class="go">datasource = USGS</span>
+<span class="go">datasource_variable = 00010</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>synthesizer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">DataSynthesizer</span></code>) – DataSnythesizer object</p></li>
+<li><p><strong>temporal_resolution</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – temporal resolution of output (in future, we can be smarter about this, e.g., detect it from the results or average higher frequency data)</p></li>
+<li><p><strong>kwargs</strong> – <dl class="simple">
+<dt>Required parameters for a <em>MeasurementTimeseriesTVPObservation</em>:</dt><dd><ul>
+<li><p><strong>monitoring_features</strong></p></li>
+<li><p><strong>observed_property_variables</strong></p></li>
+<li><p><strong>start_date</strong></p></li>
+</ul>
+</dd>
+<dt>Optional parameters for <em>MeasurementTimeseriesTVPObservation</em>:</dt><dd><ul>
+<li><p><strong>end_date</strong></p></li>
+<li><p><strong>aggregation_duration</strong> = resolution = DAY  (only DAY is currently supported)</p></li>
+<li><p><strong>result_quality</strong></p></li>
+<li><p><strong>datasource</strong></p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>synthesized data in a pandas dataframe:</p>
+<blockquote>
+<div><p><strong>TIMESTAMP column</strong>: datetime, repr as ISO format</p>
+<p><strong>data columns</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">column</span> <span class="n">name</span> <span class="nb">format</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">monitoring_feature_id</span><span class="si">}</span><span class="s1">__</span><span class="si">{</span><span class="n">observed_property_variable_id</span><span class="si">}</span><span class="s1">&#39;</span>
+</pre></div>
+</div>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p><strong>metadata store</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">monitoring_feature_id</span><span class="si">}</span><span class="s1">__</span><span class="si">{</span><span class="n">observed_property_variable_id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+<span class="n">value</span> <span class="o">=</span>
+<span class="p">{</span>
+    <span class="n">data_start</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">data_end</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="nb">int</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">basin_3d_variable</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">basin_3d_variable_full_name</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">statistic</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">temporal_aggregation</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">quality</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">sampling_medium</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">sampling_feature_id</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">datasource</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">datasource_variable</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt>
+<code class="sig-prename descclassname"><span class="pre">basin3d.synthesis.</span></code><code class="sig-name descname"><span class="pre">register</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plugins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/basin3d/synthesis.html#register"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Register the specified plugins or implicitly register loaded plugins</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">basin3d</span> <span class="kn">import</span> <span class="n">synthesis</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">synthesizer</span> <span class="o">=</span> <span class="n">synthesis</span><span class="o">.</span><span class="n">register</span><span class="p">([</span><span class="s1">&#39;basin3d.plugins.usgs.USGSDataSourcePlugin&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">synthesizer</span><span class="o">.</span><span class="n">datasources</span>
+<span class="go">[DataSource(id=&#39;USGS&#39;, name=&#39;USGS&#39;, id_prefix=&#39;USGS&#39;, location=&#39;https://waterservices.usgs.gov/nwis/&#39;, credentials={})]</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>plugins</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]) – [Optional] plugins to registered</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinxglobaltoc">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">What is BASIN-3D?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">BASIN-3D Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">BASIN-3D Getting Started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Key Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basin3d-synthesis"><cite>basin3d.synthesis</cite></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Quick Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact.html">Contact Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license_agreement.html">License Agreement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="copyright_notice.html">Copyright Notice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contents.html">Table of Contents</a></li>
+</ul>
+</div>
+
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/api.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+      <div class="relbar-bottom">
+            
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="models.html" title="Quick Guide"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="getting_started.html" title="BASIN-3D Getting Started"
+             >previous</a> &nbsp; &nbsp;</li>
+      <li><a href="index.html">basin3d-core 0.0.1</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Key Functions</a></li> 
+      </ul>
+    </div>
+      </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory 
+(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved..
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.5.3.
+    </div>
+      <!-- PSphinxTheme -->
+  </body>
+</html>

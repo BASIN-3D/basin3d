@@ -1,0 +1,155 @@
+
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>What is BASIN-3D? &#8212; basin3d-core  documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/p_sphinx_theme.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <link rel="stylesheet" href="_static/local_fonts.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/jquery.cookie.js"></script>
+    <script src="_static/p_sphinx_theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="BASIN-3D Concepts" href="concepts.html" />
+    <link rel="prev" title="Welcome to basin3d-core documentation!" href="index.html" /> 
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+      <div class="relbar-top">
+            
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="concepts.html" title="BASIN-3D Concepts"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to basin3d-core documentation!"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+      <li><a href="index.html">basin3d-core 0.0.1</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">What is BASIN-3D?</a></li> 
+      </ul>
+    </div>
+      </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="what-is-basin-3d">
+<span id="basin3dintro"></span><h1>What is BASIN-3D?<a class="headerlink" href="#what-is-basin-3d" title="Permalink to this headline">¶</a></h1>
+<p><strong>Broker for Assimilation, Synthesis and Integration of eNvironmental Diverse, Distributed Datasets</strong></p>
+<p>BASIN-3D is a software ecosystem that synthesizes diverse earth science data from a variety of remote data sources on-demand, without the need for storing data in a single database. It is designed to parse, translate, and synthesize diverse observations from well-curated repositories into standardized formats for scientific uses such as analysis and visualization. Thus, BASIN-3D enables users to always have access to the latest data from each of the sources and interact with the data as if they were integrated in local storage. More importantly, users can also integrate public data without establishing prior working relationships with each data source.</p>
+<p>basin3d is the core BASIN-3D application that uses a generalized data synthesis model that applies across a variety of earth science observation types (hydrology, geochemistry, climate etc.). The synthesis models, basin3d’s abstract formats, are based on the Open Geospatial Consortium (OGC) and ISO “Observations and Measurements” (OGC 10-004r3 / ISO 19156: 2013) and OGC “Timeseries Profile of Observations and Measurement “(OGC 15-043r3) data standards.</p>
+<p>The current version of basin3d can be used to integrate time-series earth science observations across a hierarchy of spatial locations. The use of the OGC/ISO framework makes basin3d extensible to other data types, and in the future we plan to add support for remote sensing and gridded (e.g. model output) data. basin3d is able to handle multi-scale data, through the use of the OGC/ISO framework that allows for specification of hierarchies of spatial features (e.g., points, plots, sites, watersheds, basin).  This allows users to retrieve data for a specific point location or river basin.</p>
+<p>basin3d has available plugins that can connect to specific data sources of interest, and map the data source vocabularies to the basin3d synthesis models.</p>
+<p>Readers can find out more about BASIN-3D and its application to the East River Watershed for the Watershed Function SFA at Hubbard et al. (2018), Hendrix et al. (2019), Varadharajan et al. in review (available upon request).</p>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Hubbard, S. S., K. H. Williams, D. Agarwal, J. Banfield, H. Beller, N. Bouskill, E. Brodie, R. Carroll, B. Dafflon, D. Dwivedi, N. Falco, B. Faybishenko, R. Maxwell, P. Nico, C. Steefel, H. Steltzer, T. Tokunaga, P. A. Tran, H. Wainwright, and C. Varadharajan. 2018. The East River, Colorado, Watershed: A Mountainous Community Testbed for Improving Predictive Understanding of Multiscale Hydrological–Biogeochemical Dynamics. Vadose Zone J. 17:180061. <a class="reference external" href="http://dx.doi.org/10.2136/vzj2018.03.0061">http://dx.doi.org/10.2136/vzj2018.03.0061</a></p></li>
+<li><p>Hendrix,V.C., D.S. Christianson, S.S. Hubbard, D.A. Agarwal and C. Varadharajan, “BASIN-3D: Reducing the data processing burden for earth scientists”, accepted to Gateways 2019.</p></li>
+<li><p>Varadharajan C., V. Hendrix, D. C. Christianson, S. S. Hubbard, and D. A. Agarwal, “BASIN-3D: A Brokering Framework to Integrate Diverse Environmental Data,” in review.</p></li>
+</ul>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinxglobaltoc">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">What is BASIN-3D?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">BASIN-3D Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">BASIN-3D Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Key Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Quick Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact.html">Contact Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license_agreement.html">License Agreement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="copyright_notice.html">Copyright Notice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contents.html">Table of Contents</a></li>
+</ul>
+</div>
+
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/intro.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+      <div class="relbar-bottom">
+            
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="concepts.html" title="BASIN-3D Concepts"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to basin3d-core documentation!"
+             >previous</a> &nbsp; &nbsp;</li>
+      <li><a href="index.html">basin3d-core 0.0.1</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">What is BASIN-3D?</a></li> 
+      </ul>
+    </div>
+      </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory 
+(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved..
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.5.3.
+    </div>
+      <!-- PSphinxTheme -->
+  </body>
+</html>
