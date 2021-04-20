@@ -13,4 +13,3 @@ Welcome to basin3d-core |release| documentation!
    license_agreement
    copyright_notice
    changelog
-   contents
