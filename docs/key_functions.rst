@@ -1,7 +1,9 @@
 .. _keyfunctionsreference:
 
+.. currentmodule:: basin3d.synthesis
+
 Key Functions
-*************
+**************
 
 .. automodule:: basin3d
     :members:
@@ -17,4 +19,5 @@ Key Functions
     :members:
     :undoc-members:
     :show-inheritance:
-    :noindex:
+
+

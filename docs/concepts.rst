@@ -1,11 +1,8 @@
 BASIN-3D Concepts
 ********************
 
-A brief overview of BASIN-3D terms and concepts
------------------------------------------------
-
-Plugins (aka, data sources)
-============================
+Plugins (i.e., data sources)
+----------------------------
 
 BASIN-3D translates queries of BASIN-3D’s data model to queries of individual data sources whose plugins have been registered.
 
@@ -22,8 +19,8 @@ BASIN-3D accesses data sources on-demand. Plugins map the data source query and 
 
 
 
-Observations (aka, data)
-==========================
+Observations (i.e., data)
+--------------------------
 
 BASIN-3D is designed to support diverse types of data, which we call observations. Examples of observation types include: time series, images, gridded layers, results of lab analyses, qualitative descriptions. BASIN-3D currently supports time series observations.
 
@@ -43,7 +40,7 @@ BASIN-3D is designed to support diverse types of data, which we call observation
 
 
 Monitoring Features (e.g., Locations and Samples)
-====================================================
+---------------------------------------------------
 
 *Monitoring features* are what an observation is characterizing and can be organized into hierarchies:
 
@@ -51,7 +48,7 @@ Monitoring Features (e.g., Locations and Samples)
     :align: center
 
 **Feature Types**
-    Data often characterize physical entities. In Earth Science monitoring features can be categories of *feature types* such as basins, watersheds, and points.
+    Data often characterizes physical entities. In Earth Science monitoring features can be categories of *feature types* such as basins, watersheds, and points.
 
     BASIN-3D is currently bundled with feature types for hydrological earth science data (See xxx to get a list of these feature types).  However, the design allows for the definition of other domain specific feature types.
 
@@ -63,9 +60,9 @@ Monitoring Features (e.g., Locations and Samples)
 
 
 Observed Properties (e.g., Variables)
-====================================================
+--------------------------------------
 
-An *observed property* is the aspect of a monitoring feature being characterized by the observation.
+An *observed property* is the aspect of a monitoring feature characterized by the observation.
 
     Observed properties are commonly called variables. Examples include stream discharge, air temperature, aluminum concentration
 

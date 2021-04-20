@@ -13,5 +13,5 @@ Contact Us
 
 
 Caught a bug?
-*************
-If you're interested in contributing to basin3d, check out out our `contributing guidelines <https://github.com/BASIN-3D/basin3d/blob/main/CONTRIBUTING.md>`_. It will help explain why, what, and how to get started.
+#############
+Create a report to help us improve by submitting an `issue ticket <https://github.com/BASIN-3D/basin3d/issues>`_.

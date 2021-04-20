@@ -1,12 +1,8 @@
-============================
 Install basin3d
-============================
+****************
 
 BASIN-3D (Broker for Assimilation, Synthesis and Integration of eNvironmental
 Diverse, Distributed Datasets)
-
-Install
--------
 
 .. warning::
     It is advised that you install basin3d into a virtual environment.  (e.g. `Anaconda <https://www.anaconda.com/>`_,
