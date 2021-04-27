@@ -9,7 +9,9 @@ Welcome to basin3d-core |release| documentation!
    quick_guide
    examples
    key_functions
+   changelog
    contact
    license_agreement
    copyright_notice
-   changelog
+   acknowledgments
+   references

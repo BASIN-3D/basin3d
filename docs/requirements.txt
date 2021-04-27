@@ -1,4 +1,5 @@
 sphinx
-PSphinxTheme
 sphinx-autodoc-typehints
 graphviz
+sphinx_rtd_theme
+

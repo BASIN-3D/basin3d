@@ -5,7 +5,7 @@ Quick Guide
 
 Hook up Data Sources
 ---------------------
-To access a data source, its BASIN-3D plugin must be configured. Custom plugins can be built. Documentation will be forthcoming in future versions. Currently available plugins:
+To access a data source, its BASIN-3D plugin must be configured. Custom plugins can be built. Documentation will be forthcoming in future versions. Current available plugins:
 
     - USGS Daily Values
 
@@ -28,8 +28,8 @@ Get a List of Locations for a Data Source
     :noindex:
 
 
-Get a List of Variables Supported by a Data Source
-----------------------------------------------------
+Get a List of Variables Supported by a BASIN-3D Data Source
+------------------------------------------------------------
 .. autofunction:: basin3d.synthesis.DataSynthesizer.observed_property_variables
     :noindex:
 

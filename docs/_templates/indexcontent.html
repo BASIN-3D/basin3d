@@ -1,54 +1,61 @@
 {% extends "!layout.html" %}
 {%- set render_sidebar = True %}
 {% block body %}
-<p align='center' >
-<div align="center" class='admonition note'>
-	<cite>Download {{project}} {{release}}
-        <a href="https://github.com/BASIN-3D/basin3d/tree/main" >here</a><br/>Contact support-email at lbl.gov for support</cite></div></p>
-  <p><strong>Overview and Hands-on:</strong></p>
-  <table class="contentstable" align="center"><tr>
-    <td width="50%">
-      <p class="biglink"><a class="biglink" href="{{ pathto("intro") }}">What is BASIN-3D?</a><br/>
-         <span class="linkdescr">Introduction to BASIN-3D</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("concepts") }}">Concepts in BASIN-3D</a><br/>
-         <span class="linkdescr">Short summary of the basic concepts</span></p>
-          <p class="biglink"><a class="biglink" href="{{ pathto("getting_started") }}#">Installation</a><br/>
-         <span class="linkdescr">Instructions on installing BASIN-3D</span></p>
-    </td><td width="50%">
+    <p align='center'>
+    <div align="center" class='admonition note'>
+        <cite>Download {{ project }} {{ release }}
+            <a href="https://github.com/BASIN-3D/basin3d/tree/main">here</a><br/></cite></div>
+    <p><strong>Overview and Hands-on:</strong></p>
+    <table class="contentstable">
+        <tr>
+            <td width="65%">
+                <p class="biglink"><a class="biglink" href="{{ pathto("intro") }}">What is BASIN-3D?</a><br/>
+                    <span class="linkdescr">Introduction to BASIN-3D</span></p>
+                <p class="biglink"><a class="biglink" href="{{ pathto("concepts") }}">Concepts in BASIN-3D</a><br/>
+                    <span class="linkdescr">Short summary of the basic concepts</span></p>
+                <p class="biglink"><a class="biglink" href="{{ pathto("getting_started") }}#">Installation</a><br/>
+                    <span class="linkdescr">Instructions on installing BASIN-3D</span></p>
+            </td>
+            <td width="75%">
+                <p class="biglink"><a class="biglink" href="{{ pathto("quick_guide") }}">Quick Guide</a><br/>
+                    <span class="linkdescr">Quick guide to basic functions</span></p>
+                <p class="biglink"><a class="biglink" href="{{ pathto("examples") }}">Examples</a><br/>
+                    <span class="linkdescr">Examples for using BASIN-3D</span></p>
+            </td>
+        </tr>
+    </table>
 
-      <p class="biglink"><a class="biglink" href="{{ pathto("quick_guide") }}">Quick Guide</a><br/>
-         <span class="linkdescr">Quick guide to basic functions</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("examples") }}">Examples</a><br/>
-         <span class="linkdescr">Examples for using BASIN-3D</span></p>
-{#      <p class="biglink"><a class="biglink" href="{{ pathto("api") }}">Library Reference</a><br/>#}
-{#         <span class="linkdescr">A reference guide for using basin3d-core</span></p>#}
-    </td></tr>
-  </table>
+    <p><strong>Indices:</strong></p>
+    <table class="contentstable">
+        <tr>
+            <td width="68%">
+                <p class="biglink"><a class="biglink" href="{{ pathto("py-modindex") }}">Global Module Index</a><br/>
+                    <span class="linkdescr">Quick access to all modules</span></p>
+                <p class="biglink"><a class="biglink" href="{{ pathto("genindex") }}"> Index</a><br/>
+                    <span class="linkdescr">All functions, classes, terms</span></p>
+            </td>
+            <td width="65%">
+                <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
+                    <span class="linkdescr">Search the documentation</span></p>
+                <p class="biglink"><a class="biglink" href="{{ pathto("key_functions") }}">Key Functions</a><br/>
+                    <span class="linkdescr">List of important functions</span></p>
+            </td>
+        </tr>
+    </table>
 
-  <p><strong>Indices:</strong></p>
-  <table class="contentstable" align="center"><tr>
-    <td width="50%">
-      <p class="biglink"><a class="biglink" href="{{ pathto("py-modindex") }}">Global Module Index</a><br/>
-         <span class="linkdescr">Quick access to all modules</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("genindex") }}"> Index</a><br/>
-         <span class="linkdescr">All functions, classes, terms</span></p>
-    </td><td width="50%">
-      <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
-         <span class="linkdescr">Search the documentation</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("key_functions") }}">Key Functions</a><br/>
-         <span class="linkdescr">List of important functions</span></p>
-    </td></tr>
-  </table>
-
-  <p><strong>Additional Information:</strong></p>
-  <table class="contentstable" align="center"><tr>
-    <td width="50%">
-      <p class="biglink"><a class="biglink" href="{{ pathto("contact") }}">Contact Us</a>
-      <p class="biglink"><a class="biglink" href="{{ pathto("changelog") }}">Change Log</a></p>
-    </td>
-    <td width="50%">
-      <p class="biglink"><a class="biglink" href="{{ pathto("copyright_notice") }}">Copyright Notice</a></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("license_agreement") }}">License Agreement</a></p>
-    </td></tr>
-  </table>
+    <p><strong>Additional Information:</strong></p>
+    <table class="contentstable">
+        <tr>
+            <td width="75%">
+                <p class="biglink"><a class="biglink" href="{{ pathto("contact") }}">Contact Us</a></p>
+                <p class="biglink"><a class="biglink" href="{{ pathto("changelog") }}">Change Log</a></p>
+                <p class="biglink"><a class="biglink" href="{{ pathto("acknowledgments") }}">Acknowledgments</a></p>
+            </td>
+            <td width="60%">
+                <p class="biglink"><a class="biglink" href="{{ pathto("copyright_notice") }}">Copyright Notice</a></p>
+                <p class="biglink"><a class="biglink" href="{{ pathto("license_agreement") }}">License Agreement</a></p>
+                <p class="biglink"><a class="biglink" href="{{ pathto("references") }}">References</a></p>
+            </td>
+        </tr>
+    </table>
 {% endblock %}
