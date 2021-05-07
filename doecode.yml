@@ -1,0 +1,119 @@
+#Metadata template for DOECode users
+#Version: 1.3
+
+---
+# Describe availability of your software
+accessibility: "OS"
+# repository URL or landing page URL
+repository_link: "https://github.com/BASIN-3D/basin3d"
+# add as many developers as needed; first and last name required
+developers:
+- first_name: Valerie C.
+  last_name: Hendrix
+  affiliations:
+  - "Lawrence Berkeley National Laboratory"
+  email: vchendrix@lbl.gov
+  orcid: 0000-0001-9061-8952
+- first_name: Danielle S.
+  last_name: Christianson
+  affiliations:
+  - "Lawrence Berkeley National Laboratory"
+  email: dschristianson@lbl.gov
+  orcid: 0000-0002-8663-7701
+- first_name: Catherine
+  last_name: Wong
+  affiliations:
+  - "Lawrence Berkeley National Laboratory"
+- first_name: Charuleka
+  last_name: Varadharajan
+  affiliations:
+  - "Lawrence Berkeley National Laboratory"
+  email: cvaradharajan@lbl.gov
+  orcid: 0000-0002-4142-3224
+# DOI or URL identifiers of related resources
+related_identifiers:
+- identifier_type: "URL"
+  identifier_value: "http://github.com/Watershed-Function-SFA/BASIN-3D"
+  relation_type: "IsPreviousVersionOf"
+  description: "Old code present at this url"
+# VCH: Would we update this with our paper DOI?
+#- identifier_type: "DOI"
+#  identifier_value: "10.5072/doecode2017/dev-test-repo/2"
+#  relation_type: "Cites"
+# name of person or institution that has contributed to the software and not listed as a developer
+contributors:
+- first_name: Deb
+  last_name: Agarwal
+  affiliations:
+  - "Lawrence Berkeley National Laboratory"
+  contributor_type: ProjectSupervisor
+  email: daagarwal@lbl.gov
+## other organization that provided support to project; may be entered in place of naming individual software developers
+#contributing_organizations:
+#- organization_name:
+#  contributor_type: DataCurator
+#organization which had primary responsibility for developing the software
+research_organizations:
+- organization_name: "Lawrence Berkeley National Lab"
+  DOE: true
+#sponsoring or funding office of the software product
+sponsoring_organizations:
+- organization_name: "U.S. DOE > Office of Science > Biological and Environmental Research (BER)"
+  DOE: true
+  # award/contract number that is largely responsibile for funding the project; at least one valid entry is required
+  primary_award: "DEAC0205CH11231"
+#  funding_identifiers:
+#  - identifier_type: "AwardNumber"
+#    identifier_value: "DE_865234"
+#  - identifier_type: "AwardNumber"
+#    identifier_value: "DE-8293"
+#- organization_name: "University of Miami, FL"
+#  funding_identifiers:
+#  - identifier_type: "AwardNumber"
+#    identifier_value: "UWIN-234"
+#  - identifier_type: "AwardNumber"
+#    identifier_value: "UWIN-888"
+#  - identifier_type: "BRCode"
+#    identifier_value: "UFL-11"
+# title of the software
+software_title: "Broker for Assimilation, Synthesis and Integration of eNvironmental Diverse, Distributed Datasets"
+# abbreviated title or acronym for the software
+acronym: "BASIN-3D"
+## unique persistent identifier which references a digital object and provides long-term access
+#doi: ""
+# license for the software
+licenses:
+- "Lawrence Berkeley National Labs BSD variant license (BSD-3-Clause-LBNL)"
+# provide clear, concise and publicly releasable description of the software
+description: >
+  BASIN-3D is a software ecosystem that synthesizes diverse earth science data
+  from a variety of remote data sources on-demand, without the need for storing
+  data in a single database. It is designed to parse, translate, and synthesize
+  diverse observations from well-curated repositories into standardized formats
+  for scientific uses such as analysis and visualization. Thus, BASIN-3D enables
+  users to always have access to the latest data from each of the sources and
+  interact with the data as if they were integrated in local storage. More
+  importantly, users can also integrate public data without establishing prior
+  working relationships with each data source.
+
+  FROM OSS application:
+  BASIN-3D (Broker for Assimilation, Synthesis and Integration of eNvironmental Diverse, Distributed Datasets)
+  uses a data brokering approach to synthesize diverse earth science data from a variety of remote sources in
+  real-time without the need for additional storage. BASIN-3D is an extendable Django web framework application
+  using a generalized data synthesis model that makes the synthesized data available via REpresentational State
+  Transfer (REST) Application Programming Interface (API). We have currently implemented our data synthesis
+  model to represent sensor-based time series earth science observations across a hierarchy of spatial locations.
+  Supporting our data synthesis model is a plugin framework that allows developers to map data sources of
+  interest to the BASIN-3D synthesis model.
+# list of words or phrases that describe the software; separate terms with a semicolon
+keywords: software, data synthesis, data management, python, earth science
+# provide name, email, phone number, and organization of the submitter. This contact info will serve as the
+# point of contact for DOE if there are questions regarding the software; this information will not be shared publicly
+recipient_name: "Charuleka Varadharajan"
+recipient_email: "cvaradharajan@lbl.gov"
+recipient_phone: "510-495-2905"
+recipient_org: "Lawrence Berkeley National Laboratory"
+# accession or other identifying nymbers assigned by submitting site, univeristy, or repository's database, records, etc.
+site_accession_number: "OI2019-02558"
+# software release date
+release_date: "2019-06-04"
