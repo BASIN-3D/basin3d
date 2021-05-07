@@ -1,0 +1,91 @@
+---
+code_id: 56079
+open_source: true
+repository_link: "http://github.com/BASIN-3D/basin3d"
+accessibility: "OS"
+software_type: "S"
+developers:
+- email: "vchendrix@lbl.gov"
+  orcid: "0000-0001-9061-8952"
+  first_name: "Valerie"
+  last_name: "Hendrix"
+  middle_name: "Cork"
+  affiliations:
+  - "Lawrence Berkeley National Lab. (LBNL), Berkeley, CA (United States)"
+- email: "dschristianson@lbl.gov"
+  orcid: "0000-0002-8663-7701"
+  first_name: "Danielle"
+  last_name: "Christianson"
+  middle_name: "S"
+  affiliations:
+  - "Lawrence Berkeley National Lab. (LBNL), Berkeley, CA (United States)"
+- email: "catwong@lbl.gov"
+  orcid: ""
+  first_name: "Catherine"
+  last_name: "Wong"
+  middle_name: ""
+  affiliations:
+  - "Lawrence Berkeley National Lab. (LBNL), Berkeley, CA (United States)"
+- email: ""
+  orcid: "0000-0002-4142-3224"
+  first_name: "Charuleka"
+  last_name: "Varadharajan"
+  middle_name: ""
+  affiliations:
+  - "Lawrence Berkeley National Lab. (LBNL), Berkeley, CA (United States)"
+contributors:
+- email: "daagarwal@lbl.gov"
+  orcid: "0000-0001-5045-2396"
+  first_name: "Deborah"
+  last_name: "Agarwal"
+  middle_name: ""
+  contributor_type: "Supervisor"
+  affiliations:
+  - "Lawrence Berkeley National Lab. (LBNL), Berkeley, CA (United States)"
+sponsoring_organizations:
+- organization_name: "USDOE Office of Science (SC), Biological and Environmental Research\
+    \ (BER)"
+  funding_identifiers: []
+  primary_award: "AC02-05CH11231"
+  DOE: true
+contributing_organizations: []
+research_organizations:
+- organization_name: "Lawrence Berkeley National Laboratory (LBNL), Berkeley, CA (United\
+    \ States)"
+  DOE: true
+related_identifiers:
+- identifier_type: "URL"
+  identifier_value: "http://github.com/Watershed-Function-SFA/BASIN-3D"
+  relation_type: "IsPreviousVersionOf"
+  source: "User"
+award_dois: []
+release_date: "2019-06-04"
+software_title: "Broker for Assimilation, Synthesis and Integration of eNvironmental\
+  \ Diverse, Distributed Datasets (basin3d)"
+acronym: "BASIN-3D"
+doi: "10.11578/dc.20210429.4"
+description: "BASIN-3D (Broker for Assimilation, Synthesis and Integration of eNvironmental\
+  \ Diverse, Distributed Datasets) uses a data brokering approach to synthesize diverse\
+  \ earth science data from a variety of remote sources in real-time without the need\
+  \ for additional storage. BASIN-3D is an extendable Python application using a generalized\
+  \ data synthesis model that makes the synthesized data available via Application\
+  \ Programming Interface (API). We have currently implemented our data synthesis\
+  \ model to represent sensor-based time series earth science observations across\
+  \ a hierarchy of spatial locations. Supporting our data synthesis model is a plugin\
+  \ framework that allows developers to map data sources of interest to the BASIN-3D\
+  \ synthesis model."
+programming_languages:
+- "Python"
+documentation_url: "https://basin3d.readthedocs.io"
+country_of_origin: "United States"
+keywords: "software, data synthesis, data management, python, earth science"
+licenses:
+- "BSD 3-clause \"New\" or \"Revised\" License"
+recipient_org: "Lawrence Berkeley National Laboratory"
+site_accession_number: "OI2019-02558"
+date_record_added: "2021-04-29"
+date_record_updated: "2021-06-17"
+links:
+- rel: "citation"
+  href: "https://www.osti.gov/doecode/biblio/56079"
+is_migration: false
