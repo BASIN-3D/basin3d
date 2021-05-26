@@ -40,7 +40,6 @@ def get_url_text(text):
     :return:
     """
 
-
     return type('Dummy', (object,), {
         "text": text,
         "status_code": 200,
@@ -101,7 +100,6 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         synthesizer.measurement_timeseries_tvp_observations(**query2)
 
 
-@pytest.mark.integration
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
@@ -127,7 +125,6 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     assert monitoring_feature.feature_type == feature_type.upper()
 
 
-@pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count", [({"datasource": "USGS"}, 2889),
                                                    ({"monitoring_features": ['USGS-02']}, 1),
                                                    ({"feature_type": "region"}, 21),
@@ -141,9 +138,9 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
                                                    ({"feature_type": "vertical path"}, 0),
                                                    ({"feature_type": "horizontal path"}, 0),
                                                    ({"feature_type": "point"}, 0),
-                                                   ({"monitoring_features": ["USGS-09129600"], "feature_type": "point"}, 1),
+                                                   ({"monitoring_features": ["USGS-09129600"], "feature_type": "point"},1),
                                                    ({"parent_features": ['USGS-02']}, 118),
-                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 49),
+                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 48),
                                                    ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
                                                    ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
                          ids=["all", "region_by_id", "region", "subregion",
@@ -208,7 +205,6 @@ def test_usgs_monitoring_features1(query, expected_count, monkeypatch):
     assert count == expected_count
 
 
-
 @pytest.mark.parametrize("query, expected_count", [
     ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 49)],
                          ids=["points_by_subbasin"])
@@ -239,7 +235,6 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
     assert count == expected_count
 
 
-
 def test_usgs_get_data(monkeypatch):
     mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_data_09110000.rdb")),
                                                get_url(get_json("usgs_get_data_09110000.json"))]))
@@ -247,15 +242,16 @@ def test_usgs_get_data(monkeypatch):
 
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     usgs_data = get_timeseries_data(synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
-                                    observed_property_variables=['RDC', 'WT'], start_date='2019-10-25',
-                                    end_date='2019-10-28')
+                                observed_property_variables=['RDC', 'WT'], start_date='2019-10-25',
+                                end_date='2019-10-28')
     usgs_df = usgs_data.data
     usgs_metadata_df = usgs_data.metadata
 
     # check the dataframe
     assert isinstance(usgs_df, pd.DataFrame) is True
     for column_name in list(usgs_df.columns):
-        assert column_name in ['TIMESTAMP', 'USGS-09110000__RDC__MEAN', 'USGS-09110000__WT__MEAN', 'USGS-09110000__WT__MIN', 'USGS-09110000__WT__MAX']
+        assert column_name in ['TIMESTAMP', 'USGS-09110000__RDC__MEAN', 'USGS-09110000__WT__MEAN',
+                               'USGS-09110000__WT__MIN', 'USGS-09110000__WT__MAX']
     assert usgs_df.shape == (4, 5)
     alpha_data = usgs_df.get('USGS-09110000__RDC__MEAN')
     assert list(alpha_data.values) == [4.2475270499999995, 4.219210203, 4.134259662, 4.332477591]
