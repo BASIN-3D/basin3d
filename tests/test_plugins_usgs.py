@@ -10,6 +10,7 @@ from basin3d.core.types import FeatureTypes, TimeFrequency, ResultQuality, Sampl
 from basin3d.synthesis import register, SynthesisException, get_timeseries_data
 
 
+@pytest.mark.integration
 def test_measurement_timeseries_tvp_observations_usgs():
     """ Test USGS Timeseries data query"""
 
@@ -56,10 +57,12 @@ def test_measurement_timeseries_tvp_observations_usgs():
         synthesizer.measurement_timeseries_tvp_observations(**query2)
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
                                                  ({"id": "USGS-01020004"}, "subbasin")], ids=["region", "subregion",
+
                                                                                               "basin", "subbasin"])
 def test_usgs_monitoring_feature(query, feature_type):
     """Test USGS search by region  """
@@ -72,6 +75,7 @@ def test_usgs_monitoring_feature(query, feature_type):
     assert FeatureTypes.TYPES[monitoring_feature.feature_type] == feature_type.upper()
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count", [({}, 2889),
                                                    ({"feature_type": "region"}, 21),
                                                    ({"feature_type": "subregion"}, 222),
@@ -86,7 +90,8 @@ def test_usgs_monitoring_feature(query, feature_type):
                                                    ({"feature_type": "point"}, 0),
                                                    ({"parent_features": ['USGS-02']}, 118),
                                                    (
-                                                   {"parent_features": ['USGS-02020004'], "feature_type": "point"}, 48),
+                                                           {"parent_features": ['USGS-02020004'],
+                                                            "feature_type": "point"}, 48),
                                                    ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
                                                    ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
                          ids=["all", "region", "subregion",
@@ -116,6 +121,7 @@ def test_usgs_monitoring_features(query, expected_count):
     assert count == expected_count
 
 
+@pytest.mark.integration
 def test_usgs_get_data():
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     usgs_df, usgs_metadata = get_timeseries_data(
