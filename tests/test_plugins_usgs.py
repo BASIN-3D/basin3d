@@ -97,6 +97,7 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         synthesizer.measurement_timeseries_tvp_observations(**query2)
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
@@ -106,8 +107,6 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
                          ids=["region", "subregion", "basin", "subbasin", "point", "point_long_id"])
 def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     """Test USGS search by region  """
-
-    import basin3d
 
     def mock_get_huc_codes(*args):
         return get_text("new_huc_rdb.txt")
@@ -135,14 +134,21 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
                                                    ({"feature_type": "plot"}, 0),
                                                    ({"feature_type": "vertical path"}, 0),
                                                    ({"feature_type": "horizontal path"}, 0),
-                                                   ],
-                         ids=["all",  "region_by_id", "region", "subregion",
+                                                   ({"feature_type": "point"}, 0),
+                                                   ({"monitoring_features": ["USGS-09129600"], "feature_type": "point"}, 1),
+                                                   ({"parent_features": ['USGS-02']}, 118),
+                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 49),
+                                                   ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
+                                                   ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
+                         ids=["all", "region_by_id", "region", "subregion",
                               "basin", "subbasin",
                               "watershed", "subwatershed",
                               "site", "plot",
                               "vertical_path",
                               "horizontal_path",
-                              ])
+                              "point", "point_by_id", "all_by_region",
+                              "points_by_subbasin",
+                              "subbasin_by_subregion", "invalid_points"])
 def test_usgs_monitoring_features(query, expected_count, monkeypatch):
     """Test USGS search by region  """
 
@@ -166,7 +172,6 @@ def test_usgs_monitoring_features(query, expected_count, monkeypatch):
     print(query.values(), "count:", count, "expected:", expected_count)
 
     assert count == expected_count
-
 
 
 @pytest.mark.parametrize("query, expected_count", [
@@ -195,7 +200,6 @@ def test_usgs_monitoring_features1(query, expected_count, monkeypatch):
     print(query.values(), "count:", count, "expected:", expected_count)
 
     assert count == expected_count
-
 
 
 @pytest.mark.parametrize("query, expected_count", [
@@ -239,6 +243,7 @@ def test_usgs_get_data(monkeypatch):
                                     end_date='2019-10-28')
     usgs_df = usgs_data.data
     usgs_metadata_df = usgs_data.metadata
+
 
     # check the dataframe
     assert isinstance(usgs_df, pd.DataFrame) is True
