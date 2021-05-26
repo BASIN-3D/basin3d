@@ -47,9 +47,9 @@ def get_url_text(text):
 def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
     """ Test USGS Timeseries data query"""
 
-    import basin3d
     mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_mtvp_sites.rdb")),
                                                get_url(get_json("usgs_nwis_dv_p00060_l09110990_l09111250.json"))]))
+
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
 
@@ -61,7 +61,6 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         "aggregation_duration": "DAY",
         "results_quality": "CHECKED"
     }
-
     with pytest.raises(ValidationError):
         synthesizer.measurement_timeseries_tvp_observations(**query0)
 
@@ -73,9 +72,7 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         "aggregation_duration": "DAY",
         "results_quality": "CHECKED"
     }
-
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
-
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
         count = 0
         for timeseries in measurement_timeseries_tvp_observations:
@@ -97,7 +94,6 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         synthesizer.measurement_timeseries_tvp_observations(**query2)
 
 
-@pytest.mark.integration
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
@@ -105,6 +101,7 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
                                                  ({"id": "USGS-09129600"}, "point"),
                                                  ({"id": "USGS-383103106594200", "feature_type": "POINT"}, "point")],
                          ids=["region", "subregion", "basin", "subbasin", "point", "point_long_id"])
+
 def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     """Test USGS search by region  """
 
@@ -150,6 +147,7 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
                               "point", "point_by_id", "all_by_region",
                               "points_by_subbasin",
                               "subbasin_by_subregion", "invalid_points"])
+
 def test_usgs_monitoring_features(query, expected_count, monkeypatch):
     """Test USGS search by region  """
 
@@ -203,6 +201,7 @@ def test_usgs_monitoring_features1(query, expected_count, monkeypatch):
     assert count == expected_count
 
 
+
 @pytest.mark.parametrize("query, expected_count", [
     ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 49)],
                          ids=["points_by_subbasin"])
@@ -233,6 +232,7 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
     assert count == expected_count
 
 
+
 def test_usgs_get_data(monkeypatch):
     mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_data_09110000.rdb")),
                                                get_url(get_json("usgs_get_data_09110000.json"))]))
@@ -244,7 +244,6 @@ def test_usgs_get_data(monkeypatch):
                                     end_date='2019-10-28')
     usgs_df = usgs_data.data
     usgs_metadata_df = usgs_data.metadata
-
 
     # check the dataframe
     assert isinstance(usgs_df, pd.DataFrame) is True
