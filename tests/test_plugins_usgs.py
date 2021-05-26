@@ -101,6 +101,7 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         synthesizer.measurement_timeseries_tvp_observations(**query2)
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
@@ -110,7 +111,6 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
                          ids=["region", "subregion", "basin", "subbasin", "point", "point_long_id"])
 def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     """Test USGS search by region  """
-
 
     def mock_get_huc_codes(*args):
         return get_text("new_huc_rdb.txt")
