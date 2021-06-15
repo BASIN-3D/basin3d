@@ -1,5 +1,15 @@
 # Changelog
 
+## Version 0.0.3
+Documentation for user facing documention for use with sphinx and
+deployed in basin3d.readthedocs.org.
+   + Issue #77, #71, #67, #33, #35, #36, #37, #39, #20, #60, #42, #52
+
+
+Testing:
+   + Issue #86 - Github Actions failing for mypy on specific types libraries 
+   + Issue #46 -  Refactor tests to separate out integration and unit tests
+
 ## Version 0.0.2
 Project Updates:   
    + Enable Github Actions
