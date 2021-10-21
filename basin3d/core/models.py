@@ -1317,6 +1317,9 @@ class MeasurementMetadataMixin(object):
     Metadata attributes for Observations type Measurement
     """
 
+    #: Statistical Instantaneous
+    STATISTIC_INSTANTANEOUS = "INSTANT"
+
     #: Statistical Mean
     STATISTIC_MEAN = "MEAN"
 

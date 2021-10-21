@@ -5,6 +5,7 @@ from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordina
     GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
     RepresentativeCoordinate, SpatialSamplingShapes, VerticalCoordinate
 from basin3d.core.plugin import DataSourcePluginPoint, basin3d_plugin, basin3d_plugin_access
+from basin3d.core.synthesis import QUERY_PARAM_STATISTICS, QUERY_PARAM_MONITORING_FEATURES
 
 logger = logging.getLogger(__name__)
 
@@ -54,15 +55,23 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
     from datetime import datetime
     for num in range(1, 10):
         data.append((datetime(2016, 2, num), num * 0.3454))
-    data = [data, data, []]
-    observed_property_variables = ["Acetate", "Acetate", "Aluminum"]
-    units = ['nm', 'nm', 'mg/L']
+    data = [data, data, [], data]
+    observed_property_variables = ["Acetate", "Acetate", "Aluminum", "Aluminum"]
+    units = ['nm', 'nm', 'mg/L', 'mg/L']
+    statistics = ['MEAN', 'MAX', 'MEAN', 'MAX']
 
-    for num in range(1, 4):
+    for num in range(1, 5):
+        if kwargs:
+            if QUERY_PARAM_MONITORING_FEATURES in kwargs and kwargs[QUERY_PARAM_MONITORING_FEATURES]:
+                if str(num) not in kwargs[QUERY_PARAM_MONITORING_FEATURES]:
+                    continue
+            if QUERY_PARAM_STATISTICS in kwargs and kwargs[QUERY_PARAM_STATISTICS]:
+                if statistics[num - 1] not in kwargs[QUERY_PARAM_STATISTICS]:
+                    continue
         yield MeasurementTimeseriesTVPObservation(
             plugin_access=self,
             id=num,
-            observed_property_variable=observed_property_variables[num-1],
+            observed_property_variable=observed_property_variables[num - 1],
             utc_offset=-8 - num,
             feature_of_interest=MonitoringFeature(
                 plugin_access=self,
@@ -95,12 +104,12 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
                                            role=RelatedSamplingFeature.ROLE_PARENT)]
             ),
             feature_of_interest_type=FeatureTypes.POINT,
-            unit_of_measurement=units[num-1],
+            unit_of_measurement=units[num - 1],
             aggregation_duration=TimeFrequency.DAY,
             result_quality="CHECKED",
             time_reference_position=None,
-            statistic="MEAN",
-            result_points=data[num-1]
+            statistic=statistics[num - 1],
+            result_points=data[num - 1]
         )
 
 

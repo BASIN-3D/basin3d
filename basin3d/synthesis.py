@@ -54,7 +54,8 @@ from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import DataSource, MeasurementTimeseriesTVPObservation, MonitoringFeature, TimeMetadataMixin
 from basin3d.core.plugin import PluginMount
 from basin3d.core.synthesis import MeasurementTimeseriesTVPObservationAccess, MonitoringFeatureAccess, \
-    QUERY_PARAM_MONITORING_FEATURES, QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES, QUERY_PARAM_START_DATE, logger
+    QUERY_PARAM_MONITORING_FEATURES, QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES, \
+    QUERY_PARAM_STATISTICS, QUERY_PARAM_START_DATE, logger
 from basin3d.core.types import TimeFrequency
 
 
@@ -99,8 +100,8 @@ class SynthesizedTimeseriesData:
 
     data: pd.DataFrame
     """The time series data
-    **pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id 
-    
+    **pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id
+
     .. code-block::
 
                     TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
@@ -116,8 +117,8 @@ class SynthesizedTimeseriesData:
 
         # data columns: monitoring feature id and observed property variable id
         column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
-        
-    
+
+
     """
 
     metadata: pd.DataFrame
@@ -299,8 +300,8 @@ class DataSynthesizer:
         return self._catalog.find_observed_property_variables(datasource_id=datasource_id)
 
     def monitoring_features(self, id: str = None, feature_type: str = None, datasource: str = None,
-                            monitoring_features: List[str] = None, parent_features: List[str] = None) -> Union[
-        Iterator[MonitoringFeature], MonitoringFeature]:
+                            monitoring_features: List[str] = None,
+                            parent_features: List[str] = None) -> Union[Iterator[MonitoringFeature], MonitoringFeature]:
         """
         Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
 
@@ -361,7 +362,8 @@ class DataSynthesizer:
     def measurement_timeseries_tvp_observations(
             self, monitoring_features: List[str], observed_property_variables: List[str], start_date: str,
             end_date: str = None, aggregation_duration: str = TimeMetadataMixin.AGGREGATION_DURATION_DAY,
-            results_quality: str = None, datasource: str = None) -> Iterator[MeasurementTimeseriesTVPObservation]:
+            statistic: List[str] = [], results_quality: str = None,
+            datasource: str = None) -> Iterator[MeasurementTimeseriesTVPObservation]:
         """
         Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
 
@@ -380,6 +382,7 @@ class DataSynthesizer:
         :param start_date: start date YYYY-MM-DD
         :param end_date: end date YYYY-MM-DD
         :param aggregation_duration: aggregation time period, default = 'DAY' enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND)
+        :param statistic: list of statistics, list of num (INSTANT|MEAN|MIN|MAX|TOTAL)
         :param results_quality: enum (UNCHECKED|CHECKED)
         :param datasource: Datasource id prefix (e.g USGS)
 
@@ -397,7 +400,7 @@ class DataSynthesizer:
                         monitoring_features=monitoring_features,
                         observed_property_variables=observed_property_variables,
                         start_date=start_date, end_date=end_date, aggregation_duration=aggregation_duration,
-                        datasource=datasource, results_quality=results_quality))
+                        statistic=statistic, datasource=datasource, results_quality=results_quality))
 
 
 def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = True,
@@ -413,18 +416,18 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
     >>> from basin3d import synthesis
     >>> synthesizer = synthesis.register()
     >>> usgs_data = synthesis.get_timeseries_data( \
-        synthesizer,monitoring_features=['USGS-09110000'], \
-        observed_property_variables=['RDC','WT'],start_date='2019-10-25',end_date='2019-10-30')
+        synthesizer,monitoring_features=['USGS-09110000'], observed_property_variables=['RDC','WT'], \
+        start_date='2019-10-25', end_date='2019-10-30', statistic=['MEAN'])
     >>> usgs_data.data
-                TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
-    2019-10-25 2019-10-25                3.2            4.247527
-    2019-10-26 2019-10-26                4.1            4.219210
-    2019-10-27 2019-10-27                4.3            4.134260
-    2019-10-28 2019-10-28                3.2            4.332478
-    2019-10-29 2019-10-29                2.2            4.219210
-    2019-10-30 2019-10-30                0.5            4.247527
+                TIMESTAMP  USGS-09110000__WT__MEAN  USGS-09110000__RDC__MEAN
+    2019-10-25 2019-10-25                      3.2                  4.247527
+    2019-10-26 2019-10-26                      4.1                  4.219210
+    2019-10-27 2019-10-27                      4.3                  4.134260
+    2019-10-28 2019-10-28                      3.2                  4.332478
+    2019-10-29 2019-10-29                      2.2                  4.219210
+    2019-10-30 2019-10-30                      0.5                  4.247527
 
-    >>> for k, v in usgs_data.metadata['USGS-09110000__WT'].items():
+    >>> for k, v in usgs_data.metadata['USGS-09110000__WT__MEAN'].items():
     ...     print(f'{k} = {v}')
     data_start = 2019-10-25 00:00:00
     data_end = 2019-10-30 00:00:00
@@ -464,6 +467,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
            Optional parameters for *MeasurementTimeseriesTVPObservation*:
                * **end_date**
                * **aggregation_duration** = resolution = DAY  (only DAY is currently supported)
+               * **statistic**
                * **result_quality**
                * **datasource**
 
@@ -480,6 +484,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
            Optional parameters for MeasurementTimeseriesTVPObservation:
                * end_date
                * aggregation_duration = resolution = DAY  (only DAY is currently supported)
+               * statistic, list of statistics
                * result_quality
                * datasource
     """
@@ -541,8 +546,14 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                 logger.warning(f'Results aggregation_duration {aggregation_duration} does not match '
                                f'specified temporal_resolution {temporal_resolution}.')
                 continue
+            statistic = data_obj.statistic
+            # Double check that returned statistic matches any statistic specified.
+            if QUERY_PARAM_STATISTICS in kwargs.keys() and statistic not in (kwargs[QUERY_PARAM_STATISTICS]):
+                logger.warning(
+                    f'Results statistic {statistic} not in the specified query statistic(s): '
+                    f'{", ".join(kwargs[QUERY_PARAM_STATISTICS])}.')
 
-            synthesized_variable_name = f'{sampling_feature_id}__{observed_property_variable_id}'
+            synthesized_variable_name = f'{sampling_feature_id}__{observed_property_variable_id}__{statistic}'
 
             results_start = None
             results_end = None
@@ -570,7 +581,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                 'units': data_obj.unit_of_measurement,
                 'basin_3d_variable': observed_property_variable_id,
                 'basin_3d_variable_full_name': observed_property.observed_property_variable.full_name,
-                'statistic': data_obj.statistic,
+                'statistic': statistic,
                 'temporal_aggregation': aggregation_duration,
                 'quality': data_obj.result_quality,
                 'sampling_medium': observed_property.sampling_medium,
@@ -669,7 +680,7 @@ def _output_df(output_directory, output_name, query_info, metadata_store, first_
     output_df = pd.DataFrame({'TIMESTAMP': time_series})
     # ToDo: expand to have TIMESTAMP_START and TIMESTAMP_END for resolutions HOUR, MINUTE
     # Fill the data dataframe
-    for synthesized_variable_name, result_dict in _result_generator(os.path.join(output_directory,output_name),
+    for synthesized_variable_name, result_dict in _result_generator(os.path.join(output_directory, output_name),
                                                                     metadata_store):
         num_records = metadata_store[synthesized_variable_name]['records']
         pd_series = pd.Series(result_dict, name=synthesized_variable_name)
@@ -685,10 +696,10 @@ def _output_df(output_directory, output_name, query_info, metadata_store, first_
     metadata_nodata_df = _fill_metadata_df(metadata_store, synthesized_no_var_list)
 
     if len(list(metadata_data_df.columns)) + len(list(metadata_nodata_df.columns)) - 2 != len(metadata_store):
-        logger.warning(f'Metadata records mismatch. Please take a look')
+        logger.warning('Metadata records mismatch. Please take a look')
 
     if not all(output_df.columns == metadata_data_df.columns):
-        logger.warning(f'Data and metadata data frames columns do not match!')
+        logger.warning('Data and metadata data frames columns do not match!')
 
     return PandasTimeseriesData(data=output_df, metadata=metadata_data_df, metadata_no_observations=metadata_nodata_df,
                                 output_path=output_directory,
