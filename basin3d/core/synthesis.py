@@ -28,6 +28,7 @@ QUERY_PARAM_DATASOURCE = "datasource"
 QUERY_PARAM_MONITORING_FEATURES = "monitoring_features"
 QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES = "observed_property_variables"
 QUERY_PARAM_AGGREGATION_DURATION = "aggregation_duration"
+QUERY_PARAM_STATISTICS = "statistic"
 QUERY_PARAM_START_DATE = "start_date"
 QUERY_PARAM_END_DATE = "end_date"
 QUERY_PARAM_PARENT_FEATURES = "parent_features"
@@ -179,7 +180,7 @@ class DataSourceModelAccess:
                     raise Exception(f"There is no detail for {pk}")
             else:
                 raise Exception(f"DataSource not not found for pk {pk}")
-        except KeyError as e:
+        except KeyError:
             raise Exception(f"Invalid pk {pk}")
 
 
@@ -283,6 +284,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *start_date (required):* date YYYY-MM-DD
     * *end_date (optional):* date YYYY-MM-DD
     * *aggregation_duration (default: DAY):* enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND)
+    * *statistic (optional):* List of statistic options, enum (INSTANT|MEAN|MIN|MAX|TOTAL)
     * *datasource (optional):* a single data source id prefix (e.g ?datasource=`datasource.id_prefix`)
     * *result_quality (optional):* enum (UNCHECKED|CHECKED)
 
@@ -300,6 +302,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
           + monitoring_features
           + observed_property_variables
           + aggregation_duration (default: DAY)
+          + statistic
           + quality_checked
 
         :param plugin_access: The plugin view to synthesize query params for
@@ -309,6 +312,8 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         id_prefix = plugin_access.datasource.id_prefix
         query_params = {}
         for key, value in kwargs.items():
+            if isinstance(value, str):
+                value = value.split(",")
             query_params[key] = value
 
         extract_query_param_ids(param_name=QUERY_PARAM_MONITORING_FEATURES,
@@ -318,8 +323,6 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         # Synthesize ObservedPropertyVariable (from BASIN-3D to DataSource variable name)
         if QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES in query_params:
             observed_property_variables = query_params.get(QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES, [])
-            if isinstance(observed_property_variables, str):
-                observed_property_variables = observed_property_variables.split(",")
             query_params[QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES] = [o.datasource_variable for o in
                                                                      plugin_access.get_observed_properties(
                                                                          observed_property_variables)]

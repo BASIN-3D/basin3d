@@ -14,7 +14,6 @@
     :backlinks: top
 
 """
-import datetime as dt
 
 
 class SpatialSamplingShapes(object):

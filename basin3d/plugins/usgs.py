@@ -46,7 +46,6 @@ Broker REST API*.
 
 ---------------------
 """
-import copy
 import json
 import logging
 import requests
@@ -59,13 +58,18 @@ from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordina
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, get_feature_type
 from basin3d.core.synthesis import QUERY_PARAM_END_DATE, QUERY_PARAM_MONITORING_FEATURES, \
     QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES, QUERY_PARAM_PARENT_FEATURES, QUERY_PARAM_RESULT_QUALITY, \
-    QUERY_PARAM_START_DATE, QUERY_PARAM_FEATURE_TYPE
+    QUERY_PARAM_STATISTICS, QUERY_PARAM_START_DATE, QUERY_PARAM_FEATURE_TYPE
 from basin3d.core.types import FeatureTypes, ResultQuality, SpatialSamplingShapes
 from basin3d.plugins import usgs_huc_codes
 
 logger = logging.getLogger(__name__)
 
 URL_USGS_HUC = "https://water.usgs.gov/GIS/new_huc_rdb.txt"
+USGS_STATISTIC_MAP = {
+    MeasurementMetadataMixin.STATISTIC_MEAN: '00003',
+    MeasurementMetadataMixin.STATISTIC_MIN: '00002',
+    MeasurementMetadataMixin.STATISTIC_MAX: '00001'
+}
 
 
 def convert_discharge(data, parameter, units):
@@ -85,14 +89,10 @@ def convert_discharge(data, parameter, units):
 
 
 def map_statistic_code(stat_cd):
-    if stat_cd == '00001':
-        return MeasurementMetadataMixin.STATISTIC_MAX
-    if stat_cd == '00002':
-        return MeasurementMetadataMixin.STATISTIC_MIN
-    if stat_cd == '00003':
-        return MeasurementMetadataMixin.STATISTIC_MEAN
-    else:
-        return 'NOT SUPPORTED'  # consider making this part of the Mixin Statistic type
+    for k, v in USGS_STATISTIC_MAP.items():
+        if stat_cd == v:
+            return k
+    return 'NOT SUPPORTED'  # consider making this part of the Mixin Statistic type
 
 
 def generator_usgs_measurement_timeseries_tvp_observation(view, **kwargs):
@@ -124,14 +124,23 @@ def generator_usgs_measurement_timeseries_tvp_observation(view, **kwargs):
 
     search_params.append(("parameterCd", ",".join([str(o) for o in observed_property_variables])))
 
+    if kwargs[QUERY_PARAM_STATISTICS]:
+        statistics = []
+        for stat in kwargs[QUERY_PARAM_STATISTICS]:
+            if not USGS_STATISTIC_MAP.get(stat):
+                logger.info(f"USGS Daily Values service does not support statistic {stat}")
+                continue
+            statistics.append(USGS_STATISTIC_MAP.get(stat))
+        search_params.append(("statCd", ",".join(statistics)))
+    else:
+        search_params.append(("siteStatus", "all"))
+
     if len(monitoring_features[0]) > 2:
         # search for stations
-        search_params.append(("statCd", "00003"))  # Only search for the mean statistic for now
         search_params.append(("sites", ",".join(monitoring_features)))
     else:
         # search for stations by specifying the huc
         search_params.append(("huc", ",".join(monitoring_features)))
-        search_params.append(("siteStatus", "all"))  # per Charu's query
 
     # look for station locations only
     search_params.append(("siteType", "ST"))
@@ -636,8 +645,8 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                     # TODO: write some tests for this which will require mocking a data return.
                     # Only filter if quality_checked is True
                     # if QUERY_PARAM_RESULT_QUALITY not in kwargs or not kwargs[QUERY_PARAM_RESULT_QUALITY] or \
-                            # (QUERY_PARAM_RESULT_QUALITY in kwargs and kwargs[
-                                # QUERY_PARAM_RESULT_QUALITY] == result_quality):
+                    #         (QUERY_PARAM_RESULT_QUALITY in kwargs and kwargs[
+                    #          QUERY_PARAM_RESULT_QUALITY] == result_quality):
                     if not result_quality_filter or result_quality_filter == result_quality:
 
                         # Get the broker parameter
@@ -662,8 +671,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                     timeseries_result_quality = ResultQuality.RESULT_QUALITY_CHECKED
                 if ResultQuality.RESULT_QUALITY_UNCHECKED in result_qualifiers:
                     timeseries_result_quality = ResultQuality.RESULT_QUALITY_UNCHECKED
-                if (ResultQuality.RESULT_QUALITY_UNCHECKED in result_qualifiers and
-                        ResultQuality.RESULT_QUALITY_CHECKED in result_qualifiers):
+                if (ResultQuality.RESULT_QUALITY_UNCHECKED in result_qualifiers and ResultQuality.RESULT_QUALITY_CHECKED in result_qualifiers):
                     timeseries_result_quality = ResultQuality.RESULT_QUALITY_PARTIALLY_CHECKED
 
             measurement_timeseries_tvp_observation = MeasurementTimeseriesTVPObservation(

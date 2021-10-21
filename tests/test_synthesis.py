@@ -73,7 +73,7 @@ def test_measurement_timeseries_tvp_observations_count():
         for mf in measurement_timeseries_tvp_observations:
             count += 1
 
-        assert count == 3
+        assert count == 4
     else:
         assert measurement_timeseries_tvp_observations is not None
 
@@ -148,19 +148,20 @@ def test_get_timeseries_data_errors():
                             observed_property_variables=['ACT'], start_date='2019-01-01')
 
 
-@pytest.mark.parametrize("output_type, output_path, cleanup", [(TimeseriesOutputType.PANDAS, None, True),
-                                                      (TimeseriesOutputType.HDF, None, True),
-                                                      (TimeseriesOutputType.PANDAS, './pandas', True),
-                                                      (TimeseriesOutputType.HDF, "./hdf", True),
-                                                      (TimeseriesOutputType.PANDAS, None, False),
-                                                      (TimeseriesOutputType.HDF, None, False),
-                                                      (TimeseriesOutputType.PANDAS, './pandas', False),
-                                                      (TimeseriesOutputType.HDF, "./hdf", False)
-                                                      ], ids=['pandas-cleanup', 'hdf-cleanup', 'pandas-output-cleanup',
-                                                              'hdf-output-cleanup', 'pandas', 'hdf', 'pandas-output',
-                                                              'hdf-output'])
+@pytest.mark.parametrize('output_type, output_path, cleanup',
+                         [(TimeseriesOutputType.PANDAS, None, True),
+                          (TimeseriesOutputType.HDF, None, True),
+                          (TimeseriesOutputType.PANDAS, './pandas', True),
+                          (TimeseriesOutputType.HDF, './hdf', True),
+                          (TimeseriesOutputType.PANDAS, None, False),
+                          (TimeseriesOutputType.HDF, None, False),
+                          (TimeseriesOutputType.PANDAS, './pandas', False),
+                          (TimeseriesOutputType.HDF, './hdf', False)],
+                         ids=['pandas-cleanup', 'hdf-cleanup', 'pandas-output-cleanup',
+                              'hdf-output-cleanup', 'pandas', 'hdf', 'pandas-output',
+                              'hdf-output'])
 def test_get_timeseries_data(output_type, output_path, cleanup):
-    """Test processing for """
+    """Test processing for get_timeseries_data basic functionality"""
 
     # Create temporary directory
     if output_path:
@@ -170,7 +171,7 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
 
         alpha_result = get_timeseries_data(synthesizer=synthesizer, output_path=output_path, output_type=output_type,
                                            cleanup=cleanup,
-                                           monitoring_features=['A-1', 'A-2', 'A-3'],
+                                           monitoring_features=['A-1', 'A-2', 'A-3', 'A-4'],
                                            observed_property_variables=['ACT', 'Al'], start_date='2016-02-01')
 
         assert alpha_result
@@ -191,13 +192,13 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
             assert alpha_result.output_path is not None
 
             assert alpha_result.hdf.attrs['aggregation_duration'] == 'DAY'
-            assert list(alpha_result.hdf.attrs['monitoring_features']) == ['A-1', 'A-2', 'A-3']
+            assert list(alpha_result.hdf.attrs['monitoring_features']) == ['A-1', 'A-2', 'A-3', 'A-4']
             assert list(alpha_result.hdf.attrs['observed_property_variables']) == ['ACT', 'Al']
             assert alpha_result.hdf.attrs['query_start_time']
             assert alpha_result.hdf.attrs['query_end_time']
             assert alpha_result.hdf.attrs['start_date']
-            assert list(alpha_result.hdf.attrs['variables_data']) == ['A-1__ACT', 'A-2__ACT']
-            assert list(alpha_result.hdf.attrs['variables_nodata']) == ['A-3__Al']
+            assert list(alpha_result.hdf.attrs['variables_data']) == ['A-1__ACT__MEAN', 'A-2__ACT__MAX', 'A-4__Al__MAX']
+            assert list(alpha_result.hdf.attrs['variables_nodata']) == ['A-3__Al__MEAN']
 
         # Check the output path
         if not cleanup:
@@ -212,15 +213,15 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
             assert alpha_result.output_path and os.path.exists(alpha_result.output_path)
 
         # check the dataframe
-        assert list(alpha_df.columns) == ['TIMESTAMP', 'A-1__ACT', 'A-2__ACT']
-        assert alpha_df.shape == (9, 3)
-        alpha_data = alpha_df.get('A-1__ACT')
+        assert list(alpha_df.columns) == ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX', 'A-4__Al__MAX']
+        assert alpha_df.shape == (9, 4)
+        alpha_data = alpha_df.get('A-1__ACT__MEAN')
         assert list(alpha_data.values) == [num * 0.3454 for num in range(1, 10)]
         assert list(alpha_data.index) == [dt.datetime(2016, 2, num) for num in range(1, 10)]
 
         # check the metadata with observations
         # Get synthesized variable field names and values
-        var_metadata = alpha_metadata_df['A-1__ACT']
+        var_metadata = alpha_metadata_df['A-1__ACT__MEAN']
         assert var_metadata['data_start'] == dt.datetime(2016, 2, 1)
         assert var_metadata['data_end'] == dt.datetime(2016, 2, 9)
         assert var_metadata['records'] == 9
@@ -235,17 +236,17 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['datasource'] == 'Alpha'
         assert var_metadata['datasource_variable'] == 'Acetate'
 
-        assert 'A-3__Al' in alpha_result.variables_no_observations
-        assert 'A-3__Al' not in alpha_result.variables
+        assert 'A-3__Al__MEAN' in alpha_result.variables_no_observations
+        assert 'A-3__Al__MEAN' not in alpha_result.variables
 
-        assert list(alpha_metadata_df.columns) == ['TIMESTAMP', 'A-1__ACT', 'A-2__ACT']
+        assert list(alpha_metadata_df.columns) == ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX', 'A-4__Al__MAX']
         assert len(alpha_metadata_df) == 20
 
         # check the metadata with no observations
         # Get synthesized variable field names and values
-        var_metadata = alpha_metadata_nodata_df['A-3__Al']
-        assert var_metadata['data_start'] == None
-        assert var_metadata['data_end'] == None
+        var_metadata = alpha_metadata_nodata_df['A-3__Al__MEAN']
+        assert var_metadata['data_start'] is None
+        assert var_metadata['data_end'] is None
         assert var_metadata['records'] == 0
         assert var_metadata['units'] == 'mg/L'
         assert var_metadata['basin_3d_variable'] == 'Al'
@@ -258,9 +259,46 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['datasource'] == 'Alpha'
         assert var_metadata['datasource_variable'] == 'Aluminum'
 
-        assert list(alpha_metadata_nodata_df.columns) == ['TIMESTAMP', 'A-3__Al']
+        assert list(alpha_metadata_nodata_df.columns) == ['TIMESTAMP', 'A-3__Al__MEAN']
         assert len(alpha_metadata_nodata_df) == 20
     finally:
         # remove temporary directory
         if output_path and os.path.exists(output_path):
             shutil.rmtree(output_path)
+
+
+@pytest.mark.parametrize('filters, expected_results',
+                         [({'monitoring_features': ['A-1', 'A-2'], 'statistic': []},
+                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX'], 'df_shape': (9, 3),
+                            'no_observations_variable': None}),
+                          ({'monitoring_features': ['A-1', 'A-2', 'A-3', 'A-4'], 'statistic': ['MEAN']},
+                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN'], 'df_shape': (9, 2),
+                            'no_observations_variable': 'A-3__Al__MEAN'}),
+                          ({'monitoring_features': ['A-3', 'A-4'], 'statistic': ['MIN']},
+                           {'has_data': False, 'columns': None, 'df_shape': None,
+                            'no_observations_variable': None})],
+                         ids=['monitoring_features', 'statistic', 'monitoring_feature_and_statistic'])
+def test_get_timeseries_data_filtering(filters, expected_results):
+    """Test processing for get_timeseries_data statistic"""
+
+    synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
+
+    alpha_result = get_timeseries_data(synthesizer=synthesizer, output_path=None, output_type=TimeseriesOutputType.PANDAS, cleanup=True,
+                                       monitoring_features=filters['monitoring_features'],
+                                       observed_property_variables=['ACT', 'Al'], start_date='2016-02-01',
+                                       statistic=filters['statistic'])
+    assert alpha_result
+    alpha_df = alpha_result.data
+    if expected_results['has_data']:
+        assert isinstance(alpha_df, pd.DataFrame)
+        assert list(alpha_df.columns) == expected_results['columns']
+        assert alpha_df.shape == expected_results['df_shape']
+    else:
+        assert alpha_df is None
+
+    no_observation_variable = expected_results['no_observations_variable']
+    if no_observation_variable:
+        assert no_observation_variable in alpha_result.variables_no_observations
+        assert no_observation_variable not in alpha_result.variables
+    else:
+        assert len(alpha_result.variables_no_observations) == 0
