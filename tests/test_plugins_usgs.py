@@ -42,7 +42,8 @@ def get_url_text(text):
         "url": "/testurl"})
 
 
-def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
+@pytest.mark.integration
+def test_measurement_timeseries_tvp_observations_usgs():
     """ Test USGS Timeseries data query"""
 
     import basin3d
@@ -78,6 +79,7 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         pytest.fail("Returned object must be iterator")
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
@@ -103,6 +105,7 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     # add more asserts
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count", [({}, 2889),
                                                    ({"feature_type": "region"}, 21),
                                                    ({"feature_type": "subregion"}, 222),
@@ -148,6 +151,7 @@ def test_usgs_monitoring_features(query, expected_count):
     assert count == expected_count
 
 
+@pytest.mark.integration
 def test_usgs_get_data():
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     usgs_df, usgs_metadata = get_timeseries_data(
