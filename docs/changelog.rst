@@ -1,6 +1,28 @@
 Change Log
 **********
 
+Version 0.1.0
+##############
+Project Updates:
+   + Issue `#14 <https://github.com/BASIN-3D/basin3d/issues/14>`_: Enable USGS point monitoring features to be called by ID
+   + Issue `#16 <https://github.com/BASIN-3D/basin3d/issues/16>`_: Enable USGS data acquisition by 2-digit HUC code (expand result quality type)
+   + Issue `#22 <https://github.com/BASIN-3D/basin3d/issues/22>`_: Expand metadata functionality
+   + Issue `#49 <https://github.com/BASIN-3D/basin3d/issues/49>`_: [Breaking change] Refactor synthesis.get_timeseries_data to add HDF output
+
+Installation:
+   + Issue `#99 <https://github.com/BASIN-3D/basin3d/issues/99>`_: Pin pyyaml for deprecation
+   + Issue `#98 <https://github.com/BASIN-3D/basin3d/issues/98>`_: Correct package installation for development environment
+
+Version 0.0.3
+##############
+Documentation for user facing documention for use with sphinx and
+deployed in basin3d.readthedocs.org.
+   + Issue `#77 <https://github.com/BASIN-3D/basin3d/issues/77>`_, `#71 <https://github.com/BASIN-3D/basin3d/issues/71>`_, `#67 <https://github.com/BASIN-3D/basin3d/issues/67>`_, `#33 <https://github.com/BASIN-3D/basin3d/issues/33>`_, `#35 <https://github.com/BASIN-3D/basin3d/issues/35>`_, `#36 <https://github.com/BASIN-3D/basin3d/issues/36>`_, `#37 <https://github.com/BASIN-3D/basin3d/issues/37>`_, `#39 <https://github.com/BASIN-3D/basin3d/issues/39>`_, `#20 <https://github.com/BASIN-3D/basin3d/issues/20>`_, `#60 <https://github.com/BASIN-3D/basin3d/issues/60>`_, `#42 <https://github.com/BASIN-3D/basin3d/issues/42>`_, `#52 <https://github.com/BASIN-3D/basin3d/issues/52>`_
+
+Testing:
+   + Issue `#86 <https://github.com/BASIN-3D/basin3d/issues/86>`_: Github Actions failing for mypy on specific types libraries
+   + Issue `#46 <https://github.com/BASIN-3D/basin3d/issues/46>`_:  Refactor tests to separate out integration and unit tests
+
 Version 0.0.2
 ##############
 Project Updates:

@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 0.1.0
+Project Updates:
+   + Issue #14 - Enable USGS point monitoring features to be called by ID
+   + Issue #16 - Enable USGS data acquisition by 2-digit HUC code (expand result quality type)
+   + Issue #22 - Expand metadata functionality
+   + Issue #49 - [Breaking change] Refactor synthesis.get_timeseries_data to add HDF output
+
+Installation:
+   + Issue #99 - Pin pyyaml for deprecation
+   + Issue #98 - Correct package installation for development environment
+
 ## Version 0.0.3
 Documentation for user facing documention for use with sphinx and
 deployed in basin3d.readthedocs.org.
