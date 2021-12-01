@@ -16,87 +16,127 @@
 """
 
 import logging
-from typing import Dict, Iterator
+from typing import Iterator, List
 
 from basin3d.core.connection import InvalidOrMissingCredentials
-from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature, TimeMetadataMixin
-from basin3d.core.plugin import DataSourcePluginAccess, get_feature_type
-from basin3d.core.types import FeatureTypes
+from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
+from basin3d.core.plugin import DataSourcePluginAccess
+from basin3d.core.schema.enum import TimeFrequencyEnum
+from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
+    QueryMonitoringFeature, SynthesisResponse
 
 logger = logging.getLogger(__name__)
-QUERY_PARAM_DATASOURCE = "datasource"
-QUERY_PARAM_MONITORING_FEATURES = "monitoring_features"
-QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES = "observed_property_variables"
-QUERY_PARAM_AGGREGATION_DURATION = "aggregation_duration"
-QUERY_PARAM_STATISTICS = "statistic"
-QUERY_PARAM_START_DATE = "start_date"
-QUERY_PARAM_END_DATE = "end_date"
-QUERY_PARAM_PARENT_FEATURES = "parent_features"
-QUERY_PARAM_RESULT_QUALITY = "result_quality"
-QUERY_PARAM_FEATURE_TYPE = "feature_type"
 
 
-def extract_id(identifer):
-    """
-    Extract the datasource identifier from the broker identifier
-    :param identifer:
-    :return:
-    """
-    if identifer:
-        site_list = identifer.split("-")
-        identifer = identifer.replace("{}-".format(site_list[0]),
-                                      "", 1)  # The datasource id prefix needs to be removed
-    return identifer
-
-
-def filter_query_param_values(param_name, id_prefix, query_params, **kwargs):
-    """
-    Filter query param values for those with the specified id_prefix
-    :param param_name:
-    :param id_prefix:
-    :param query_params:
-    :return:
-    """
-    # Synthesize the ids (remove datasource id_prefix)
-    if param_name in kwargs:
-        values = kwargs.get(param_name, None)
-
-        if values:
-            query_params[param_name] = [x for x in
-                                        values
-                                        if x.startswith("{}-".format(id_prefix))]
-
-
-def extract_query_param_ids(param_name, id_prefix, query_params, **kwargs):
+def _synthesize_query_identifiers(values, id_prefix) -> List[str]:
     """
     Extract the ids from the specified query params
 
-    :param param_name: the name of the list parameter
+    :param values:  the ids to synthesize
     :param id_prefix:  the datasource id prefix
-    :param query_params: the query params to populate
-    :type query_params: dict
-    :return:
+    :return: The list of synthesizes identifiers
     """
     # Synthesize the ids (remove datasource id_prefix)
-    values = kwargs.get(param_name, None)
     if isinstance(values, str):
         values = values.split(",")
 
-    if values:
-        query_params[param_name] = [extract_id(x) for x in
-                                    values
-                                    if x.startswith("{}-".format(id_prefix))]
+    def extract_id(identifer):
+        """
+        Extract the datasource identifier from the broker identifier
+        :param identifer:
+        :return:
+        """
+        if identifer:
+            site_list = identifer.split("-")
+            identifer = identifer.replace("{}-".format(site_list[0]),
+                                          "", 1)  # The datasource id prefix needs to be removed
+        return identifer
+
+    return [extract_id(x) for x in
+            values
+            if x.startswith("{}-".format(id_prefix))]
+
+
+class DataSourceModelIterator(Iterator):
+    """
+    BASIN-3D Data Source Model generator
+    """
+
+    @property
+    def synthesis_response(self) -> SynthesisResponse:
+        """Response object for the Synthesis"""
+        return self._synthesis_response
+
+    def __init__(self, query: QueryBase, model_access: 'DataSourceModelAccess'):
+        """
+        Initialize the generator with the query and the model access
+
+        :param query: the unsynthesized query
+        :param model_access: Model access
+        """
+        self._synthesis_response = SynthesisResponse(query=query)
+        self._model_access: 'DataSourceModelAccess' = model_access
+
+        # Filter the plugins, if specified
+        if not self._synthesis_response.query.datasource:
+            self._plugins = list(self._model_access.plugins.values())
+        elif self._synthesis_response.query.datasource:
+            self._plugins = [self._model_access.plugins[d] for d in self._synthesis_response.query.datasource if
+                             d in self._model_access.plugins.keys()]
+
+        # Internal attributes that contain the iterator state
+        self._plugin_index = -1
+        self._model_access_iterator = None
+        self._next = None
+
+    def __next__(self) -> Base:
+        """
+        Return the next item from the iterator. If there are no further items, raise the StopIteration exception.
+
+        """
+
+        while True:
+            try:
+                # Is there an iterator?  Return the next data item
+                if self._model_access_iterator:
+                    try:
+                        self._next = next(self._model_access_iterator)
+                        if self._next:
+                            return self._next
+                    except StopIteration:
+                        # ignore sub iterator StopIteration exception
+                        pass
+
+                # Setup to get the data from the next data source plugin
+                self._plugin_index += 1
+                self._model_access_iterator = None
+
+                # Are there any more plugins?
+                if self._plugin_index < len(self._plugins):
+
+                    # Get the plugin view and determine if it has a list method
+                    plugin_views = self._plugins[self._plugin_index].get_plugin_access()
+                    if self._model_access.synthesis_model in plugin_views and \
+                            hasattr(plugin_views[self._model_access.synthesis_model], "list"):
+                        # Now synthesize the query object
+                        synthesized_query_params: QueryBase = self._model_access.synthesize_query(
+                            plugin_views[self._model_access.synthesis_model],
+                            self._synthesis_response.query)
+                        synthesized_query_params.datasource = [self._plugins[self._plugin_index].get_datasource().id]
+
+                        # Get the model access iterator
+                        self._model_access_iterator = plugin_views[self._model_access.synthesis_model].list(
+                            query=synthesized_query_params)
+                else:
+                    raise StopIteration
+
+            except InvalidOrMissingCredentials as e:
+                logger.error(e)
 
 
 class DataSourceModelAccess:
     """
-    Base ViewsSet for all DataSource plugins.  The inheritance diagram shows that this class extends the
-    `Django Rest Framework <https://www.django-rest-framework.org/>`_
-    class :class:`rest_framework.viewsets.ViewSet`. These are based on `Django generic views
-    <https://docs.djangoproject.com/en/2.2/topics/class-based-views/generic-display/>`_.
-
-    .. inheritance-diagram:: rest_framework.viewsets.ViewSet basin3d.synthesis.viewsets.DataSourcePluginViewSet
-
+    Base class for DataSource model access.
     """
 
     def __init__(self, plugins, catalog):
@@ -111,77 +151,60 @@ class DataSourceModelAccess:
     def synthesis_model(self):
         raise NotImplementedError
 
-    def synthesize_query_params(self, plugin_access: DataSourcePluginAccess, **kwargs) -> Dict[str, str]:
+    def synthesize_query(self, plugin_access: DataSourcePluginAccess,
+                         query: QueryBase) -> QueryBase:
         """
         Synthesizes query parameters, if necessary
 
+        :param query: The query information to be synthesized
         :param request: the request to synthesize
         :param plugin_access: The plugin view to synthesize query params for
-        :return: The query parameters
+        :return: The synthesized query information
         """
         # do nothing, subclasses may override this
         raise NotImplementedError
 
-    def list(self, **kwargs) -> Iterator[Base]:
+    def list(self, query: QueryBase) -> DataSourceModelIterator:
         """
         Return the synthesized plugin results
 
-        :param request: The incoming request object
-        :type request: :class:`rest_framework.request.Request`
-        :param format: The format to present the data (default is json)
-        :return: The HTTP Response
-        :rtype: :class:`rest_framework.request.Response`
+        :param query: The query for this function
         """
-        for plugin in self.plugins.values():  # Get the plugin model
+        return DataSourceModelIterator(query, self)
 
-            # Skip datasource if it is filtered out.
-            if QUERY_PARAM_DATASOURCE in kwargs and kwargs[QUERY_PARAM_DATASOURCE]:
-                if plugin.get_datasource().id_prefix not in kwargs[QUERY_PARAM_DATASOURCE].split(","):
-                    continue
-
-            plugin_views = plugin.get_plugin_access()
-            if self.synthesis_model in plugin_views and \
-                    hasattr(plugin_views[self.synthesis_model], "list"):
-                try:
-                    synthesized_query_params = self.synthesize_query_params(plugin_views[self.synthesis_model], **kwargs)
-                    for obj in plugin_views[self.synthesis_model].list(**synthesized_query_params):
-                        yield obj
-                except InvalidOrMissingCredentials as e:
-                    logger.error(e)
-
-    def retrieve(self, pk: str, **kwargs) -> Base:
+    def retrieve(self, query: QueryById) -> SynthesisResponse:
         """
         Retrieve a single synthesized value
 
-        :param request: The request object
-        :type request: :class:`rest_framework.request.Request`
-        :param pk: The primary key
-        :return: The HTTP Response
-        :rtype: :class:`rest_framework.request.Response`
+        :param query: The query for this request
         """
 
-        # split the datasource id prefix from the primary key
-        pk_list = pk.split("-")
+        if query.id:
 
-        try:
-            plugin = self.plugins[pk_list[0]]
-            datasource = plugin.get_datasource()
-            if datasource:
-                datasource_pk = pk.replace("{}-".format(pk_list[0]),
-                                           "", 1)  # The datasource id prefix needs to be removed
+            # split the datasource id prefix from the primary key
+            id_list = query.id.split("-")
 
-                plugin_views = plugin.get_plugin_access()
-                if self.synthesis_model in plugin_views:
-                    synthesized_query_params = self.synthesize_query_params(plugin_views[self.synthesis_model],
-                                                                            **kwargs)
-                    obj: Base = plugin_views[self.synthesis_model].get(pk=datasource_pk, **synthesized_query_params)
-                    return obj
+            try:
+                plugin = self.plugins[id_list[0]]
+                datasource = plugin.get_datasource()
+                if datasource:
+                    datasource_pk = query.id.replace("{}-".format(id_list[0]),
+                                                     "", 1)  # The datasource id prefix needs to be removed
+
+                    plugin_views = plugin.get_plugin_access()
+                    if self.synthesis_model in plugin_views:
+                        synthesized_query: QueryById = query.copy()
+                        synthesized_query.id = datasource_pk
+                        synthesized_query.datasource = [datasource.id]
+                        obj: Base = plugin_views[self.synthesis_model].get(query=synthesized_query)
+                        return SynthesisResponse(query=query, data=obj)
+                    else:
+                        raise Exception(f"There is no detail for {query.id}")
                 else:
-                    raise Exception(f"There is no detail for {pk}")
-            else:
-                raise Exception(f"DataSource not not found for pk {pk}")
-        except KeyError:
-            raise Exception(f"Invalid pk {pk}")
+                    raise Exception(f"DataSource not not found for id {query.id}")
+            except KeyError:
+                raise Exception(f"Invalid id {query.id}")
+        return SynthesisResponse(query=query)
 
 
 class MonitoringFeatureAccess(DataSourceModelAccess):
@@ -211,49 +234,30 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
     """
     synthesis_model = MonitoringFeature
 
-    def synthesize_query_params(self, plugin_access: DataSourcePluginAccess, **kwargs) -> Dict[str, str]:
+    def synthesize_query(self, plugin_access: DataSourcePluginAccess, query: QueryMonitoringFeature) -> QueryBase:  # type: ignore[override]
         """
         Synthesizes query parameters, if necessary
 
         Parameters Synthesized:
 
-        :param request: the request to synthesize
-        :type request: :class:`rest_framework.request.Request`
+        :param query: The query information to be synthesized
         :param plugin_access: The plugin view to synthesize query params for
-        :return: The query parameters
+        :return: The synthesized query information
         """
-        query_params = {}
+        synthesized_query = query.copy()
 
-        # Look in Request to find URL and get type out if there
-        # ToDo: potentially remove -- need to figure out how to handle in plugin
-        k, _ = self.extract_type(**kwargs)
-        if k is not None:
-            query_params[QUERY_PARAM_FEATURE_TYPE] = k
+        if query:
+            id_prefix = plugin_access.datasource.id_prefix
+            if query.monitoring_features:
+                synthesized_query.monitoring_features = _synthesize_query_identifiers(
+                    values=query.monitoring_features,
+                    id_prefix=id_prefix)
+            if query.parent_features:
+                synthesized_query.parent_features = _synthesize_query_identifiers(
+                    values=query.parent_features,
+                    id_prefix=id_prefix)
 
-        for key, value in kwargs.items():
-            query_params[key] = value
-
-        id_prefix = plugin_access.datasource.id_prefix
-        for param_name in [QUERY_PARAM_MONITORING_FEATURES, QUERY_PARAM_PARENT_FEATURES]:
-            extract_query_param_ids(param_name=param_name,
-                                    id_prefix=id_prefix,
-                                    query_params=query_params, **kwargs)
-
-        return query_params
-
-    def extract_type(self, **kwargs):
-        """
-        Extract the feature types from the request
-
-        :param request: The Request object
-        :return: Tuple `(feature_type_code, feature_type_name)`. (e.g (0, 'REGION')
-        :rtype: tuple
-
-        """
-        k = get_feature_type("feature_type" in kwargs and kwargs["feature_type"] or None)
-        if k:
-            return k, FeatureTypes.TYPES[k]
-        return None, None
+        return synthesized_query
 
 
 class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
@@ -294,7 +298,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     """
     synthesis_model = MeasurementTimeseriesTVPObservation
 
-    def synthesize_query_params(self, plugin_access: DataSourcePluginAccess, **kwargs) -> Dict[str, str]:
+    def synthesize_query(self, plugin_access: DataSourcePluginAccess, query: QueryMeasurementTimeseriesTVP) -> QueryBase:  # type: ignore[override]
         """
         Synthesizes query parameters, if necessary
 
@@ -305,28 +309,26 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
           + statistic
           + quality_checked
 
+        :param query:
         :param plugin_access: The plugin view to synthesize query params for
         :return: The query parameters
         """
 
         id_prefix = plugin_access.datasource.id_prefix
-        query_params = {}
-        for key, value in kwargs.items():
-            if isinstance(value, str):
-                value = value.split(",")
-            query_params[key] = value
+        synthesized_query = query.copy()
 
-        extract_query_param_ids(param_name=QUERY_PARAM_MONITORING_FEATURES,
-                                id_prefix=id_prefix,
-                                query_params=query_params, **kwargs)
+        if query:
 
-        # Synthesize ObservedPropertyVariable (from BASIN-3D to DataSource variable name)
-        if QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES in query_params:
-            observed_property_variables = query_params.get(QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES, [])
-            query_params[QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES] = [o.datasource_variable for o in
-                                                                     plugin_access.get_observed_properties(
-                                                                         observed_property_variables)]
+            if query.monitoring_features:
+                synthesized_query.monitoring_features = _synthesize_query_identifiers(values=query.monitoring_features,
+                                                                                      id_prefix=id_prefix)
+
+            # Synthesize ObservedPropertyVariable (from BASIN-3D to DataSource variable name)
+            if query.observed_property_variables:
+                synthesized_query.observed_property_variables = [o.datasource_variable for o in
+                                                                 plugin_access.get_observed_properties(
+                                                                     query.observed_property_variables)]
         # Override Aggregation to always be DAY
-        query_params[QUERY_PARAM_AGGREGATION_DURATION] = TimeMetadataMixin.AGGREGATION_DURATION_DAY
+        synthesized_query.aggregation_duration = TimeFrequencyEnum.DAY
 
-        return query_params
+        return synthesized_query

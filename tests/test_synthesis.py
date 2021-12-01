@@ -1,13 +1,16 @@
-import datetime as dt
+import datetime
 import os
 import shutil
-from typing import Iterator
 
 import pandas as pd
 import pytest
+from pydantic import ValidationError
 
-from basin3d.core.types import ResultQuality, SamplingMedium, TimeFrequency
-from basin3d.synthesis import SynthesisException, TimeseriesOutputType, get_timeseries_data, register, PandasTimeseriesData, HDFTimeseriesData
+from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum
+from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
+from basin3d.core.synthesis import DataSourceModelIterator
+from basin3d.core.types import SamplingMedium
+from basin3d.synthesis import TimeseriesOutputType, get_timeseries_data, register, PandasTimeseriesData, HDFTimeseriesData
 
 
 def test_register():
@@ -29,8 +32,8 @@ def test_register():
     assert datasources[1].location == 'https://asource.foo/'
 
 
-@pytest.mark.parametrize("query", [{"pk": "A-123"}, {"pk": "A-123", "feature_type": "region"}],
-                         ids=['not-found', 'too-many-for-pk'])
+@pytest.mark.parametrize("query", [{"id": "A-123"}, {"id": "A-123", "feature_type": "region"}],
+                         ids=['not-found', 'too-many-for-id'])
 def test_monitoring_feature_not_found(query):
     """Test not found """
 
@@ -43,8 +46,12 @@ def test_monitoring_features_found():
 
     synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
     monitoring_featurues = synthesizer.monitoring_features()
-    if isinstance(monitoring_featurues, Iterator):
+    if isinstance(monitoring_featurues, DataSourceModelIterator):
         count = 0
+        assert monitoring_featurues.synthesis_response is not None
+        assert monitoring_featurues.synthesis_response.query is not None
+        assert isinstance(monitoring_featurues.synthesis_response.query, QueryMonitoringFeature)
+
         for mf in monitoring_featurues:
             count += 1
 
@@ -53,8 +60,8 @@ def test_monitoring_features_found():
         assert monitoring_featurues is not None
 
 
-@pytest.mark.parametrize("query", [{"pk": "A-123"}, {"pk": "A-123", "feature_type": "region"}],
-                         ids=['not-found', 'too-many-for-pk'])
+@pytest.mark.parametrize("query", [{"id": "A-123"}, {"id": "A-123", "feature_type": "region"}],
+                         ids=['not-found', 'too-many-for-id'])
 def test_measurement_timeseries_tvp_observation_errors(query):
     """Test not found """
 
@@ -68,8 +75,15 @@ def test_measurement_timeseries_tvp_observations_count():
     synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(
         monitoring_features=['test'], observed_property_variables=['test'], start_date='2016-02-01')
-    if isinstance(measurement_timeseries_tvp_observations, Iterator):
+    if isinstance(measurement_timeseries_tvp_observations, DataSourceModelIterator):
         count = 0
+        assert measurement_timeseries_tvp_observations.synthesis_response is not None
+        assert measurement_timeseries_tvp_observations.synthesis_response.query is not None
+        assert isinstance(measurement_timeseries_tvp_observations.synthesis_response.query, QueryMeasurementTimeseriesTVP)
+        assert measurement_timeseries_tvp_observations.synthesis_response.query.monitoring_features == ['test']
+        assert measurement_timeseries_tvp_observations.synthesis_response.query.observed_property_variables == ['test']
+        assert measurement_timeseries_tvp_observations.synthesis_response.query.start_date == datetime.date(2016, 2, 1)
+
         for mf in measurement_timeseries_tvp_observations:
             count += 1
 
@@ -133,17 +147,17 @@ def test_get_timeseries_data_errors():
     synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
 
     # missing argument
-    with pytest.raises(SynthesisException):
+    with pytest.raises(ValidationError):
         get_timeseries_data(synthesizer=synthesizer,
                             monitoring_features=[], observed_property_variables=['ACT'], start_date='2019-01-01')
 
     # missing required parameter
-    with pytest.raises(SynthesisException):
+    with pytest.raises(ValidationError):
         get_timeseries_data(synthesizer=synthesizer,
                             observed_property_variables=['ACT'], start_date='2019-01-01')
 
     # output directory doesn't exist
-    with pytest.raises(SynthesisException):
+    with pytest.raises(ValidationError):
         get_timeseries_data(synthesizer=synthesizer, output_path='./foo',
                             observed_property_variables=['ACT'], start_date='2019-01-01')
 
@@ -217,20 +231,20 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert alpha_df.shape == (9, 4)
         alpha_data = alpha_df.get('A-1__ACT__MEAN')
         assert list(alpha_data.values) == [num * 0.3454 for num in range(1, 10)]
-        assert list(alpha_data.index) == [dt.datetime(2016, 2, num) for num in range(1, 10)]
+        assert list(alpha_data.index) == [datetime.datetime(2016, 2, num) for num in range(1, 10)]
 
         # check the metadata with observations
         # Get synthesized variable field names and values
         var_metadata = alpha_metadata_df['A-1__ACT__MEAN']
-        assert var_metadata['data_start'] == dt.datetime(2016, 2, 1)
-        assert var_metadata['data_end'] == dt.datetime(2016, 2, 9)
+        assert var_metadata['data_start'] == datetime.datetime(2016, 2, 1)
+        assert var_metadata['data_end'] == datetime.datetime(2016, 2, 9)
         assert var_metadata['records'] == 9
         assert var_metadata['units'] == 'nm'
         assert var_metadata['basin_3d_variable'] == 'ACT'
         assert var_metadata['basin_3d_variable_full_name'] == 'Acetate (CH3COO)'
         assert var_metadata['statistic'] == 'MEAN'
-        assert var_metadata['temporal_aggregation'] == TimeFrequency.DAY
-        assert var_metadata['quality'] == ResultQuality.RESULT_QUALITY_CHECKED
+        assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
+        assert var_metadata['quality'] == ResultQualityEnum.CHECKED
         assert var_metadata['sampling_medium'] == SamplingMedium.WATER
         assert var_metadata['sampling_feature_id'] == 'A-1'
         assert var_metadata['datasource'] == 'Alpha'
@@ -252,8 +266,8 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['basin_3d_variable'] == 'Al'
         assert var_metadata['basin_3d_variable_full_name'] == 'Aluminum (Al)'
         assert var_metadata['statistic'] == 'MEAN'
-        assert var_metadata['temporal_aggregation'] == TimeFrequency.DAY
-        assert var_metadata['quality'] == ResultQuality.RESULT_QUALITY_CHECKED
+        assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
+        assert var_metadata['quality'] == ResultQualityEnum.CHECKED
         assert var_metadata['sampling_medium'] == SamplingMedium.WATER
         assert var_metadata['sampling_feature_id'] == 'A-3'
         assert var_metadata['datasource'] == 'Alpha'
@@ -268,7 +282,7 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
 
 
 @pytest.mark.parametrize('filters, expected_results',
-                         [({'monitoring_features': ['A-1', 'A-2'], 'statistic': []},
+                         [({'monitoring_features': ['A-1', 'A-2'], 'statistic': None},
                            {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX'], 'df_shape': (9, 3),
                             'no_observations_variable': None}),
                           ({'monitoring_features': ['A-1', 'A-2', 'A-3', 'A-4'], 'statistic': ['MEAN']},

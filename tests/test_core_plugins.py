@@ -1,4 +1,3 @@
-from collections.abc import Iterator
 from unittest.mock import Mock
 
 import pytest
@@ -7,7 +6,7 @@ import basin3d
 from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import MonitoringFeature
 from basin3d.core.plugin import get_feature_type
-from basin3d.core.types import FeatureTypes
+from basin3d.core.schema.enum import FeatureTypeEnum
 
 
 def test_plugin_metadata():
@@ -74,21 +73,8 @@ def test_plugin_views(monkeypatch):
     assert basin3d.core.models.MonitoringFeature in plugin_views
 
 
-def test_plugin_view_list_monitoring_feature(monkeypatch, datasource):
-    """Import the alpha plugin and try to list data from a view"""
-    from tests.testplugins import alpha
-    catalog = CatalogTinyDb()
-    plugin = alpha.AlphaSourcePlugin(catalog)
-    catalog.initialize([plugin])
-    for access_class in alpha.AlphaSourcePlugin.plugin_access_classes:
-        generator = access_class(datasource, catalog).list()
-        assert isinstance(generator, Iterator)
-        for v in generator:
-            isinstance(v, MonitoringFeature)
-
-
 @pytest.mark.parametrize("feature_name, return_format, result", [("FOO", None, None),
-                                                                 ("REGION", "enum", FeatureTypes.REGION),
+                                                                 ("REGION", "enum", FeatureTypeEnum.REGION),
                                                                  ("REGION", None, "REGION")],
                          ids=["nonexistent", "return_enum", "return_string"])
 def test_get_feature_type(feature_name, return_format, result):

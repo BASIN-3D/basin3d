@@ -2,9 +2,10 @@ import pytest
 
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, DepthCoordinate, \
     GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, Observation, ObservedProperty, \
-    ObservedPropertyVariable, RelatedSamplingFeature, RepresentativeCoordinate, ResultQuality, TimeValuePair, \
+    ObservedPropertyVariable, RelatedSamplingFeature, RepresentativeCoordinate, TimeValuePair, \
     VerticalCoordinate, DataSource
-from basin3d.core.types import FeatureTypes, SamplingMedium, SpatialSamplingShapes
+from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum
+from basin3d.core.types import SamplingMedium, SpatialSamplingShapes
 
 
 @pytest.fixture
@@ -79,12 +80,12 @@ def test_related_sampling_feature(plugin_access_alpha):
     """Test a Related Sampling feature"""
     related_sampling_feature = RelatedSamplingFeature(plugin_access=plugin_access_alpha,
                                                       related_sampling_feature='Region1',
-                                                      related_sampling_feature_type=FeatureTypes.REGION,
+                                                      related_sampling_feature_type=FeatureTypeEnum.REGION,
                                                       role=RelatedSamplingFeature.ROLE_PARENT)
 
     assert related_sampling_feature.datasource == plugin_access_alpha.datasource
     assert related_sampling_feature.related_sampling_feature == 'A-Region1'
-    assert related_sampling_feature.related_sampling_feature_type == FeatureTypes.REGION
+    assert related_sampling_feature.related_sampling_feature_type == FeatureTypeEnum.REGION
     assert related_sampling_feature.role == RelatedSamplingFeature.ROLE_PARENT
 
 
@@ -107,7 +108,7 @@ def test_monitoring_feature_create(plugin_access_alpha):
         id="Region1",
         name="AwesomeRegion",
         description="This region is really awesome.",
-        feature_type=FeatureTypes.REGION,
+        feature_type=FeatureTypeEnum.REGION,
         shape=SpatialSamplingShapes.SHAPE_SURFACE,
         coordinates=Coordinate(representative=RepresentativeCoordinate(
             representative_point=AbsoluteCoordinate(
@@ -124,7 +125,7 @@ def test_monitoring_feature_create(plugin_access_alpha):
     assert a_region.datasource.id == 'Alpha'
     assert a_region.id == 'A-Region1'
     assert a_region.name == 'AwesomeRegion'
-    assert a_region.feature_type == FeatureTypes.REGION
+    assert a_region.feature_type == FeatureTypeEnum.REGION
     assert a_region.description == 'This region is really awesome.'
     assert a_region.shape == SpatialSamplingShapes.SHAPE_SURFACE
     assert a_region.coordinates.representative.representative_point.horizontal_position[0].units == \
@@ -144,7 +145,7 @@ def test_monitoring_feature_create(plugin_access_alpha):
         id='1',
         name='Point Location 1',
         description='The first point.',
-        feature_type=FeatureTypes.POINT,
+        feature_type=FeatureTypeEnum.POINT,
         shape=SpatialSamplingShapes.SHAPE_POINT,
         coordinates=Coordinate(
             absolute=AbsoluteCoordinate(
@@ -165,14 +166,14 @@ def test_monitoring_feature_create(plugin_access_alpha):
         related_sampling_feature_complex=[
             RelatedSamplingFeature(plugin_access=plugin_access_alpha,
                                    related_sampling_feature='Region1',
-                                   related_sampling_feature_type=FeatureTypes.REGION,
+                                   related_sampling_feature_type=FeatureTypeEnum.REGION,
                                    role=RelatedSamplingFeature.ROLE_PARENT)]
     )
 
     assert a_point.datasource.id == 'Alpha'
     assert a_point.id == 'A-1'
     assert a_point.name == 'Point Location 1'
-    assert a_point.feature_type == FeatureTypes.POINT
+    assert a_point.feature_type == FeatureTypeEnum.POINT
     assert a_point.description == 'The first point.'
     assert a_point.shape == SpatialSamplingShapes.SHAPE_POINT
     assert a_point.coordinates.absolute.horizontal_position[0].units == \
@@ -204,7 +205,7 @@ def test_observation_create(plugin_access_alpha):
         id='timeseries01',
         utc_offset='9',
         phenomenon_time='20180201',
-        result_quality=ResultQuality().RESULT_QUALITY_CHECKED,
+        result_quality=ResultQualityEnum.CHECKED,
         feature_of_interest='Point011')
 
     assert obs01.datasource.id == 'Alpha'
@@ -212,7 +213,7 @@ def test_observation_create(plugin_access_alpha):
     assert obs01.utc_offset == '9'
     assert obs01.phenomenon_time == '20180201'
     assert obs01.observed_property is None
-    assert obs01.result_quality == ResultQuality().RESULT_QUALITY_CHECKED
+    assert obs01.result_quality == ResultQualityEnum.CHECKED
     assert obs01.feature_of_interest == 'Point011'
 
 
@@ -224,9 +225,9 @@ def test_measurement_timeseries_tvp_observation_create(plugin_access_alpha):
         id='timeseries01',
         utc_offset='9',
         phenomenon_time='20180201',
-        result_quality=ResultQuality().RESULT_QUALITY_CHECKED,
+        result_quality=ResultQualityEnum.CHECKED,
         feature_of_interest='Point011',
-        feature_of_interest_type=FeatureTypes.POINT,
+        feature_of_interest_type=FeatureTypeEnum.POINT,
         aggregation_duration='daily',
         time_reference_position='start',
         observed_property_variable='Acetate',
@@ -249,9 +250,9 @@ def test_measurement_timeseries_tvp_observation_create(plugin_access_alpha):
             location='https://asource.foo/', credentials={}),
         datasource_description='')
     assert obs01.observed_property_variable == 'ACT'
-    assert obs01.result_quality == ResultQuality.RESULT_QUALITY_CHECKED
+    assert obs01.result_quality == ResultQualityEnum.CHECKED
     assert obs01.feature_of_interest == 'Point011'
-    assert obs01.feature_of_interest_type == FeatureTypes.POINT
+    assert obs01.feature_of_interest_type == FeatureTypeEnum.POINT
     assert obs01.aggregation_duration == 'daily'
     assert obs01.time_reference_position == 'start'
     assert obs01.statistic == 'mean'

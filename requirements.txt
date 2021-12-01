@@ -4,3 +4,4 @@ pyyaml<6.0
 tables
 requests
 tinydb
+pydantic

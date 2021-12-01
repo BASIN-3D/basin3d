@@ -45,18 +45,19 @@ import tempfile
 from dataclasses import dataclass
 from enum import Enum
 from importlib import import_module
-from typing import Generator, Iterator, List, Union, cast
+from typing import Generator, List, Union, cast
 
 import h5py
 import pandas as pd
 
 from basin3d.core.catalog import CatalogTinyDb
-from basin3d.core.models import DataSource, MeasurementTimeseriesTVPObservation, MonitoringFeature, TimeMetadataMixin
+from basin3d.core.models import DataSource
 from basin3d.core.plugin import PluginMount
-from basin3d.core.synthesis import MeasurementTimeseriesTVPObservationAccess, MonitoringFeatureAccess, \
-    QUERY_PARAM_MONITORING_FEATURES, QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES, \
-    QUERY_PARAM_STATISTICS, QUERY_PARAM_START_DATE, logger
-from basin3d.core.types import TimeFrequency
+from basin3d.core.schema.enum import PANDAS_TIME_FREQUENCY_MAP
+from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
+    QueryMonitoringFeature, SynthesisResponse
+from basin3d.core.synthesis import DataSourceModelIterator, MeasurementTimeseriesTVPObservationAccess, \
+    MonitoringFeatureAccess, logger
 
 
 class SynthesisException(Exception):
@@ -85,7 +86,7 @@ class QueryInfo:
     end_time: Union[dt.datetime, None]
 
     """The query parameters of the basin3d query"""
-    parameters: dict
+    parameters: QueryBase
 
 
 @dataclass
@@ -291,7 +292,8 @@ class DataSynthesizer:
     def observed_property_variables(self, datasource_id=None):
         """
 
-        Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
+        Common names for observed property variables. An observed property variable defines what is being measured.
+        Data source observed property variables are mapped to these synthesized observed property variables.
 
         :param datasource_id: filter observer properity variables by data source
         :return: a list of observed property variables
@@ -299,9 +301,8 @@ class DataSynthesizer:
         """
         return self._catalog.find_observed_property_variables(datasource_id=datasource_id)
 
-    def monitoring_features(self, id: str = None, feature_type: str = None, datasource: str = None,
-                            monitoring_features: List[str] = None,
-                            parent_features: List[str] = None) -> Union[Iterator[MonitoringFeature], MonitoringFeature]:
+    def monitoring_features(self, query: Union[QueryById, QueryMonitoringFeature] = None, **kwargs) -> Union[
+            DataSourceModelIterator, SynthesisResponse]:
         """
         Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
 
@@ -313,7 +314,8 @@ class DataSynthesizer:
         >>> from basin3d.plugins import usgs
         >>> from basin3d import synthesis
         >>> synthesizer = synthesis.register()
-        >>> mf = synthesizer.monitoring_features(id='USGS-0101')
+        >>> response = synthesizer.monitoring_features(id='USGS-0101')
+        >>> mf = response.data
         >>> print(f"{mf.id} - {mf.description}")
         USGS-0101 - SUBREGION: St. John
 
@@ -337,74 +339,63 @@ class DataSynthesizer:
         USGS-13010450 [(-110.5874305, 43.9038296)]
         ...
 
-        :param id: Unique feature identifier
-        :param feature_type: feature type
-        :param datasource: Datasource id prefix (e.g USGS)
-        :param monitoring_features: List of monitoring feature identifiers (eg. USGS-0010)
-        :param parent_features: List of parent monitoring features to search by
+        :param query: (optional) The Monitoring Feature Query object
+        :param id: (optional) Unique feature identifier. This returns a single monitoring feature
+        :param feature_type: (optional) feature type
+        :param datasource: (optional) Datasource id prefix (e.g USGS)
+        :param monitoring_features: (optional) List of monitoring feature identifiers (eg. USGS-0010)
+        :param parent_features: (optional) List of parent monitoring features to search by
+
 
         :return: a single `MonitoringFeature` or a list
         """
+        if not query:
+            if "id" in kwargs and isinstance(kwargs["id"], str):
+                query = QueryById(**kwargs)
+            else:
+                query = QueryMonitoringFeature(**kwargs)
 
         # Search for single or list?
-        if id:
+        if isinstance(query, QueryById):
             #  mypy casts are only used as hints for the type checker,
             #  and they don’t perform a runtime type check.
-            return cast(MonitoringFeature, self._monitoring_feature_access.retrieve(pk=id, feature_type=feature_type))
+            return cast(SynthesisResponse, self._monitoring_feature_access.retrieve(query=query))
         else:
             #  mypy casts are only used as hints for the type checker,
             #  and they don’t perform a runtime type check.
-            return cast(Iterator[MonitoringFeature],
-                        self._monitoring_feature_access.list(feature_type=feature_type, datasource=datasource,
-                                                             monitoring_features=monitoring_features,
-                                                             parent_features=parent_features))
+            return cast(DataSourceModelIterator,
+                        self._monitoring_feature_access.list(query=query))
 
-    def measurement_timeseries_tvp_observations(
-            self, monitoring_features: List[str], observed_property_variables: List[str], start_date: str,
-            end_date: str = None, aggregation_duration: str = TimeMetadataMixin.AGGREGATION_DURATION_DAY,
-            statistic: List[str] = [], results_quality: str = None,
-            datasource: str = None) -> Iterator[MeasurementTimeseriesTVPObservation]:
+    def measurement_timeseries_tvp_observations(self, query: QueryMeasurementTimeseriesTVP = None, **kwargs) -> \
+            DataSourceModelIterator:
         """
         Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
 
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
             >>> synthesizer = synthesis.register()
-            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=['USGS-09110990'], \
-                observed_property_variables=['RDC','WT'], start_date='2019-10-01', end_date='2019-10-30', \
-                aggregation_duration='DAY')
+            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=['USGS-09110990'],observed_property_variables=['RDC','WT'],start_date='2019-10-01',end_date='2019-10-30',aggregation_duration='DAY')
             >>> for timeseries in timeseries:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property_variable}")
             USGS-09110990 - RDC
 
-        :param monitoring_features: List of monitoring_features ids (eg. USGS-09110990)
-        :param observed_property_variables: List of observed property variable ids (basin3d variable names)
-        :param start_date: start date YYYY-MM-DD
-        :param end_date: end date YYYY-MM-DD
-        :param aggregation_duration: aggregation time period, default = 'DAY' enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND)
-        :param statistic: list of statistics, list of num (INSTANT|MEAN|MIN|MAX|TOTAL)
-        :param results_quality: enum (UNCHECKED|CHECKED)
-        :param datasource: Datasource id prefix (e.g USGS)
-
+        :param query: The query information for this function
         :return: generator that yields MeasurementTimeseriesTVPObservations
 
         """
-        if not monitoring_features or not observed_property_variables or not start_date:
-            logger.error('Values for one or more of the requred variables was not provided: '
-                         'monitoring_features, observed_property_variables, start_date.')
-            raise SynthesisException
+        if not query:
+            # Raises validation errors
+            query = QueryMeasurementTimeseriesTVP(**kwargs)
+
         #  mypy casts are only used as hints for the type checker,
         #  and they don’t perform a runtime type check.
-        return cast(Iterator[MeasurementTimeseriesTVPObservation],
+        return cast(DataSourceModelIterator,
                     self._measurement_timeseries_tvp_observation_access.list(
-                        monitoring_features=monitoring_features,
-                        observed_property_variables=observed_property_variables,
-                        start_date=start_date, end_date=end_date, aggregation_duration=aggregation_duration,
-                        statistic=statistic, datasource=datasource, results_quality=results_quality))
+                        query))
 
 
 def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = True,
-                        temporal_resolution: str = 'DAY',
+                        temporal_resolution: str = None,
                         output_path: str = None, output_name: str = None, cleanup: bool = True,
                         output_type: TimeseriesOutputType = TimeseriesOutputType.PANDAS,
                         **kwargs) -> SynthesizedTimeseriesData:
@@ -490,19 +481,13 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
     """
 
     # Check that required parameters are provided. May have to rethink this when we expand to mulitple observation types
-    if not all([QUERY_PARAM_MONITORING_FEATURES in kwargs, QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES in kwargs,
-                QUERY_PARAM_START_DATE in kwargs]):
-        logger.error(f'One or more of the required parameters: {QUERY_PARAM_MONITORING_FEATURES}, '
-                     f'{QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES}, or {QUERY_PARAM_START_DATE} was not provided.')
-        raise SynthesisException
-
-    # For now set the aggregation_duration to match the resolution
-    # ToDo: expand to detect from results and/or aggregate higher-resolution data to specified resolution
-    kwargs['aggregation_duration'] = temporal_resolution
+    if temporal_resolution:
+        kwargs['aggregation_duration'] = temporal_resolution
+    query = QueryMeasurementTimeseriesTVP(**kwargs)
 
     # Get the data
-    query_info = QueryInfo(dt.datetime.now(), None, kwargs)
-    data_generator = synthesizer.measurement_timeseries_tvp_observations(**kwargs)
+    query_info = QueryInfo(dt.datetime.now(), None, query)
+    data_generator = synthesizer.measurement_timeseries_tvp_observations(query=query)
     query_info.end_time = dt.datetime.now()
 
     # Store for all variable metadata
@@ -542,16 +527,12 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
             observed_property_variable_id = data_obj.observed_property_variable
             aggregation_duration = data_obj.aggregation_duration
             # Double check that returned aggregation_duration matches resolution. They should be the same.
-            if aggregation_duration != temporal_resolution:
-                logger.warning(f'Results aggregation_duration {aggregation_duration} does not match '
-                               f'specified temporal_resolution {temporal_resolution}.')
-                continue
             statistic = data_obj.statistic
             # Double check that returned statistic matches any statistic specified.
-            if QUERY_PARAM_STATISTICS in kwargs.keys() and statistic not in (kwargs[QUERY_PARAM_STATISTICS]):
+            if query.statistic and statistic not in query.statistic:
                 logger.warning(
                     f'Results statistic {statistic} not in the specified query statistic(s): '
-                    f'{", ".join(kwargs[QUERY_PARAM_STATISTICS])}.')
+                    f'{query.statistic}.')
 
             synthesized_variable_name = f'{sampling_feature_id}__{observed_property_variable_id}__{statistic}'
 
@@ -635,14 +616,16 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
 
         # Determine requested output type
         if output_type is TimeseriesOutputType.PANDAS:
-            output = _output_df(working_directory, output_name, query_info, metadata_store, first_timestamp, last_timestamp,
-                                temporal_resolution)
+            output = _output_df(working_directory, output_name, query_info, metadata_store, first_timestamp,
+                                last_timestamp,
+                                query.aggregation_duration)
             if cleanup:
                 # There will be no output data left
                 output.output_path = None
         elif output_type is TimeseriesOutputType.HDF:
-            output = _output_hdf(working_directory, output_name, query_info, metadata_store, first_timestamp, last_timestamp,
-                                 temporal_resolution)
+            output = _output_hdf(working_directory, output_name, query_info, metadata_store, first_timestamp,
+                                 last_timestamp,
+                                 query.aggregation_duration)
         else:
             raise NotImplemented
 
@@ -659,7 +642,8 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
             shutil.rmtree(working_directory)
 
 
-def _output_df(output_directory, output_name, query_info, metadata_store, first_timestamp, last_timestamp, temporal_resolution) -> \
+def _output_df(output_directory, output_name, query_info, metadata_store, first_timestamp, last_timestamp,
+               temporal_resolution) -> \
         PandasTimeseriesData:
     """
     Output timeseries data as a pandas data frame
@@ -675,7 +659,7 @@ def _output_df(output_directory, output_name, query_info, metadata_store, first_
     """
     # Prep the data dataframe
     time_index = pd.date_range(first_timestamp, last_timestamp,
-                               freq=TimeFrequency.PANDAS_FREQUENCY_MAP[temporal_resolution])
+                               freq=PANDAS_TIME_FREQUENCY_MAP[temporal_resolution])
     time_series = pd.Series(time_index, index=time_index)
     output_df = pd.DataFrame({'TIMESTAMP': time_series})
     # ToDo: expand to have TIMESTAMP_START and TIMESTAMP_END for resolutions HOUR, MINUTE
@@ -706,7 +690,8 @@ def _output_df(output_directory, output_name, query_info, metadata_store, first_
                                 query=query_info)
 
 
-def _output_hdf(output_directory: str, output_name: str, query_info: QueryInfo, metadata_store: dict, first_timestamp, last_timestamp,
+def _output_hdf(output_directory: str, output_name: str, query_info: QueryInfo, metadata_store: dict, first_timestamp,
+                last_timestamp,
                 temporal_resolution) -> \
         SynthesizedTimeseriesData:
     """
@@ -744,8 +729,10 @@ def _output_hdf(output_directory: str, output_name: str, query_info: QueryInfo, 
     with h5py.File(filename, 'a') as f:
         f['metadata'].attrs['column_names'] = list(pandas_result.metadata.columns)
         f['metadata_no_observations'].attrs['column_names'] = list(pandas_result.metadata_no_observations.columns)
-        for field in pandas_result.query.parameters.keys():
-            f.attrs[field] = pandas_result.query.parameters[field]
+        query_dict = json.loads(pandas_result.query.parameters.json())
+        for field in query_dict.keys():
+            if query_dict[field]:
+                f.attrs[field] = query_dict[field]
         f.attrs['query_start_time'] = pandas_result.query.start_time.isoformat()
         f.attrs[
             'query_end_time'] = pandas_result.query.end_time and pandas_result.query.end_time.isoformat()

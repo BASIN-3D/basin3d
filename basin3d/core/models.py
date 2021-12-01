@@ -19,13 +19,15 @@ Below is the inheritance diagram for BASIN-3D generic models and supporting clas
 
 """
 import datetime
+import enum
 import json
 from collections import namedtuple
 from dataclasses import dataclass, field
 from numbers import Number
 from typing import List
 
-from basin3d.core.types import FeatureTypes, ResultQuality, SpatialSamplingShapes, TimeFrequency
+from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, FeatureTypeEnum, ResultQualityEnum, TimeFrequencyEnum
+from basin3d.core.types import SpatialSamplingShapes
 
 
 class JSONSerializable:
@@ -166,7 +168,8 @@ class Base(JSONSerializable):
             if not hasattr(self, key):
                 bad_attributes.append(key)
             else:
-                setattr(self, key, value)
+                # If enum, get value
+                setattr(self, key,  isinstance(value, enum.Enum) and value.value or value)
 
         if len(bad_attributes) > 0:
             raise ValueError("Invalid argument(s) for {} : {}".format(self.__class__.__name__,
@@ -848,8 +851,8 @@ class Feature(Base):
         Validate attributes
         """
 
-        if self.feature_type is not None and self.feature_type not in FeatureTypes.TYPES.keys():
-            raise AttributeError("Feature attr feature_type must be FeatureTypes.")
+        if self.feature_type is not None and self.feature_type not in FeatureTypeEnum.values():
+            raise AttributeError("Feature attr feature_type must be FeatureTypeEnum.")
 
     @property
     def id(self) -> str:
@@ -880,7 +883,7 @@ class Feature(Base):
 
     @property
     def feature_type(self) -> str:
-        """The feature type. For a list of feature types see :class:`basin3d.models.FeatureTypes`."""
+        """The feature type. For a list of feature types see :class:`basin3d.schema.enum.FeatureTypeEnum`."""
         return self._feature_type
 
     @feature_type.setter
@@ -939,7 +942,7 @@ class SpatialSamplingFeature(SamplingFeature):
         self.__validate__()
 
         # Set the shape dependent on feature_type
-        for key, values in FeatureTypes.SHAPE_TYPES.items():
+        for key, values in FEATURE_SHAPE_TYPES.items():
             if self.feature_type in values:
                 self.shape = key
 
@@ -1081,8 +1084,8 @@ class RelatedSamplingFeature(Base):
         """
         # ToDo: refactor this to not require type
         if self.related_sampling_feature_type is not None and \
-                self.related_sampling_feature_type not in FeatureTypes.TYPES.keys():
-            raise AttributeError("RelatedSamplingFeature related_sampling_feature_type must be FeatureTypes")
+                self.related_sampling_feature_type not in FeatureTypeEnum.values():
+            raise AttributeError("RelatedSamplingFeature related_sampling_feature_type must be FeatureTypeEnum")
 
         if self.role is None:
             raise AttributeError("RelatedSamplingFeature role is required.")
@@ -1100,7 +1103,7 @@ class RelatedSamplingFeature(Base):
 
     @property
     def related_sampling_feature_type(self) -> str:
-        """Feature type of the related sampling feature. See :class:`FeatureTypes` for a list of types"""
+        """Feature type of the related sampling feature. See :class:`FeatureTypeEnum` for a list of types"""
         return self._related_sampling_feature_type
 
     @related_sampling_feature_type.setter
@@ -1159,8 +1162,8 @@ class Observation(Base):
         self._phenomenon_time: str = None
         self._observed_property: ObservedProperty = None
         self._feature_of_interest: MonitoringFeature = None
-        self._feature_of_interest_type: FeatureTypes = None
-        self._result_quality: ResultQuality = ResultQuality()
+        self._feature_of_interest_type: FeatureTypeEnum = None
+        self._result_quality: ResultQualityEnum = None
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
@@ -1174,8 +1177,8 @@ class Observation(Base):
         Validate attributes
         """
 
-        # Validate feature of interest type if present is class FeatureTypes
-        if self.feature_of_interest_type and self.feature_of_interest_type not in FeatureTypes.TYPES.keys():
+        # Validate feature of interest type if present is class FeatureTypeEnum
+        if self.feature_of_interest_type and self.feature_of_interest_type not in FeatureTypeEnum.values():
             raise AttributeError("feature_of_interest_type must be FeatureType")
 
     @property
@@ -1234,21 +1237,21 @@ class Observation(Base):
         self._feature_of_interest = value
 
     @property
-    def feature_of_interest_type(self) -> 'FeatureTypes':
-        """The type of feature that was observed. See :class:`basin3d.models.FeatureTypes`"""
+    def feature_of_interest_type(self) -> 'FeatureTypeEnum':
+        """The type of feature that was observed. See :class:`basin3d.models.FeatureTypeEnum`"""
         return self._feature_of_interest_type
 
     @feature_of_interest_type.setter
-    def feature_of_interest_type(self, value: 'FeatureTypes'):
+    def feature_of_interest_type(self, value: 'FeatureTypeEnum'):
         self._feature_of_interest_type = value
 
     @property
-    def result_quality(self) -> 'ResultQuality':
+    def result_quality(self) -> 'ResultQualityEnum':
         """The result quality assessment. See :class:`ResultQuality`"""
         return self._result_quality
 
     @result_quality.setter
-    def result_quality(self, value: 'ResultQuality'):
+    def result_quality(self, value: 'ResultQualityEnum'):
         self._result_quality = value
 
 
@@ -1258,22 +1261,22 @@ class TimeMetadataMixin(object):
     """
 
     #: Observations aggregated by year
-    AGGREGATION_DURATION_YEAR = TimeFrequency.YEAR
+    AGGREGATION_DURATION_YEAR = TimeFrequencyEnum.YEAR
 
     #: Observations aggregated by month
-    AGGREGATION_DURATION_MONTH = TimeFrequency.MONTH
+    AGGREGATION_DURATION_MONTH = TimeFrequencyEnum.MONTH
 
     #: Observations aggregated by day
-    AGGREGATION_DURATION_DAY = TimeFrequency.DAY
+    AGGREGATION_DURATION_DAY = TimeFrequencyEnum.DAY
 
     #: Observations aggregated by hour
-    AGGREGATION_DURATION_HOUR = TimeFrequency.HOUR
+    AGGREGATION_DURATION_HOUR = TimeFrequencyEnum.HOUR
 
     #: Observations aggregated by minute
-    AGGREGATION_DURATION_MINUTE = TimeFrequency.MINUTE
+    AGGREGATION_DURATION_MINUTE = TimeFrequencyEnum.MINUTE
 
     #: Observations aggregated by second
-    AGGREGATION_DURATION_SECOND = TimeFrequency.SECOND
+    AGGREGATION_DURATION_SECOND = TimeFrequencyEnum.SECOND
 
     #: Observation taken at the start
     TIME_REFERENCE_START = "START"

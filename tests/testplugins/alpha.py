@@ -1,11 +1,12 @@
 import logging
+from typing import Any, List
 
-from basin3d.core.types import TimeFrequency
-from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, DepthCoordinate, FeatureTypes, \
+from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, DepthCoordinate, \
     GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
     RepresentativeCoordinate, SpatialSamplingShapes, VerticalCoordinate
 from basin3d.core.plugin import DataSourcePluginPoint, basin3d_plugin, basin3d_plugin_access
-from basin3d.core.synthesis import QUERY_PARAM_STATISTICS, QUERY_PARAM_MONITORING_FEATURES
+from basin3d.core.schema.enum import FeatureTypeEnum, TimeFrequencyEnum
+from basin3d.core.schema.query import QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 class AlphaSourcePlugin(DataSourcePluginPoint):
     title = 'Alpha Source Plugin'
 
-    # Question: should we use the FeatureTypes CV directly?
+    # Question: should we use the FeatureTypeEnum CV directly?
     feature_types = ['REGION', 'POINT', 'TREE']
 
     class DataSourceMeta:
@@ -39,7 +40,7 @@ class AlphaSourcePlugin(DataSourcePluginPoint):
 
 
 @basin3d_plugin_access(AlphaSourcePlugin, MeasurementTimeseriesTVPObservation, 'list')
-def find_measurement_timeseries_tvp_observations(self, **kwargs):
+def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTimeseriesTVP):
     """ Generate the MeasurementTimeseriesTVPObservation
 
       Attributes:
@@ -51,7 +52,7 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
         - *results_points:* Array of DataPoint objects
 
     """
-    data = []
+    data: List[Any] = []
     from datetime import datetime
     for num in range(1, 10):
         data.append((datetime(2016, 2, num), num * 0.3454))
@@ -61,12 +62,12 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
     statistics = ['MEAN', 'MAX', 'MEAN', 'MAX']
 
     for num in range(1, 5):
-        if kwargs:
-            if QUERY_PARAM_MONITORING_FEATURES in kwargs and kwargs[QUERY_PARAM_MONITORING_FEATURES]:
-                if str(num) not in kwargs[QUERY_PARAM_MONITORING_FEATURES]:
+        if query:
+            if query.monitoring_features:
+                if str(num) not in query.monitoring_features:
                     continue
-            if QUERY_PARAM_STATISTICS in kwargs and kwargs[QUERY_PARAM_STATISTICS]:
-                if statistics[num - 1] not in kwargs[QUERY_PARAM_STATISTICS]:
+            if query.statistic:
+                if statistics[num - 1] not in query.statistic:
                     continue
         yield MeasurementTimeseriesTVPObservation(
             plugin_access=self,
@@ -78,7 +79,7 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
                 id=num,
                 name="Point Location " + str(num),
                 description="The point.",
-                feature_type=FeatureTypes.POINT,
+                feature_type=FeatureTypeEnum.POINT,
                 shape=SpatialSamplingShapes.SHAPE_POINT,
                 coordinates=Coordinate(
                     absolute=AbsoluteCoordinate(
@@ -100,12 +101,12 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
                 related_sampling_feature_complex=[
                     RelatedSamplingFeature(plugin_access=self,
                                            related_sampling_feature="Region1",
-                                           related_sampling_feature_type=FeatureTypes.REGION,
+                                           related_sampling_feature_type=FeatureTypeEnum.REGION,
                                            role=RelatedSamplingFeature.ROLE_PARENT)]
             ),
-            feature_of_interest_type=FeatureTypes.POINT,
+            feature_of_interest_type=FeatureTypeEnum.POINT,
             unit_of_measurement=units[num - 1],
-            aggregation_duration=TimeFrequency.DAY,
+            aggregation_duration=TimeFrequencyEnum.DAY,
             result_quality="CHECKED",
             time_reference_position=None,
             statistic=statistics[num - 1],
@@ -114,29 +115,31 @@ def find_measurement_timeseries_tvp_observations(self, **kwargs):
 
 
 @basin3d_plugin_access(AlphaSourcePlugin, MeasurementTimeseriesTVPObservation, 'get')
-def get_measurement_timeseries_tvp_observation(self, pk=None):
+def get_measurement_timeseries_tvp_observation(self, query: QueryById):
     """
         Get a MeasurementTimeseriesTVPObservation
-        :param pk: primary key
+        :param query:
     """
-    for s in self.list():
-        if s.id.endswith(pk):
-            return s
+    if query:
+        for s in self.list():
+            if s.id.endswith(query.id):
+                return s
     return None
 
 
 @basin3d_plugin_access(AlphaSourcePlugin, MonitoringFeature, 'list')
-def list_monitoring_features(self, **kwargs):
+def list_monitoring_features(self, query: QueryMonitoringFeature):
     """
     Get Monitoring Feature Info
     """
+    assert query
 
     obj_region = self.synthesis_model_class(
         plugin_access=self,
         id="Region1",
         name="AwesomeRegion",
         description="This region is really awesome.",
-        feature_type=FeatureTypes.REGION,
+        feature_type=FeatureTypeEnum.REGION,
         shape=SpatialSamplingShapes.SHAPE_SURFACE,
         coordinates=Coordinate(representative=RepresentativeCoordinate(
             representative_point=AbsoluteCoordinate(
@@ -158,7 +161,7 @@ def list_monitoring_features(self, **kwargs):
         id="1",
         name="Point Location 1",
         description="The first point.",
-        feature_type=FeatureTypes.POINT,
+        feature_type=FeatureTypeEnum.POINT,
         shape=SpatialSamplingShapes.SHAPE_POINT,
         coordinates=Coordinate(
             absolute=AbsoluteCoordinate(
@@ -180,7 +183,7 @@ def list_monitoring_features(self, **kwargs):
         related_sampling_feature_complex=[
             RelatedSamplingFeature(plugin_access=self,
                                    related_sampling_feature="Region1",
-                                   related_sampling_feature_type=FeatureTypes.REGION,
+                                   related_sampling_feature_type=FeatureTypeEnum.REGION,
                                    role=RelatedSamplingFeature.ROLE_PARENT)]
     )
 
@@ -188,12 +191,13 @@ def list_monitoring_features(self, **kwargs):
 
 
 @basin3d_plugin_access(AlphaSourcePlugin, MonitoringFeature, 'get')
-def get_monitoring_feature(self, pk=None):
+def get_monitoring_feature(self, query: QueryById):
     """
     Get a MonitoringFeature
     :param pk: primary key
     """
-    for s in self.list():
-        if s.id.endswith(pk):
-            return s
+    if query:
+        for s in self.list():
+            if s.id.endswith(query.id):
+                return s
     return None
