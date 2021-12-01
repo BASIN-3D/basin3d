@@ -21,7 +21,7 @@ from typing import Dict
 
 from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import DataSource
-from basin3d.core.types import FeatureTypes
+from basin3d.core.schema.enum import FeatureTypeEnum
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +30,12 @@ def get_feature_type(feature_type, return_format="enum"):
     """
     Return the feature type if exists in the request
     :param feature_type:
-    :param return_format: "enum" (default) = the FeatureTypes enum,
+    :param return_format: "enum" (default) = the FeatureTypeEnum enum,
                    otherwise return the text version
     :return: the feature_type in the format specified, None if none exists
     """
     if feature_type:
-        for k, v in FeatureTypes.TYPES.items():
+        for k, v in FeatureTypeEnum.__members__.items():
             ft = v.lower()
             if ft == feature_type.lower():
                 if return_format == "enum":

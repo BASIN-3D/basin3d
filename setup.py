@@ -54,10 +54,5 @@ setup(name='basin3d',
       data_files=['basin3d/data/basin3d_variables_hydrology.csv',
                   'basin3d/plugins/mapping_usgs.csv'],
       include_package_data=True,
-      install_requires=[
-         "pandas",
-         "pyyaml",
-         "requests",
-         "tinydb"
-      ]
+      install_requires=required
       )

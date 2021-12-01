@@ -48,24 +48,25 @@ Broker REST API*.
 """
 import json
 import logging
+from typing import Any, Dict, List, Optional, Tuple
+
 import requests
 
 # Get an instance of a logger
+from basin3d.core.schema.query import FeatureTypeEnum, QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, \
+    ResultQualityEnum
 from basin3d.core.access import get_url
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, GeographicCoordinate, \
     MeasurementMetadataMixin, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
     TimeMetadataMixin, TimeValuePair
-from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, get_feature_type
-from basin3d.core.synthesis import QUERY_PARAM_END_DATE, QUERY_PARAM_MONITORING_FEATURES, \
-    QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES, QUERY_PARAM_PARENT_FEATURES, QUERY_PARAM_RESULT_QUALITY, \
-    QUERY_PARAM_STATISTICS, QUERY_PARAM_START_DATE, QUERY_PARAM_FEATURE_TYPE
-from basin3d.core.types import FeatureTypes, ResultQuality, SpatialSamplingShapes
+from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin
+from basin3d.core.types import SpatialSamplingShapes
 from basin3d.plugins import usgs_huc_codes
 
 logger = logging.getLogger(__name__)
 
 URL_USGS_HUC = "https://water.usgs.gov/GIS/new_huc_rdb.txt"
-USGS_STATISTIC_MAP = {
+USGS_STATISTIC_MAP: Dict = {
     MeasurementMetadataMixin.STATISTIC_MEAN: '00003',
     MeasurementMetadataMixin.STATISTIC_MIN: '00002',
     MeasurementMetadataMixin.STATISTIC_MAX: '00001'
@@ -95,7 +96,8 @@ def map_statistic_code(stat_cd):
     return 'NOT SUPPORTED'  # consider making this part of the Mixin Statistic type
 
 
-def generator_usgs_measurement_timeseries_tvp_observation(view, **kwargs):
+def generator_usgs_measurement_timeseries_tvp_observation(view,
+                                                          query: QueryMeasurementTimeseriesTVP):
     """
     Get the Data Points for USGS Daily Values
 
@@ -106,41 +108,39 @@ def generator_usgs_measurement_timeseries_tvp_observation(view, **kwargs):
     =================== === ===================
 
     :param view: The request object ( Please refer to the Django documentation ).
+    :param query: Query information for this request
     :returns: a generator object that yields :class:`~basin3d.synthesis.models.field.DataPoint`
         objects
     """
 
-    monitoring_features = kwargs[QUERY_PARAM_MONITORING_FEATURES]
-    observed_property_variables = kwargs[QUERY_PARAM_OBSERVED_PROPERTY_VARIABLES]
-
     # Temporal resolution is always daily.
-    search_params = list()
+    search_params: List[Tuple[str, Any]] = list()
 
-    if QUERY_PARAM_START_DATE in kwargs:
-        search_params.append(("startDT", kwargs[QUERY_PARAM_START_DATE]))
+    search_params.append(("startDT", query.start_date))
 
-    if QUERY_PARAM_END_DATE in kwargs:
-        search_params.append(("endDT", kwargs[QUERY_PARAM_END_DATE]))
+    if query.end_date:
+        search_params.append(("endDT", query.end_date))
 
-    search_params.append(("parameterCd", ",".join([str(o) for o in observed_property_variables])))
+    search_params.append(("parameterCd", ",".join([str(o) for o in query.observed_property_variables])))
 
-    if kwargs[QUERY_PARAM_STATISTICS]:
-        statistics = []
-        for stat in kwargs[QUERY_PARAM_STATISTICS]:
-            if not USGS_STATISTIC_MAP.get(stat):
+    if query.statistic:
+        statistics: List[str] = []
+        for stat in query.statistic:
+            sythesized_stat = USGS_STATISTIC_MAP.get(stat)
+            if not sythesized_stat:
                 logger.info(f"USGS Daily Values service does not support statistic {stat}")
-                continue
-            statistics.append(USGS_STATISTIC_MAP.get(stat))
+            else:
+                statistics.append(sythesized_stat)
         search_params.append(("statCd", ",".join(statistics)))
     else:
         search_params.append(("siteStatus", "all"))
 
-    if len(monitoring_features[0]) > 2:
+    if len(query.monitoring_features[0]) > 2:
         # search for stations
-        search_params.append(("sites", ",".join(monitoring_features)))
+        search_params.append(("sites", ",".join(query.monitoring_features)))
     else:
         # search for stations by specifying the huc
-        search_params.append(("huc", ",".join(monitoring_features)))
+        search_params.append(("huc", ",".join(query.monitoring_features)))
 
     # look for station locations only
     search_params.append(("siteType", "ST"))
@@ -244,16 +244,16 @@ def _load_point_obj(datasource, json_obj, feature_observed_properties, observed_
             datasource,
             id="{}".format(id),
             name=json_obj['station_nm'],
-            feature_type=FeatureTypes.POINT,
+            feature_type=FeatureTypeEnum.POINT,
             shape=SpatialSamplingShapes.SHAPE_POINT,
             related_sampling_feature_complex=[RelatedSamplingFeature(
                 datasource,
                 related_sampling_feature=json_obj['huc_cd'],
-                related_sampling_feature_type=FeatureTypes.SUBBASIN,  # previously site
+                related_sampling_feature_type=FeatureTypeEnum.SUBBASIN,  # previously site
                 role=RelatedSamplingFeature.ROLE_PARENT
             )],
             # geographical_group_id=huc_accounting_unit_id,
-            # geographical_group_type=FeatureTypes.REGION,
+            # geographical_group_type=FeatureTypeEnum.REGION,
             observed_property_variables=observed_property_variables,
             coordinates=Coordinate(
                 absolute=AbsoluteCoordinate(
@@ -290,7 +290,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
     """
     synthesis_model_class = MonitoringFeature
 
-    def list(self, **kwargs):
+    def list(self, query: QueryMonitoringFeature):
         """
         Get the Regions
 
@@ -300,37 +300,27 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         ``new_huc_rdb.txt``  >> ``MonitoringFeature/``
         =================== === ===================
 
-        :param request: The request object ( Please refer to the Django documentation ).
+        :param query: The query information object
         :returns: a generator object that yields :class:`~basin3d.synthesis.models.field.MonitoringFeature`
             objects
         """
 
-        feature_type = get_feature_type(feature_type="feature_type" in kwargs and kwargs['feature_type'] or None)
-
-        supported_feature_types = [None]
-        for k, ft in FeatureTypes.TYPES.items():
-            if ft in USGSDataSourcePlugin.feature_types:
-                supported_feature_types.append(k)
-
-        if feature_type in supported_feature_types:
-
-            pk = None
-            if "pk" in kwargs.keys():
-                pk = kwargs["pk"]
+        feature_type = isinstance(query.feature_type, FeatureTypeEnum) and query.feature_type.value or query.feature_type
+        if feature_type in USGSDataSourcePlugin.feature_types or feature_type is None:
 
             # Convert parent_features
             usgs_regions = []
             usgs_subbasins = []
             parent_features = []
-            if QUERY_PARAM_PARENT_FEATURES in kwargs.keys() and kwargs[QUERY_PARAM_PARENT_FEATURES]:
-                for value in kwargs[QUERY_PARAM_PARENT_FEATURES]:
+            if query.parent_features:
+                for value in query.parent_features:
                     parent_features.append(value)
                     if len(value) < 4:
                         usgs_regions.append(value)
                     elif len(value) == 8:
                         usgs_subbasins.append(value)
 
-            if not feature_type or feature_type != FeatureTypes.POINT:
+            if not feature_type or feature_type != FeatureTypeEnum.POINT:
 
                 huc_text = self.get_hydrological_unit_codes()
                 logging.debug("{}.{}".format(self.__class__.__name__, "list"),
@@ -338,30 +328,21 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
 
                 for json_obj in [o for o in iter_rdb_to_json(huc_text) if not parent_features or [p for p in parent_features if o["huc"].startswith(p)]]:
 
-                    if (feature_type is None or feature_type == FeatureTypes.REGION) and len(json_obj["huc"]) < 4:
-                        monitoring_feature = self._load_huc_obj(json_obj, feature_type=FeatureTypes.REGION)
-                        if monitoring_feature and (not pk or pk == json_obj["huc"]):
-                            yield monitoring_feature
-                            if pk:
-                                break
+                    monitoring_feature = None
+                    if (feature_type is None or feature_type == FeatureTypeEnum.REGION) and len(json_obj["huc"]) < 4:
+                        monitoring_feature = self._load_huc_obj(json_obj, feature_type=FeatureTypeEnum.REGION)
 
-                    elif (feature_type is None or feature_type == FeatureTypes.SUBREGION) and len(json_obj["huc"]) == 4:
-                        monitoring_feature = self._load_huc_obj(json_obj, feature_type=FeatureTypes.SUBREGION,
+                    elif (feature_type is None or feature_type == FeatureTypeEnum.SUBREGION) and len(json_obj["huc"]) == 4:
+                        monitoring_feature = self._load_huc_obj(json_obj, feature_type=FeatureTypeEnum.SUBREGION,
                                                                 related_sampling_feature=json_obj["huc"][0:2],
-                                                                related_sampling_feature_type=FeatureTypes.REGION)
-                        if monitoring_feature and (not pk or pk == json_obj["huc"]):
-                            yield monitoring_feature
-                            if pk:
-                                break
-                    elif (feature_type is None or feature_type == FeatureTypes.BASIN) and len(json_obj["huc"]) == 6:
-                        monitoring_feature = self._load_huc_obj(json_obj, feature_type=FeatureTypes.BASIN,
+                                                                related_sampling_feature_type=FeatureTypeEnum.REGION)
+
+                    elif (feature_type is None or feature_type == FeatureTypeEnum.BASIN) and len(json_obj["huc"]) == 6:
+                        monitoring_feature = self._load_huc_obj(json_obj, feature_type=FeatureTypeEnum.BASIN,
                                                                 related_sampling_feature=json_obj["huc"][0:4],
-                                                                related_sampling_feature_type=FeatureTypes.SUBREGION)
-                        if monitoring_feature and (not pk or pk == json_obj["huc"]):
-                            yield monitoring_feature
-                            if pk:
-                                break
-                    elif (feature_type is None or feature_type == FeatureTypes.SUBBASIN) and len(json_obj["huc"]) == 8:
+                                                                related_sampling_feature_type=FeatureTypeEnum.SUBREGION)
+
+                    elif (feature_type is None or feature_type == FeatureTypeEnum.SUBBASIN) and len(json_obj["huc"]) == 8:
                         hucs = {json_obj["huc"][0:i] for i in range(2, 8, 2)}
 
                         # Filter by regions if it is set
@@ -369,23 +350,27 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
 
                             # This is a Cataloging Unit (See https://water.usgs.gov/GIS/huc_name.html)
                             monitoring_feature = self._load_huc_obj(
-                                json_obj=json_obj, feature_type=FeatureTypes.SUBBASIN,
+                                json_obj=json_obj, feature_type=FeatureTypeEnum.SUBBASIN,
                                 description="{} Watershed: Drainage basin code is defined by the USGS State "
                                             "Office where the site is located.".format(json_obj["basin"]),
                                 related_sampling_feature=json_obj["huc"][0:6],
-                                related_sampling_feature_type=FeatureTypes.BASIN)
-                            if monitoring_feature and (not pk or pk == json_obj["huc"]):
-                                yield monitoring_feature
-                                if pk:
-                                    break
+                                related_sampling_feature_type=FeatureTypeEnum.BASIN)
+
                     else:
                         logger.debug("Ignoring HUC {}".format(json_obj["huc"]))
 
+                    # Determine whether to yield the monitoring feature object
+                    if monitoring_feature:
+                        if query.monitoring_features and json_obj['huc'] in query.monitoring_features:
+                            yield monitoring_feature
+                        elif not query.monitoring_features:
+                            yield monitoring_feature
+
             # points: USGS calls these sites
             else:
-                if pk:
-                    usgs_sites = pk
-                    feature_observed_properties = self.get_observed_properties_variables([pk])
+                if query.monitoring_features:
+                    usgs_sites = ",".join(query.monitoring_features)
+                    feature_observed_properties = self.get_observed_properties_variables(query.monitoring_features)
                 else:
                     # Get the variables with data
                     feature_observed_properties = self.get_observed_properties_variables(usgs_subbasins)
@@ -403,8 +388,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                                               feature_observed_properties=feature_observed_properties)
 
         else:
-            logger.warning("Feature type {} not supported by {}.".format(feature_type and FeatureTypes.TYPES[feature_type],
-                                                                         self.datasource.name or feature_type))
+            logger.warning(f"Feature type {feature_type} not supported by {self.datasource.name}.")
 
     def get_hydrological_unit_codes(self):
         """Get the hydrological unit codes for USGS"""
@@ -420,36 +404,39 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
 
         return usgs_huc_codes.CONTENT
 
-    def get(self, pk=None, **kwargs):
+    def get(self, query: QueryById):
         """ Get a single Region object
 
         ===================== === =====================
         USGS NWIS                 Broker
         ===================== === =====================
-        ``{huc}``              >>  ``Primary key (pk)``
+        ``{huc}``              >>  ``Primary key (query.id)``
         --------------------- --- ---------------------
-        ``new_huc_rdb.txt``    >>  ``monitoringfeatures/<feature_type>/{pk}``
+        ``new_huc_rdb.txt``    >>  ``monitoringfeatures/<feature_type>/{query.id}``
         ===================== === =====================
 
-        :param request: The request object ( Please refer to the Django documentation )
-        :param pk: USGS Daily Values Plugin primary key
+        :param query: The query info object
         :return: a serialized ``MonitoringFeature`` object
         """
-        feature_type = None
-        if QUERY_PARAM_FEATURE_TYPE in kwargs and kwargs[QUERY_PARAM_FEATURE_TYPE]:
-            feature_type = kwargs[QUERY_PARAM_FEATURE_TYPE]
+        if len(query.id) == 2:
+            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.REGION)
+        elif len(query.id) == 4:
+            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.SUBREGION)
+        elif len(query.id) == 6:
+            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.BASIN)
+        elif len(query.id) == 8:
+            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.SUBBASIN)
         else:
-            if len(pk) == 2:
-                feature_type = FeatureTypes.TYPES[FeatureTypes.REGION]
-            elif len(pk) == 4:
-                feature_type = FeatureTypes.TYPES[FeatureTypes.SUBREGION]
-            elif len(pk) == 6:
-                feature_type = FeatureTypes.TYPES[FeatureTypes.BASIN]
-            elif len(pk) == 8:
-                feature_type = FeatureTypes.TYPES[FeatureTypes.SUBBASIN]
+            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.POINT)
 
-        for o in self.list(pk=pk, feature_type=feature_type):
+        for o in self.list(query=mf_query):
             return o
+
+        # An 8 character code can also be a point, Try that
+        if len(query.id) == 8:
+            for o in self.list(query=QueryMonitoringFeature(monitoring_features=[query.id],
+                                                            feature_type=FeatureTypeEnum.POINT)):
+                return o
         return None
 
     def _load_huc_obj(self, json_obj, feature_type, description=None,
@@ -469,7 +456,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         :rtype: :class:`basin3d.synthesis.models.field.MonitoringFeature`
         """
         if not description:
-            description = "{}: {}".format(FeatureTypes.TYPES[feature_type], json_obj["basin"])
+            description = "{}: {}".format(feature_type, json_obj["basin"])
 
         related_sampling_feature_complex = list()
         if related_sampling_feature:
@@ -551,9 +538,9 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         :return:
         """
         if "A" in qualifiers:
-            return ResultQuality.RESULT_QUALITY_CHECKED
+            return ResultQualityEnum.CHECKED
         elif "P" in qualifiers:
-            return ResultQuality.RESULT_QUALITY_UNCHECKED
+            return ResultQualityEnum.UNCHECKED
         else:
             return 'NOT_SET'
 
@@ -563,7 +550,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             timeseries_qualifiers.add(self.result_quality(qualifier["qualifierCode"]))
         return timeseries_qualifiers
 
-    def list(self, **kwargs):
+    def list(self, query: QueryMeasurementTimeseriesTVP):
         """
         Get the Data Points for USGS Daily Values
 
@@ -578,10 +565,10 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         """
         search_params = ""
         feature_obj_dict = {}
-        if QUERY_PARAM_MONITORING_FEATURES not in kwargs:
+        if not query.monitoring_features:
             return None
 
-        search_params = ",".join(kwargs[QUERY_PARAM_MONITORING_FEATURES])
+        search_params = ",".join(query.monitoring_features)
 
         url = '{}site/?sites={}'.format(self.datasource.location, search_params)
 
@@ -601,7 +588,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                     feature_obj_dict[v["site_no"]] = v
 
         # Iterate over data objects returned
-        for data_json in generator_usgs_measurement_timeseries_tvp_observation(self, **kwargs):
+        for data_json in generator_usgs_measurement_timeseries_tvp_observation(self, query):
             unit_of_measurement = data_json["variable"]["unit"]['unitCode']
             timezone_offset = data_json["sourceInfo"]["timeZoneInfo"]["defaultTimeZone"]["zoneOffset"]
 
@@ -625,13 +612,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 basin3d_statistic = map_statistic_code(statistic)
 
             result_points = []
-            # result_quality = None
-            result_quality_filter = None
             result_qualifiers = set()
-            timeseries_result_quality = None
-
-            if QUERY_PARAM_RESULT_QUALITY in kwargs:
-                result_quality_filter = QUERY_PARAM_RESULT_QUALITY
 
             for values in data_json["values"]:
                 result_qualifiers.update(self.get_result_qualifiers(values["qualifier"]))
@@ -647,12 +628,12 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                     # if QUERY_PARAM_RESULT_QUALITY not in kwargs or not kwargs[QUERY_PARAM_RESULT_QUALITY] or \
                     #         (QUERY_PARAM_RESULT_QUALITY in kwargs and kwargs[
                     #          QUERY_PARAM_RESULT_QUALITY] == result_quality):
-                    if not result_quality_filter or result_quality_filter == result_quality:
+                    if not query.result_quality or query.result_quality == result_quality:
 
                         # Get the broker parameter
                         try:
                             try:
-                                data = float(value['value'])
+                                data: Optional[float] = float(value['value'])
                                 # Hardcoded unit conversion for river discharge parameters
                                 data, unit_of_measurement = convert_discharge(data, parameter, unit_of_measurement)
                             except Exception as e:
@@ -665,26 +646,26 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         except Exception as e:
                             logger.error(e)
 
-            timeseries_result_quality = result_quality_filter
+            timeseries_result_quality = query.result_quality
             if not timeseries_result_quality:
-                if ResultQuality.RESULT_QUALITY_CHECKED in result_qualifiers:
-                    timeseries_result_quality = ResultQuality.RESULT_QUALITY_CHECKED
-                if ResultQuality.RESULT_QUALITY_UNCHECKED in result_qualifiers:
-                    timeseries_result_quality = ResultQuality.RESULT_QUALITY_UNCHECKED
-                if (ResultQuality.RESULT_QUALITY_UNCHECKED in result_qualifiers and ResultQuality.RESULT_QUALITY_CHECKED in result_qualifiers):
-                    timeseries_result_quality = ResultQuality.RESULT_QUALITY_PARTIALLY_CHECKED
+                if ResultQualityEnum.CHECKED in result_qualifiers:
+                    timeseries_result_quality = ResultQualityEnum.CHECKED
+                if ResultQualityEnum.UNCHECKED in result_qualifiers:
+                    timeseries_result_quality = ResultQualityEnum.UNCHECKED
+                if (ResultQualityEnum.PARTIALLY_CHECKED in result_qualifiers and ResultQualityEnum.CHECKED in result_qualifiers):
+                    timeseries_result_quality = ResultQualityEnum.PARTIALLY_CHECKED
 
             measurement_timeseries_tvp_observation = MeasurementTimeseriesTVPObservation(
                 self,
                 id=feature_id,  # FYI: this field is not unique and thus kinda useless
                 unit_of_measurement=unit_of_measurement,
-                feature_of_interest_type=FeatureTypes.POINT,
+                feature_of_interest_type=FeatureTypeEnum.POINT,
                 feature_of_interest=monitoring_feature,
                 utc_offset=int(timezone_offset.split(":")[0]),
                 result_points=result_points,
                 observed_property_variable=parameter,
                 result_quality=timeseries_result_quality,
-                aggregation_duration=kwargs["aggregation_duration"],
+                aggregation_duration=query.aggregation_duration,
                 time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,
                 statistic=basin3d_statistic
             )
