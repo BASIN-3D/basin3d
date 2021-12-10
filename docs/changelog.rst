@@ -1,6 +1,13 @@
 Change Log
 **********
 
+Version 0.2.0
+##############
+Project Updates:
+   + Issue `#94 <https://github.com/BASIN-3D/basin3d/issues/94>`_: [Breaking Change] Add full statistic functionality
+   + Issue `#56 <https://github.com/BASIN-3D/basin3d/issues/56>`_: Import ABC from collections.abc for Python 3.10 compatibility.
+   + Issue `#96 <https://github.com/BASIN-3D/basin3d/issues/96>`_: [Breaking Change]  Query information should be added to the return
+
 Version 0.1.0
 ##############
 Project Updates:
