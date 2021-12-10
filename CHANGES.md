@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 0.2.0
+Project Updates:
+   + Issue #94 - [Breaking Change] Add full statistic functionality
+   + Issue #56 - Import ABC from collections.abc for Python 3.10 compatibility.
+   + Issue #96 - [Breaking Change]  Query information should be added to the return
+
 ## Version 0.1.0
 Project Updates:
    + Issue #14 - Enable USGS point monitoring features to be called by ID
