@@ -3,5 +3,5 @@ h5py
 pyyaml<6.0
 tables
 requests
-tinydb
 pydantic
+tinydb
