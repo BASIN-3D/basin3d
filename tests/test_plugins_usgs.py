@@ -93,6 +93,7 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
         synthesizer.measurement_timeseries_tvp_observations(**query2)
 
 
+
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
                                                  ({"id": "USGS-0102"}, "subregion"),
                                                  ({"id": "USGS-011000"}, "basin"),
@@ -100,7 +101,6 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
                                                  ({"id": "USGS-09129600"}, "point"),
                                                  ({"id": "USGS-383103106594200", "feature_type": "POINT"}, "point")],
                          ids=["region", "subregion", "basin", "subbasin", "point", "point_long_id"])
-
 def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     """Test USGS search by region  """
 
@@ -115,8 +115,10 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     assert monitoring_feature is not None
     assert isinstance(monitoring_feature, Base)
     assert FeatureTypes.TYPES[monitoring_feature.feature_type] == feature_type.upper()
+    # add more asserts
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count", [({"datasource": "USGS"}, 2889),
                                                    ({"monitoring_features": ['USGS-02']}, 1),
                                                    ({"feature_type": "region"}, 21),
@@ -144,7 +146,6 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
                               "point", "point_by_id", "all_by_region",
                               "points_by_subbasin",
                               "subbasin_by_subregion", "invalid_points"])
-
 def test_usgs_monitoring_features(query, expected_count, monkeypatch):
     """Test USGS search by region  """
 
@@ -214,6 +215,7 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
 
 
 def test_usgs_get_data(monkeypatch):
+
     mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_data_09110000.rdb")),
                                                get_url(get_json("usgs_get_data_09110000.json"))]))
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
