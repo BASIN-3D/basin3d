@@ -1,0 +1,81 @@
+{
+    "coordinates": {
+        "absolute": {
+            "datasource": null,
+            "datasource_ids": null,
+            "horizontal_position": [
+                {
+                    "datasource": null,
+                    "datasource_ids": null,
+                    "datum": "NAD83",
+                    "id": null,
+                    "original_id": null,
+                    "type": "GEOGRAPHIC",
+                    "units": "DD",
+                    "x": -106.9852972,
+                    "y": 38.87155556
+                }
+            ],
+            "id": null,
+            "original_id": null,
+            "vertical_extent": [
+                {
+                    "datasource": null,
+                    "datasource_ids": null,
+                    "datum": "NAVD88",
+                    "distance_units": null,
+                    "encoding_method": null,
+                    "id": null,
+                    "original_id": null,
+                    "resolution": 4.3,
+                    "type": "ALTITUDE",
+                    "value": 8903.0
+                }
+            ]
+        },
+        "datasource": null,
+        "datasource_ids": null,
+        "id": null,
+        "original_id": null,
+        "representative": null
+    },
+    "datasource": {
+        "credentials": {},
+        "id": "USGS",
+        "id_prefix": "USGS",
+        "location": "https://waterservices.usgs.gov/nwis/",
+        "name": "USGS"
+    },
+    "datasource_ids": null,
+    "description": null,
+    "description_reference": null,
+    "feature_type": 10,
+    "id": "USGS-09111250",
+    "name": "COAL CREEK ABV MCCORMICK DTCH AT CRESTED BUTTE, CO",
+    "observed_property_variables": [
+        "Find observed property variables at monitoring feature url"
+    ],
+    "original_id": "09111250",
+    "related_party": [],
+    "related_sampling_feature_complex": [
+        {
+            "datasource": {
+                "credentials": {},
+                "id": "USGS",
+                "id_prefix": "USGS",
+                "location": "https://waterservices.usgs.gov/nwis/",
+                "name": "USGS"
+            },
+            "datasource_ids": [
+                "related_sampling_feature"
+            ],
+            "id": null,
+            "original_id": null,
+            "related_sampling_feature": "USGS-14020001",
+            "related_sampling_feature_type": 3,
+            "role": "PARENT"
+        }
+    ],
+    "shape": "POINT",
+    "utc_offset": null
+}

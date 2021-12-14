@@ -1,0 +1,53 @@
+{
+  "name": "ns1:timeSeriesResponseType",
+  "declaredType": "org.cuahsi.waterml.TimeSeriesResponseType",
+  "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+  "value": {
+    "queryInfo": {
+      "queryURL": "http://waterservices.usgs.gov/nwis/dvhuc=09129600&format=json&statCd=00003",
+      "criteria": {
+        "locationParam": "[]",
+        "variableParam": "ALL",
+        "parameter": []
+      },
+      "note": [
+        {
+          "value": "[09129600]",
+          "title": "filter:huc"
+        },
+        {
+          "value": "Warning: not all sites have been associated with a hydrologic unit code.",
+          "title": "HucDisclaimer"
+        },
+        {
+          "value": "[mode=LATEST, modifiedSince=null]",
+          "title": "filter:timeRange"
+        },
+        {
+          "value": "methodIds=[ALL]",
+          "title": "filter:methodId"
+        },
+        {
+          "value": "2022-01-19T23:46:45.617Z",
+          "title": "requestDT"
+        },
+        {
+          "value": "0f9adf00-7982-11ec-9bfe-005056beda50",
+          "title": "requestId"
+        },
+        {
+          "value": "Provisional data are subject to revision. Go to http://waterdata.usgs.gov/nwis/help/?provisional for more information.",
+          "title": "disclaimer"
+        },
+        {
+          "value": "caas01",
+          "title": "server"
+        }
+      ]
+    },
+    "timeSeries": []
+  },
+  "nil": false,
+  "globalScope": true,
+  "typeSubstituted": false
+}

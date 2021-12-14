@@ -1,6 +1,7 @@
 Change Log
 **********
 
+<<<<<<< HEAD
 Version 0.2.0
 ##############
 Project Updates:
@@ -30,6 +31,8 @@ Testing:
    + Issue `#86 <https://github.com/BASIN-3D/basin3d/issues/86>`_: Github Actions failing for mypy on specific types libraries
    + Issue `#46 <https://github.com/BASIN-3D/basin3d/issues/46>`_:  Refactor tests to separate out integration and unit tests
 
+=======
+>>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
 Version 0.0.2
 ##############
 Project Updates:

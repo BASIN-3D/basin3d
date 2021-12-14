@@ -1,0 +1,546 @@
+[
+  {
+    'sourceInfo': {
+      'siteName': 'TAYLOR RIVER AT ALMONT, CO.',
+      'siteCode': [
+        {
+          'value': '09110000',
+          'network': 'NWIS',
+          'agencyCode': 'USGS'
+        }
+      ],
+      'timeZoneInfo': {
+        'defaultTimeZone': {
+          'zoneOffset': '-07:00',
+          'zoneAbbreviation': 'MST'
+        },
+        'daylightSavingsTimeZone': {
+          'zoneOffset': '-06:00',
+          'zoneAbbreviation': 'MDT'
+        },
+        'siteUsesDaylightSavingsTime': True
+      },
+      'geoLocation': {
+        'geogLocation': {
+          'srs': 'EPSG:4326',
+          'latitude': 38.66443715,
+          'longitude': -106.8453172
+        },
+        'localSiteXY': []
+      },
+      'note': [],
+      'siteType': [],
+      'siteProperty': [
+        {
+          'value': 'ST',
+          'name': 'siteTypeCd'
+        },
+        {
+          'value': '14020001',
+          'name': 'hucCd'
+        },
+        {
+          'value': '08',
+          'name': 'stateCd'
+        },
+        {
+          'value': '08051',
+          'name': 'countyCd'
+        }
+      ]
+    },
+    'variable': {
+      'variableCode': [
+        {
+          'value': '00010',
+          'network': 'NWIS',
+          'vocabulary': 'NWIS:UnitValues',
+          'variableID': 45807042,
+          'default': True
+        }
+      ],
+      'variableName': 'Temperature, water, &#176;C',
+      'variableDescription': 'Temperature, water, degrees Celsius',
+      'valueType': 'Derived Value',
+      'unit': {
+        'unitCode': 'deg C'
+      },
+      'options': {
+        'option': [
+          {
+            'value': 'Maximum',
+            'name': 'Statistic',
+            'optionCode': '00001'
+          }
+        ]
+      },
+      'note': [],
+      'noDataValue': -999999.0,
+      'variableProperty': [],
+      'oid': '45807042'
+    },
+    'values': [
+      {
+        'value': [
+          {
+            'value': '5.4',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-25T00:00:00.000'
+          },
+          {
+            'value': '6.5',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-26T00:00:00.000'
+          },
+          {
+            'value': '6.4',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-27T00:00:00.000'
+          },
+          {
+            'value': '4.6',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-28T00:00:00.000'
+          }
+        ],
+        'qualifier': [
+          {
+            'qualifierCode': 'A',
+            'qualifierDescription': 'Approved for publication -- Processing and review completed.',
+            'qualifierID': 0,
+            'network': 'NWIS',
+            'vocabulary': 'uv_rmk_cd'
+          }
+        ],
+        'qualityControlLevel': [],
+        'method': [
+          {
+            'methodDescription': '',
+            'methodID': 236817
+          }
+        ],
+        'source': [],
+        'offset': [],
+        'sample': [],
+        'censorCode': []
+      }
+    ],
+    'name': 'USGS:09110000:00010:00001'
+  },
+  {
+    'sourceInfo': {
+      'siteName': 'TAYLOR RIVER AT ALMONT, CO.',
+      'siteCode': [
+        {
+          'value': '09110000',
+          'network': 'NWIS',
+          'agencyCode': 'USGS'
+        }
+      ],
+      'timeZoneInfo': {
+        'defaultTimeZone': {
+          'zoneOffset': '-07:00',
+          'zoneAbbreviation': 'MST'
+        },
+        'daylightSavingsTimeZone': {
+          'zoneOffset': '-06:00',
+          'zoneAbbreviation': 'MDT'
+        },
+        'siteUsesDaylightSavingsTime': True
+      },
+      'geoLocation': {
+        'geogLocation': {
+          'srs': 'EPSG:4326',
+          'latitude': 38.66443715,
+          'longitude': -106.8453172
+        },
+        'localSiteXY': []
+      },
+      'note': [],
+      'siteType': [],
+      'siteProperty': [
+        {
+          'value': 'ST',
+          'name': 'siteTypeCd'
+        },
+        {
+          'value': '14020001',
+          'name': 'hucCd'
+        },
+        {
+          'value': '08',
+          'name': 'stateCd'
+        },
+        {
+          'value': '08051',
+          'name': 'countyCd'
+        }
+      ]
+    },
+    'variable': {
+      'variableCode': [
+        {
+          'value': '00010',
+          'network': 'NWIS',
+          'vocabulary': 'NWIS:UnitValues',
+          'variableID': 45807042,
+          'default': True
+        }
+      ],
+      'variableName': 'Temperature, water, &#176;C',
+      'variableDescription': 'Temperature, water, degrees Celsius',
+      'valueType': 'Derived Value',
+      'unit': {
+        'unitCode': 'deg C'
+      },
+      'options': {
+        'option': [
+          {
+            'value': 'Minimum',
+            'name': 'Statistic',
+            'optionCode': '00002'
+          }
+        ]
+      },
+      'note': [],
+      'noDataValue': -999999.0,
+      'variableProperty': [],
+      'oid': '45807042'
+    },
+    'values': [
+      {
+        'value': [
+          {
+            'value': '1.3',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-25T00:00:00.000'
+          },
+          {
+            'value': '2.3',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-26T00:00:00.000'
+          },
+          {
+            'value': '2.7',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-27T00:00:00.000'
+          },
+          {
+            'value': '2.1',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-28T00:00:00.000'
+          }
+        ],
+        'qualifier': [
+          {
+            'qualifierCode': 'A',
+            'qualifierDescription': 'Approved for publication -- Processing and review completed.',
+            'qualifierID': 0,
+            'network': 'NWIS',
+            'vocabulary': 'uv_rmk_cd'
+          }
+        ],
+        'qualityControlLevel': [],
+        'method': [
+          {
+            'methodDescription': '',
+            'methodID': 236819
+          }
+        ],
+        'source': [],
+        'offset': [],
+        'sample': [],
+        'censorCode': []
+      }
+    ],
+    'name': 'USGS:09110000:00010:00002'
+  },
+  {
+    'sourceInfo': {
+      'siteName': 'TAYLOR RIVER AT ALMONT, CO.',
+      'siteCode': [
+        {
+          'value': '09110000',
+          'network': 'NWIS',
+          'agencyCode': 'USGS'
+        }
+      ],
+      'timeZoneInfo': {
+        'defaultTimeZone': {
+          'zoneOffset': '-07:00',
+          'zoneAbbreviation': 'MST'
+        },
+        'daylightSavingsTimeZone': {
+          'zoneOffset': '-06:00',
+          'zoneAbbreviation': 'MDT'
+        },
+        'siteUsesDaylightSavingsTime': True
+      },
+      'geoLocation': {
+        'geogLocation': {
+          'srs': 'EPSG:4326',
+          'latitude': 38.66443715,
+          'longitude': -106.8453172
+        },
+        'localSiteXY': []
+      },
+      'note': [],
+      'siteType': [],
+      'siteProperty': [
+        {
+          'value': 'ST',
+          'name': 'siteTypeCd'
+        },
+        {
+          'value': '14020001',
+          'name': 'hucCd'
+        },
+        {
+          'value': '08',
+          'name': 'stateCd'
+        },
+        {
+          'value': '08051',
+          'name': 'countyCd'
+        }
+      ]
+    },
+    'variable': {
+      'variableCode': [
+        {
+          'value': '00010',
+          'network': 'NWIS',
+          'vocabulary': 'NWIS:UnitValues',
+          'variableID': 45807042,
+          'default': True
+        }
+      ],
+      'variableName': 'Temperature, water, &#176;C',
+      'variableDescription': 'Temperature, water, degrees Celsius',
+      'valueType': 'Derived Value',
+      'unit': {
+        'unitCode': 'deg C'
+      },
+      'options': {
+        'option': [
+          {
+            'value': 'Mean',
+            'name': 'Statistic',
+            'optionCode': '00003'
+          }
+        ]
+      },
+      'note': [],
+      'noDataValue': -999999.0,
+      'variableProperty': [],
+      'oid': '45807042'
+    },
+    'values': [
+      {
+        'value': [
+          {
+            'value': '3.2',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-25T00:00:00.000'
+          },
+          {
+            'value': '4.1',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-26T00:00:00.000'
+          },
+          {
+            'value': '4.3',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-27T00:00:00.000'
+          },
+          {
+            'value': '3.2',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-28T00:00:00.000'
+          }
+        ],
+        'qualifier': [
+          {
+            'qualifierCode': 'A',
+            'qualifierDescription': 'Approved for publication -- Processing and review completed.',
+            'qualifierID': 0,
+            'network': 'NWIS',
+            'vocabulary': 'uv_rmk_cd'
+          }
+        ],
+        'qualityControlLevel': [],
+        'method': [
+          {
+            'methodDescription': '',
+            'methodID': 236818
+          }
+        ],
+        'source': [],
+        'offset': [],
+        'sample': [],
+        'censorCode': []
+      }
+    ],
+    'name': 'USGS:09110000:00010:00003'
+  },
+  {
+    'sourceInfo': {
+      'siteName': 'TAYLOR RIVER AT ALMONT, CO.',
+      'siteCode': [
+        {
+          'value': '09110000',
+          'network': 'NWIS',
+          'agencyCode': 'USGS'
+        }
+      ],
+      'timeZoneInfo': {
+        'defaultTimeZone': {
+          'zoneOffset': '-07:00',
+          'zoneAbbreviation': 'MST'
+        },
+        'daylightSavingsTimeZone': {
+          'zoneOffset': '-06:00',
+          'zoneAbbreviation': 'MDT'
+        },
+        'siteUsesDaylightSavingsTime': True
+      },
+      'geoLocation': {
+        'geogLocation': {
+          'srs': 'EPSG:4326',
+          'latitude': 38.66443715,
+          'longitude': -106.8453172
+        },
+        'localSiteXY': []
+      },
+      'note': [],
+      'siteType': [],
+      'siteProperty': [
+        {
+          'value': 'ST',
+          'name': 'siteTypeCd'
+        },
+        {
+          'value': '14020001',
+          'name': 'hucCd'
+        },
+        {
+          'value': '08',
+          'name': 'stateCd'
+        },
+        {
+          'value': '08051',
+          'name': 'countyCd'
+        }
+      ]
+    },
+    'variable': {
+      'variableCode': [
+        {
+          'value': '00060',
+          'network': 'NWIS',
+          'vocabulary': 'NWIS:UnitValues',
+          'variableID': 45807197,
+          'default': True
+        }
+      ],
+      'variableName': 'Streamflow, ft&#179;/s',
+      'variableDescription': 'Discharge, cubic feet per second',
+      'valueType': 'Derived Value',
+      'unit': {
+        'unitCode': 'ft3/s'
+      },
+      'options': {
+        'option': [
+          {
+            'value': 'Mean',
+            'name': 'Statistic',
+            'optionCode': '00003'
+          }
+        ]
+      },
+      'note': [],
+      'noDataValue': -999999.0,
+      'variableProperty': [],
+      'oid': '45807197'
+    },
+    'values': [
+      {
+        'value': [
+          {
+            'value': '150',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-25T00:00:00.000'
+          },
+          {
+            'value': '149',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-26T00:00:00.000'
+          },
+          {
+            'value': '146',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-27T00:00:00.000'
+          },
+          {
+            'value': '153',
+            'qualifiers': [
+              'A'
+            ],
+            'dateTime': '2019-10-28T00:00:00.000'
+          }
+        ],
+        'qualifier': [
+          {
+            'qualifierCode': 'A',
+            'qualifierDescription': 'Approved for publication -- Processing and review completed.',
+            'qualifierID': 0,
+            'network': 'NWIS',
+            'vocabulary': 'uv_rmk_cd'
+          }
+        ],
+        'qualityControlLevel': [],
+        'method': [
+          {
+            'methodDescription': '',
+            'methodID': 18840
+          }
+        ],
+        'source': [],
+        'offset': [],
+        'sample': [],
+        'censorCode': []
+      }
+    ],
+    'name': 'USGS:09110000:00060:00003'
+  }
+]

@@ -1,0 +1,271 @@
+{
+  'value': [
+    {
+      'value': '4.28',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-01T00:00:00.000'
+    },
+    {
+      'value': '4.27',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-02T00:00:00.000'
+    },
+    {
+      'value': '4.10',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-03T00:00:00.000'
+    },
+    {
+      'value': '4.20',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-04T00:00:00.000'
+    },
+    {
+      'value': '4.45',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-05T00:00:00.000'
+    },
+    {
+      'value': '5.44',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-06T00:00:00.000'
+    },
+    {
+      'value': '7.15',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-07T00:00:00.000'
+    },
+    {
+      'value': '8.73',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-08T00:00:00.000'
+    },
+    {
+      'value': '10.5',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-09T00:00:00.000'
+    },
+    {
+      'value': '11.9',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-10T00:00:00.000'
+    },
+    {
+      'value': '12.9',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-11T00:00:00.000'
+    },
+    {
+      'value': '13.2',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-12T00:00:00.000'
+    },
+    {
+      'value': '10.8',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-13T00:00:00.000'
+    },
+    {
+      'value': '8.32',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-14T00:00:00.000'
+    },
+    {
+      'value': '7.73',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-15T00:00:00.000'
+    },
+    {
+      'value': '6.93',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-16T00:00:00.000'
+    },
+    {
+      'value': '6.32',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-17T00:00:00.000'
+    },
+    {
+      'value': '6.53',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-18T00:00:00.000'
+    },
+    {
+      'value': '7.17',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-19T00:00:00.000'
+    },
+    {
+      'value': '6.88',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-20T00:00:00.000'
+    },
+    {
+      'value': '7.68',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-21T00:00:00.000'
+    },
+    {
+      'value': '9.90',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-22T00:00:00.000'
+    },
+    {
+      'value': '12.2',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-23T00:00:00.000'
+    },
+    {
+      'value': '12.8',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-24T00:00:00.000'
+    },
+    {
+      'value': '15.0',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-25T00:00:00.000'
+    },
+    {
+      'value': '21.5',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-26T00:00:00.000'
+    },
+    {
+      'value': '29.9',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-27T00:00:00.000'
+    },
+    {
+      'value': '42.6',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-28T00:00:00.000'
+    },
+    {
+      'value': '52.0',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-29T00:00:00.000'
+    },
+    {
+      'value': '61.1',
+      'qualifiers': [
+        'A',
+        'e'
+      ],
+      'dateTime': '2020-04-30T00:00:00.000'
+    }
+  ],
+  'qualifier': [
+    {
+      'qualifierCode': 'e',
+      'qualifierDescription': 'Value has been estimated.',
+      'qualifierID': 0,
+      'network': 'NWIS',
+      'vocabulary': 'uv_rmk_cd'
+    },
+    {
+      'qualifierCode': 'A',
+      'qualifierDescription': 'Approved for publication -- Processing and review completed.',
+      'qualifierID': 1,
+      'network': 'NWIS',
+      'vocabulary': 'uv_rmk_cd'
+    }
+  ],
+  'qualityControlLevel': [],
+  'method': [
+    {
+      'methodDescription': '',
+      'methodID': 18843
+    }
+  ],
+  'source': [],
+  'offset': [],
+  'sample': [],
+  'censorCode': []
+}
