@@ -1,0 +1,16 @@
+{
+  'agency_cd': 'USGS',
+  'site_no': '09110990',
+  'station_nm': 'ELK CREEK AT COAL CREEK ABV CRESTED BUTTE, CO',
+  'site_tp_cd': 'ST',
+  'dec_lat_va': '38.85665',
+  'dec_long_va': '-107.0597722',
+  'coord_acy_cd': 'F',
+  'dec_coord_datum_cd': 'NAD83',
+  'alt_va': ' 9570',
+  'alt_acy_va': '4.3',
+  'alt_datum_cd': 'NAVD88',
+  'huc_cd': '14020001'
+}
+
+

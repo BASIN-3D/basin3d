@@ -1,0 +1,318 @@
+{
+  'sourceInfo': {
+    'siteName': 'ELK CREEK AT COAL CREEK ABV CRESTED BUTTE, CO',
+    'siteCode': [
+      {
+        'value': '09110990',
+        'network': 'NWIS',
+        'agencyCode': 'USGS'
+      }
+    ],
+    'timeZoneInfo': {
+      'defaultTimeZone': {
+        'zoneOffset': '-07:00',
+        'zoneAbbreviation': 'MST'
+      },
+      'daylightSavingsTimeZone': {
+        'zoneOffset': '-06:00',
+        'zoneAbbreviation': 'MDT'
+      },
+      'siteUsesDaylightSavingsTime': False
+    },
+    'geoLocation': {
+      'geogLocation': {
+        'srs': 'EPSG:4326',
+        'latitude': 38.85665,
+        'longitude': -107.0597722
+      },
+      'localSiteXY': []
+    },
+    'note': [],
+    'siteType': [],
+    'siteProperty': [
+      {
+        'value': 'ST',
+        'name': 'siteTypeCd'
+      },
+      {
+        'value': '14020001',
+        'name': 'hucCd'
+      },
+      {
+        'value': '08',
+        'name': 'stateCd'
+      },
+      {
+        'value': '08051',
+        'name': 'countyCd'
+      }
+    ]
+  },
+  'variable': {
+    'variableCode': [
+      {
+        'value': '00060',
+        'network': 'NWIS',
+        'vocabulary': 'NWIS:UnitValues',
+        'variableID': 45807197,
+        'default': True
+      }
+    ],
+    'variableName': 'Streamflow, ft&#179;/s',
+    'variableDescription': 'Discharge, cubic feet per second',
+    'valueType': 'Derived Value',
+    'unit': {
+      'unitCode': 'ft3/s'
+    },
+    'options': {
+      'option': [
+        {
+          'value': 'Mean',
+          'name': 'Statistic',
+          'optionCode': '00003'
+        }
+      ]
+    },
+    'note': [],
+    'noDataValue': -999999.0,
+    'variableProperty': [],
+    'oid': '45807197'
+  },
+  'values': [
+    {
+      'value': [
+        {
+          'value': '0.29',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-01T00:00:00.000'
+        },
+        {
+          'value': '0.29',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-02T00:00:00.000'
+        },
+        {
+          'value': '0.29',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-03T00:00:00.000'
+        },
+        {
+          'value': '0.29',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-04T00:00:00.000'
+        },
+        {
+          'value': '0.29',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-05T00:00:00.000'
+        },
+        {
+          'value': '0.34',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-06T00:00:00.000'
+        },
+        {
+          'value': '0.54',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-07T00:00:00.000'
+        },
+        {
+          'value': '0.82',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-08T00:00:00.000'
+        },
+        {
+          'value': '1.19',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-09T00:00:00.000'
+        },
+        {
+          'value': '1.42',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-10T00:00:00.000'
+        },
+        {
+          'value': '1.39',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-11T00:00:00.000'
+        },
+        {
+          'value': '1.53',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-12T00:00:00.000'
+        },
+        {
+          'value': '1.16',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-13T00:00:00.000'
+        },
+        {
+          'value': '0.90',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-14T00:00:00.000'
+        },
+        {
+          'value': '0.77',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-15T00:00:00.000'
+        },
+        {
+          'value': '0.67',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-16T00:00:00.000'
+        },
+        {
+          'value': '0.59',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-17T00:00:00.000'
+        },
+        {
+          'value': '0.56',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-18T00:00:00.000'
+        },
+        {
+          'value': '0.54',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-19T00:00:00.000'
+        },
+        {
+          'value': '0.54',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-20T00:00:00.000'
+        },
+        {
+          'value': '0.65',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-21T00:00:00.000'
+        },
+        {
+          'value': '0.93',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-22T00:00:00.000'
+        },
+        {
+          'value': '1.18',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-23T00:00:00.000'
+        },
+        {
+          'value': '1.21',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-24T00:00:00.000'
+        },
+        {
+          'value': '1.52',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-25T00:00:00.000'
+        },
+        {
+          'value': '2.30',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-26T00:00:00.000'
+        },
+        {
+          'value': '3.41',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-27T00:00:00.000'
+        },
+        {
+          'value': '5.20',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-28T00:00:00.000'
+        },
+        {
+          'value': '6.84',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-29T00:00:00.000'
+        },
+        {
+          'value': '8.11',
+          'qualifiers': [
+            'A'
+          ],
+          'dateTime': '2020-04-30T00:00:00.000'
+        }
+      ],
+      'qualifier': [
+        {
+          'qualifierCode': 'A',
+          'qualifierDescription': 'Approved for publication -- Processing and review completed.',
+          'qualifierID': 0,
+          'network': 'NWIS',
+          'vocabulary': 'uv_rmk_cd'
+        }
+      ],
+      'qualityControlLevel': [],
+      'method': [
+        {
+          'methodDescription': '',
+          'methodID': 243415
+        }
+      ],
+      'source': [],
+      'offset': [],
+      'sample': [],
+      'censorCode': []
+    }
+  ],
+  'name': 'USGS:09110990:00060:00003'
+}
