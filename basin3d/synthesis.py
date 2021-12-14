@@ -13,7 +13,6 @@ Functions
 * :func:`register` - Register the specified plugins or implicitly register loaded plugins
 * :func:`get_timeseries_data` - Wrapper for DataSynthesizer.get_data for timeseries data types. Currently only MeasurementTimeseriesTVPObservations are supported.
 
-<<<<<<< HEAD
 Utility Classes
 ---------------
 * :py:class:`TimeseriesOutputType` - Enumeration for :func:`get_timeseries_data` output types
@@ -31,21 +30,6 @@ Classes
 synthesis.DataSynthesizer Functions
 -----------------------------------
 
-=======
-Exceptions
------------
-* :py:exc:`SynthesisException` - Special Exception for Synthesis module
-
-
-synthesis.DataSynthesizer
----------------------------
-Classes
---------
-* :class:`DataSynthesizer` - Synthesis API
-
-Functions
-----------
->>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
 * :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
 * :func:`DataSynthesizer.monitoring_features`- Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
 * :func:`DataSynthesizer.observed_properties`- Search for observed properties
@@ -308,12 +292,8 @@ class DataSynthesizer:
     def observed_property_variables(self, datasource_id=None):
         """
 
-<<<<<<< HEAD
         Common names for observed property variables. An observed property variable defines what is being measured.
         Data source observed property variables are mapped to these synthesized observed property variables.
-=======
-        Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
->>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
 
         :param datasource_id: filter observer properity variables by data source
         :return: a list of observed property variables
@@ -383,23 +363,11 @@ class DataSynthesizer:
         else:
             #  mypy casts are only used as hints for the type checker,
             #  and they don’t perform a runtime type check.
-<<<<<<< HEAD
             return cast(DataSourceModelIterator,
                         self._monitoring_feature_access.list(query=query))
 
     def measurement_timeseries_tvp_observations(self, query: QueryMeasurementTimeseriesTVP = None, **kwargs) -> \
             DataSourceModelIterator:
-=======
-            return cast(Iterator[MonitoringFeature],
-                        self._monitoring_feature_access.list(feature_type=feature_type, datasource=datasource,
-                                                             monitoring_features=monitoring_features,
-                                                             parent_features=parent_features))
-
-    def measurement_timeseries_tvp_observations(
-            self, monitoring_features: List[str], observed_property_variables: List[str], start_date: str,
-            end_date: str = None, aggregation_duration: str = TimeMetadataMixin.AGGREGATION_DURATION_DAY,
-            results_quality: str = None, datasource: str = None) -> Iterator[MeasurementTimeseriesTVPObservation]:
->>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
         """
         Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
 
@@ -496,9 +464,10 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
 
     :return: A Synthesized Timeseries Data Class
 
+=======
 
 
-    :param kwargs:
+:param kwargs:
            Required parameters for a MeasurementTimeseriesTVPObservation:
                * monitoring_features
                * observed_property_variables
@@ -509,63 +478,6 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                * statistic, list of statistics
                * result_quality
                * datasource
-    :return:
-         a Tuple: synthesized data with timestamp, monitoring feature id, observed property variable id in a pandas DataFrame (optional) and metadata dictionary.
-
-         Optional means a return value of None for the pandas DataFrame if no arguments are passed into **kwargs. The min. required arguments to return a pandas DataFrame are monitoring features, observed property variables, and start date
-<<<<<<< HEAD
-
-
-            **[optional] pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id ::
-
-                                TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
-                    2019-10-25 2019-10-25                3.2            4.247527
-                    2019-10-26 2019-10-26                4.1            4.219210
-                    2019-10-27 2019-10-27                4.3            4.134260
-                    2019-10-28 2019-10-28                3.2            4.332478
-                    2019-10-29 2019-10-29                2.2            4.219210
-                    2019-10-30 2019-10-30                0.5            4.247527
-
-=======
-
-
-            **[optional] pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id ::
-
-                                TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
-                    2019-10-25 2019-10-25                3.2            4.247527
-                    2019-10-26 2019-10-26                4.1            4.219210
-                    2019-10-27 2019-10-27                4.3            4.134260
-                    2019-10-28 2019-10-28                3.2            4.332478
-                    2019-10-29 2019-10-29                2.2            4.219210
-                    2019-10-30 2019-10-30                0.5            4.247527
-
->>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
-                    # timestamp column: datetime, repr as ISO format
-                    column name format = f'{start_date end_date}
-
-                    # data columns: monitoring feature id and observed property variable id
-                    column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
-
-
-            **metadata dictionary**::
-
-                key = f'{monitoring_feature_id}__{observed_property_variable_id}',
-                value =
-                {
-                    data_start = str
-                    data_end = str
-                    records = int
-                    units = str
-                    basin_3d_variable = str
-                    basin_3d_variable_full_name = str
-                    statistic = str
-                    temporal_aggregation = str
-                    quality = str
-                    sampling_medium = str
-                    sampling_feature_id = str
-                    datasource = str
-                    datasource_variable
-                }
     """
 
     # Check that required parameters are provided. May have to rethink this when we expand to mulitple observation types

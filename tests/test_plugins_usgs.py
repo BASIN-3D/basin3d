@@ -125,6 +125,7 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     assert monitoring_feature.feature_type == feature_type.upper()
 
 
+
 @pytest.mark.parametrize("query, expected_count", [({"datasource": "USGS"}, 2889),
                                                    ({"monitoring_features": ['USGS-02']}, 1),
                                                    ({"feature_type": "region"}, 21),
@@ -140,7 +141,7 @@ def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
                                                    ({"feature_type": "point"}, 0),
                                                    ({"monitoring_features": ["USGS-09129600"], "feature_type": "point"},1),
                                                    ({"parent_features": ['USGS-02']}, 118),
-                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 48),
+                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 49),
                                                    ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
                                                    ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
                          ids=["all", "region_by_id", "region", "subregion",
@@ -189,6 +190,7 @@ def test_usgs_monitoring_features1(query, expected_count, monkeypatch):
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     monitoring_features = synthesizer.monitoring_features(**query)
 
+
     # TODO should there be some kind of exeption handling for invalid queries that don't return anything?
     count = 0
     print(query.values(), "count:", count, "expected:", expected_count)
@@ -236,6 +238,7 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
 
 
 def test_usgs_get_data(monkeypatch):
+
     mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_data_09110000.rdb")),
                                                get_url(get_json("usgs_get_data_09110000.json"))]))
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
