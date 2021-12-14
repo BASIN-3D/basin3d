@@ -1,0 +1,14 @@
+{
+  'agency_cd': 'USGS',
+  'site_no': '09111250',
+  'station_nm': 'COAL CREEK ABV MCCORMICK DTCH AT CRESTED BUTTE, CO',
+  'site_tp_cd': 'ST',
+  'dec_lat_va': '38.87155556',
+  'dec_long_va': '-106.9852972',
+  'coord_acy_cd': 'T',
+  'dec_coord_datum_cd': 'NAD83',
+  'alt_va': ' 8903',
+  'alt_acy_va': '4.3',
+  'alt_datum_cd': 'NAVD88',
+  'huc_cd': '14020001'
+}
