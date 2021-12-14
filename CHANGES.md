@@ -1,6 +1,5 @@
 # Changelog
 
-<<<<<<< HEAD
 ## Version 0.2.0
 Project Updates:
    + Issue #94 - [Breaking Change] Add full statistic functionality
@@ -28,8 +27,6 @@ Testing:
    + Issue #86 - Github Actions failing for mypy on specific types libraries 
    + Issue #46 -  Refactor tests to separate out integration and unit tests
 
-=======
->>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
 ## Version 0.0.2
 Project Updates:   
    + Enable Github Actions
