@@ -1,24 +1,17 @@
 """
 `basin3d.synthesis`
 ****************************
-
 .. currentmodule:: basin3d.synthesis
-
 :synopsis: BASIN-3D Synthesis API
 :module author: Val Hendrix <vhendrix@lbl.gov>, Danielle Svehla Christianson <dschristianson@lbl.gov>. Catherine Wong <catwong@lbl.gov>
-
-
 Functions
 ----------------
 * :func:`register` - Register the specified plugins or implicitly register loaded plugins
 * :func:`get_timeseries_data` - Wrapper for DataSynthesizer.get_data for timeseries data types. Currently only MeasurementTimeseriesTVPObservations are supported.
-
-<<<<<<< HEAD
 Utility Classes
 ---------------
 * :py:class:`TimeseriesOutputType` - Enumeration for :func:`get_timeseries_data` output types
 * :py:exc:`SynthesisException` - Special Exception for Synthesis module
-
 Classes
 --------
 * :class:`DataSynthesizer` - Synthesis API
@@ -26,31 +19,12 @@ Classes
 * :class:`PandasTimeseriesData` - Synthesized Timeseries Data Class in Pandas format
 * :class:`HDFTimeseriesData` - Synthesized Timeseries Data Class in HDF5 format
 * :class:`QueryInfo` - Information about a BASIN-3D query execution
-
-
 synthesis.DataSynthesizer Functions
 -----------------------------------
-
-=======
-Exceptions
------------
-* :py:exc:`SynthesisException` - Special Exception for Synthesis module
-
-
-synthesis.DataSynthesizer
----------------------------
-Classes
---------
-* :class:`DataSynthesizer` - Synthesis API
-
-Functions
-----------
->>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
 * :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
 * :func:`DataSynthesizer.monitoring_features`- Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
 * :func:`DataSynthesizer.observed_properties`- Search for observed properties
 * :func:`DataSynthesizer.observed_property_variables`- Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
-
 ----------------------------------
 """
 import datetime as dt
@@ -109,18 +83,14 @@ class QueryInfo:
 class SynthesizedTimeseriesData:
     """
     Base class used in the return for :func:`get_timeseries_data` function.
-
     This class contains synthesized data with timestamp, monitoring feature id,
     observed property variable id in a pandas DataFrame (optional) and metadata dictionary (optional).
-
     """
 
     data: pd.DataFrame
     """The time series data
     **pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id
-
     .. code-block::
-
                     TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
         2019-10-25 2019-10-25                3.2            4.247527
         2019-10-26 2019-10-26                4.1            4.219210
@@ -128,14 +98,10 @@ class SynthesizedTimeseriesData:
         2019-10-28 2019-10-28                3.2            4.332478
         2019-10-29 2019-10-29                2.2            4.219210
         2019-10-30 2019-10-30                0.5            4.247527
-
         # timestamp column: datetime, repr as ISO format
         column name format = f'{start_date end_date}
-
         # data columns: monitoring feature id and observed property variable id
         column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
-
-
     """
 
     metadata: pd.DataFrame
@@ -189,7 +155,6 @@ class HDFTimeseriesData(SynthesizedTimeseriesData):
     def __init__(self, hdf: h5py.File, output_path: str, query: QueryInfo):
         """
         Time Series data stored as HDF files.
-
         :param hdf: The hdf timeseries dafile
         :param output_path:
         :param query:
@@ -227,13 +192,10 @@ class HDFTimeseriesData(SynthesizedTimeseriesData):
 def register(plugins: List[str] = None):
     """
     Register the specified plugins or implicitly register loaded plugins
-
-
     >>> from basin3d import synthesis
     >>> synthesizer = synthesis.register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     >>> synthesizer.datasources
     [DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/', credentials={})]
-
     :param plugins: [Optional] plugins to registered
     :return: DataSynthesizer(plugin_dict, catalog)
     """
@@ -297,27 +259,18 @@ class DataSynthesizer:
     def observed_properties(self, datasource_id=None, variable_names=None):
         """
         Search for observed properties
-
         :param datasource_id: Unique feature identifier of datasource
         :param variable_names: Observed property variables
         :return: a list of observed properties
-
         """
         return self._catalog.find_observed_properties(datasource_id, variable_names)
 
     def observed_property_variables(self, datasource_id=None):
         """
-
-<<<<<<< HEAD
         Common names for observed property variables. An observed property variable defines what is being measured.
         Data source observed property variables are mapped to these synthesized observed property variables.
-=======
-        Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
->>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
-
         :param datasource_id: filter observer properity variables by data source
         :return: a list of observed property variables
-
         """
         return self._catalog.find_observed_property_variables(datasource_id=datasource_id)
 
@@ -325,12 +278,8 @@ class DataSynthesizer:
             DataSourceModelIterator, SynthesisResponse]:
         """
         Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
-
         To see feature types for a given plugin: **<plugin_module>.<plugin_class>.feature_types**
-
-
         **Search for a single monitoring feature by id:**
-
         >>> from basin3d.plugins import usgs
         >>> from basin3d import synthesis
         >>> synthesizer = synthesis.register()
@@ -338,35 +287,26 @@ class DataSynthesizer:
         >>> mf = response.data
         >>> print(f"{mf.id} - {mf.description}")
         USGS-0101 - SUBREGION: St. John
-
-
         **Search for all USGS monitoring features:**
-
         >>> for mf in synthesizer.monitoring_features(datasource='USGS', feature_type='region'): # doctest: +ELLIPSIS
         ...     print(f"{mf.id} - {mf.description}")
         USGS-01 - REGION: New England
         USGS-02 - REGION: Mid Atlantic
         USGS-03 - REGION: South Atlantic-Gulf
         ...
-
-
         **Search for USGS points by parent (subbasin) monitoring features:**
-
         >>> for mf in synthesizer.monitoring_features(feature_type='point',parent_features=['USGS-17040101']): # doctest: +ELLIPSIS
         ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
         USGS-13010000 [(-110.6647222, 44.1336111)]
         USGS-13010065 [(-110.6675, 44.09888889)]
         USGS-13010450 [(-110.5874305, 43.9038296)]
         ...
-
         :param query: (optional) The Monitoring Feature Query object
         :param id: (optional) Unique feature identifier. This returns a single monitoring feature
         :param feature_type: (optional) feature type
         :param datasource: (optional) Datasource id prefix (e.g USGS)
         :param monitoring_features: (optional) List of monitoring feature identifiers (eg. USGS-0010)
         :param parent_features: (optional) List of parent monitoring features to search by
-
-
         :return: a single `MonitoringFeature` or a list
         """
         if not query:
@@ -383,26 +323,13 @@ class DataSynthesizer:
         else:
             #  mypy casts are only used as hints for the type checker,
             #  and they don’t perform a runtime type check.
-<<<<<<< HEAD
             return cast(DataSourceModelIterator,
                         self._monitoring_feature_access.list(query=query))
 
     def measurement_timeseries_tvp_observations(self, query: QueryMeasurementTimeseriesTVP = None, **kwargs) -> \
             DataSourceModelIterator:
-=======
-            return cast(Iterator[MonitoringFeature],
-                        self._monitoring_feature_access.list(feature_type=feature_type, datasource=datasource,
-                                                             monitoring_features=monitoring_features,
-                                                             parent_features=parent_features))
-
-    def measurement_timeseries_tvp_observations(
-            self, monitoring_features: List[str], observed_property_variables: List[str], start_date: str,
-            end_date: str = None, aggregation_duration: str = TimeMetadataMixin.AGGREGATION_DURATION_DAY,
-            results_quality: str = None, datasource: str = None) -> Iterator[MeasurementTimeseriesTVPObservation]:
->>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
         """
         Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
-
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
             >>> synthesizer = synthesis.register()
@@ -410,10 +337,8 @@ class DataSynthesizer:
             >>> for timeseries in timeseries:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property_variable}")
             USGS-09110990 - RDC
-
         :param query: The query information for this function
         :return: generator that yields MeasurementTimeseriesTVPObservations
-
         """
         if not query:
             # Raises validation errors
@@ -432,9 +357,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                         output_type: TimeseriesOutputType = TimeseriesOutputType.PANDAS,
                         **kwargs) -> SynthesizedTimeseriesData:
     """
-
     Wrapper for *DataSynthesizer.get_data* for timeseries data types. Currently only *MeasurementTimeseriesTVPObservations* are supported.
-
     >>> from basin3d.plugins import usgs
     >>> from basin3d import synthesis
     >>> synthesizer = synthesis.register()
@@ -449,7 +372,6 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
     2019-10-28 2019-10-28                      3.2                  4.332478
     2019-10-29 2019-10-29                      2.2                  4.219210
     2019-10-30 2019-10-30                      0.5                  4.247527
-
     >>> for k, v in usgs_data.metadata['USGS-09110000__WT__MEAN'].items():
     ...     print(f'{k} = {v}')
     data_start = 2019-10-25 00:00:00
@@ -472,7 +394,6 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
     sampling_feature_altitude = 8010.76
     sampling_feature_alt_units = None
     sampling_feature_alt_datum = NGVD29
-
     :param synthesizer: DataSnythesizer object
     :param location_lat_long: boolean: True = look for lat, long, elev coordinates and return in the metadata, False = ignore
     :param temporal_resolution: temporal resolution of output (in future, we can be smarter about this, e.g., detect it from the results or average higher frequency data)
@@ -480,9 +401,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
     :param output_name: name to give output file and/or intermediate directory. if None, output name will be timestamp (%Y%m%dT%H%M%S)
     :param cleanup: if True, this will remove intermediate data generated
     :param output_type: format for output data
-
     :param kwargs: The minimum required arguments to return a pandas DataFrame are monitoring features, observed property variables, and start date
-
            Required parameters for a *MeasurementTimeseriesTVPObservation*:
                * **monitoring_features**
                * **observed_property_variables**
@@ -493,12 +412,9 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                * **statistic**
                * **result_quality**
                * **datasource**
-
     :return: A Synthesized Timeseries Data Class
-
-
-
-    :param kwargs:
+=======
+:param kwargs:
            Required parameters for a MeasurementTimeseriesTVPObservation:
                * monitoring_features
                * observed_property_variables
@@ -509,63 +425,6 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                * statistic, list of statistics
                * result_quality
                * datasource
-    :return:
-         a Tuple: synthesized data with timestamp, monitoring feature id, observed property variable id in a pandas DataFrame (optional) and metadata dictionary.
-
-         Optional means a return value of None for the pandas DataFrame if no arguments are passed into **kwargs. The min. required arguments to return a pandas DataFrame are monitoring features, observed property variables, and start date
-<<<<<<< HEAD
-
-
-            **[optional] pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id ::
-
-                                TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
-                    2019-10-25 2019-10-25                3.2            4.247527
-                    2019-10-26 2019-10-26                4.1            4.219210
-                    2019-10-27 2019-10-27                4.3            4.134260
-                    2019-10-28 2019-10-28                3.2            4.332478
-                    2019-10-29 2019-10-29                2.2            4.219210
-                    2019-10-30 2019-10-30                0.5            4.247527
-
-=======
-
-
-            **[optional] pandas dataframe:** with synthesized data of timestamp, monitoring feature, and observed property variable id ::
-
-                                TIMESTAMP  USGS-09110000__WT  USGS-09110000__RDC
-                    2019-10-25 2019-10-25                3.2            4.247527
-                    2019-10-26 2019-10-26                4.1            4.219210
-                    2019-10-27 2019-10-27                4.3            4.134260
-                    2019-10-28 2019-10-28                3.2            4.332478
-                    2019-10-29 2019-10-29                2.2            4.219210
-                    2019-10-30 2019-10-30                0.5            4.247527
-
->>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
-                    # timestamp column: datetime, repr as ISO format
-                    column name format = f'{start_date end_date}
-
-                    # data columns: monitoring feature id and observed property variable id
-                    column name format = f'{monitoring_feature_id}__{observed_property_variable_id}'
-
-
-            **metadata dictionary**::
-
-                key = f'{monitoring_feature_id}__{observed_property_variable_id}',
-                value =
-                {
-                    data_start = str
-                    data_end = str
-                    records = int
-                    units = str
-                    basin_3d_variable = str
-                    basin_3d_variable_full_name = str
-                    statistic = str
-                    temporal_aggregation = str
-                    quality = str
-                    sampling_medium = str
-                    sampling_feature_id = str
-                    datasource = str
-                    datasource_variable
-                }
     """
 
     # Check that required parameters are provided. May have to rethink this when we expand to mulitple observation types
@@ -735,7 +594,6 @@ def _output_df(output_directory, output_name, query_info, metadata_store, first_
         PandasTimeseriesData:
     """
     Output timeseries data as a pandas data frame
-
     :param output_directory: directory that the query results are written to
     :param output_name: name to give output file. if None, output name will be timestamp (%Y%m%dT%H%M%S)
     :param query_info: The query information
@@ -784,7 +642,6 @@ def _output_hdf(output_directory: str, output_name: str, query_info: QueryInfo, 
         SynthesizedTimeseriesData:
     """
     [Unoptimized] output time series data to HDF from the pandas result.
-
     :param output_directory: directory that the query results are written to
     :param output_name: name to give output file. if None, output name will be timestamp (%Y%m%dT%H%M%S)
     :param query_info: The query information
@@ -836,10 +693,8 @@ def _output_hdf(output_directory: str, output_name: str, query_info: QueryInfo, 
 def _transpose_metadata_df(metadata_df: pd.DataFrame) -> pd.DataFrame:
     """
     Transpose the metedata dataframe for HDF file with the specified metadata
-
     :param metadata_df: the metadata to transpose
     :return: The transposed data frame
-
     """
     # Transpose the metadata returned.  This is because HDF5 does not like columns
     #  that are of mixed type. So columns are the metadata (e.g data_start, basin_3d_variable)
@@ -859,7 +714,6 @@ def _fill_metadata_df(metadata_store, synthesized_variables) -> pd.DataFrame:
     """
     Fill the metadata dataframe for the given synthesized variables. Returns an empty dataframe, if
     the list is empty
-
     :param metadata_store: dictionary of all metadata for query
     :param synthesized_variables: list of synthesized variable names
     :return: The filled data frame
@@ -887,7 +741,6 @@ def _result_generator(output_directory: str, metadata_store: dict) -> Generator[
     """
     Generator for the result data. This yields a tuple with the synthesized variable name and
     the results in JSON.
-
     :param output_directory: directory that the query results are written to
     :param metadata_store: dictionary of all metadata for query
     """
