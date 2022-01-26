@@ -128,31 +128,6 @@ def test_usgs_monitoring_features(query, expected_count):
     assert count == expected_count
 
 
-@pytest.mark.parametrize("query, expected_count", [
-    ({"feature_type": ['USGS-02']}, 1)],
-                         ids=["region_by_id"])
-def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
-    """Test USGS search by region  """
-
-    synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
-    monitoring_features = synthesizer.monitoring_features(**query)
-
-    # TODO should there be some kind of exeption handling for invalid queries that don't return anything?
-    count = 0
-    print(query.values(), "count:", count, "expected:", expected_count)
-
-    for mf in monitoring_features:
-        count += 1
-        print(
-            f"{mf.id} ({mf.feature_type}) {mf.description} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
-        if 'feature_type' in query:
-            assert mf.feature_type == query['feature_type'].upper()
-
-    print(query.values(), "count:", count, "expected:", expected_count)
-
-    assert count == expected_count
-
-
 @pytest.mark.integration
 def test_usgs_get_data():
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
