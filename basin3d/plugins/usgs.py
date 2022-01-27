@@ -323,8 +323,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
             if not feature_type or feature_type != FeatureTypeEnum.POINT:
 
                 huc_text = self.get_hydrological_unit_codes()
-                logging.debug("{}.{}".format(self.__class__.__name__, "list"),
-                              url=URL_USGS_HUC)
+                logging.debug(f"{self.__class__.__name__}.list url:{URL_USGS_HUC}")
 
                 for json_obj in [o for o in iter_rdb_to_json(huc_text) if not parent_features or [p for p in parent_features if o["huc"].startswith(p)]]:
 
@@ -379,7 +378,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                 # Filter by locations with data
                 url = '{}site/?sites={}'.format(self.datasource.location, usgs_sites)
                 usgs_site_response = get_url(url)
-                logging.debug("{}.{}".format(self.__class__.__name__, "list"), url=url)
+                logging.debug(f"{self.__class__.__name__}.list url:{url}")
 
                 if usgs_site_response and usgs_site_response.status_code == 200:
 
@@ -578,7 +577,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         usgs_site_response = None
         try:
             usgs_site_response = get_url(url)
-            logging.debug("{}.{}".format(self.__class__.__name__, "list"), url=url)
+            logging.debug(f"{self.__class__.__name__}.list url:{url}")
         except Exception as e:
             logging.warning("Could not connect to USGS site info: {}".format(e))
 
