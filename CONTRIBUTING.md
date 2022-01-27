@@ -31,9 +31,16 @@ Activate the new environment and prepare it for development
 	$ conda activate basin3d
 	$ conda develop -npf -n basin3d .
 
+<<<<<<< HEAD
 Install basin3d and its dependencies
 
 	$ pip install $(cat requirements.txt) pytest flake8 pytest-flake8 pytest-mypy pytest-cov types-PyYAML types-chardet types-cryptography types-requests 
+=======
+Install  basin3d and its dependencies
+
+	$ pip install $(cat requirements.txt) pytest
+	$ pip install pytest-flake8 pytest-mypy pytest-cov sphinx PSphinxTheme
+>>>>>>> afddb82 (Modify BASIN-3D Concepts documentation)
 	$ python setup.py develop
 	
 Run the tests (mypy and flake8 tests executed by default)
