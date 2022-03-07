@@ -113,6 +113,8 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
             result_points=data[num - 1]
         )
 
+    return StopIteration({"message": "FOO"})
+
 
 @basin3d_plugin_access(AlphaSourcePlugin, MeasurementTimeseriesTVPObservation, 'get')
 def get_measurement_timeseries_tvp_observation(self, query: QueryById):
@@ -188,6 +190,8 @@ def list_monitoring_features(self, query: QueryMonitoringFeature):
     )
 
     yield obj_point
+
+    return StopIteration(['message1', 'message2', 'message3'])
 
 
 @basin3d_plugin_access(AlphaSourcePlugin, MonitoringFeature, 'get')

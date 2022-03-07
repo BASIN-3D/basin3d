@@ -1,6 +1,6 @@
 """
 `basin3d.synthesis`
-****************************
+*******************
 
 .. currentmodule:: basin3d.synthesis
 
@@ -339,6 +339,25 @@ class DataSynthesizer:
         USGS-13010450 [(-110.5874305, 43.9038296)]
         ...
 
+        **Unsupported feature types warning:**
+
+        The code below is an example of what you will see if a registered plugin does not support
+        the requested feature type.
+
+        >>> response_itr = synthesizer.monitoring_features(feature_type='horizontal path')
+        >>> for mf in response_itr:
+        ...   print(mf)
+        ...
+
+
+        **Output warning messages from the returned iterator**
+
+        This is an example of checking the synthesis response messages in the :class:`basin3d.core.synthesis.DataSourceModelIterator`.
+
+        >>> response_itr.synthesis_response.messages
+        [SynthesisMessage(msg='Feature type HORIZONTAL PATH not supported by USGS.', level='WARN', where=['USGS', 'MonitoringFeature'])]
+
+
         :param query: (optional) The Monitoring Feature Query object
         :param id: (optional) Unique feature identifier. This returns a single monitoring feature
         :param feature_type: (optional) feature type
@@ -347,7 +366,8 @@ class DataSynthesizer:
         :param parent_features: (optional) List of parent monitoring features to search by
 
 
-        :return: a single `MonitoringFeature` or a list
+        :return: a single :class:`~basin3d.core.schema.query.SynthesisResponse` for a query by id
+            or a :class:`~basin3d.core.synthesis.DataSourceModelIterator` for multple.
         """
         if not query:
             if "id" in kwargs and isinstance(kwargs["id"], str):

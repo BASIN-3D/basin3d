@@ -18,12 +18,11 @@
 import logging
 from typing import Iterator, List
 
-from basin3d.core.connection import InvalidOrMissingCredentials
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
-from basin3d.core.plugin import DataSourcePluginAccess
-from basin3d.core.schema.enum import TimeFrequencyEnum
+from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
+from basin3d.core.schema.enum import MessageLevelEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
-    QueryMonitoringFeature, SynthesisResponse
+    QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
 
 logger = logging.getLogger(__name__)
 
@@ -96,42 +95,68 @@ class DataSourceModelIterator(Iterator):
         """
 
         while True:
-            try:
-                # Is there an iterator?  Return the next data item
-                if self._model_access_iterator:
-                    try:
-                        self._next = next(self._model_access_iterator)
-                        if self._next:
-                            return self._next
-                    except StopIteration:
-                        # ignore sub iterator StopIteration exception
-                        pass
+            # Is there an iterator?  Return the next data item
+            if self._model_access_iterator:
+                try:
+                    self._next = next(self._model_access_iterator)
+                    if self._next:
+                        return self._next
+                except StopIteration as se:
+                    # ignore sub iterator StopIteration exception
+                    # Get any warnings that may have been generated
+                    if hasattr(se, "value") and se.value and se.value.args:
+                        if isinstance(se.value.args[0], (list, tuple, set)):
+                            for m in se.value.args[0]:
+                                self._synthesis_response.messages.append(SynthesisMessage(
+                                    msg=m,
+                                    where=[self._plugins[self._plugin_index].get_datasource().id,
+                                           self._model_access.synthesis_model.__name__],
+                                    level=MessageLevelEnum.WARN
+                                ))
+                        else:
+                            self._synthesis_response.messages.append(SynthesisMessage(
+                                msg=f"Synthesis generated warnings but they are in the wrong format",
+                                where=[self._plugins[self._plugin_index].get_datasource().id,
+                                       self._model_access.synthesis_model.__name__],
+                                level=MessageLevelEnum.WARN
+                            ))
 
-                # Setup to get the data from the next data source plugin
-                self._plugin_index += 1
-                self._model_access_iterator = None
+            # Setup to get the data from the next data source plugin
+            self._plugin_index += 1
+            self._model_access_iterator = None
 
-                # Are there any more plugins?
-                if self._plugin_index < len(self._plugins):
+            # Are there any more plugins?
+            if self._plugin_index < len(self._plugins):
+                plugin: DataSourcePluginPoint = self._plugins[self._plugin_index]
 
+                try:
                     # Get the plugin view and determine if it has a list method
-                    plugin_views = self._plugins[self._plugin_index].get_plugin_access()
+                    plugin_views = plugin.get_plugin_access()
                     if self._model_access.synthesis_model in plugin_views and \
                             hasattr(plugin_views[self._model_access.synthesis_model], "list"):
                         # Now synthesize the query object
                         synthesized_query_params: QueryBase = self._model_access.synthesize_query(
                             plugin_views[self._model_access.synthesis_model],
                             self._synthesis_response.query)
-                        synthesized_query_params.datasource = [self._plugins[self._plugin_index].get_datasource().id]
+                        synthesized_query_params.datasource = [plugin.get_datasource().id]
 
                         # Get the model access iterator
                         self._model_access_iterator = plugin_views[self._model_access.synthesis_model].list(
                             query=synthesized_query_params)
-                else:
-                    raise StopIteration
+                    else:
+                        self._synthesis_response.messages.append(SynthesisMessage(
+                            msg=f"Plugin view does not exist",
+                            where=[plugin.get_datasource().id, self._model_access.synthesis_model.__name__],
+                            level=MessageLevelEnum.WARN))
 
-            except InvalidOrMissingCredentials as e:
-                logger.error(e)
+                except Exception as e:
+                    self._synthesis_response.messages.append(SynthesisMessage(
+                        msg=f"Unexpected Error({e.__class__.__name__}): {str(e)}",
+                        where=[plugin.get_datasource().id, self._model_access.synthesis_model.__name__],
+                        level=MessageLevelEnum.ERROR))
+
+            else:
+                raise StopIteration
 
 
 class DataSourceModelAccess:
@@ -178,33 +203,41 @@ class DataSourceModelAccess:
 
         :param query: The query for this request
         """
-
+        messages = []
         if query.id:
 
             # split the datasource id prefix from the primary key
             id_list = query.id.split("-")
-
+            datasource = None
             try:
                 plugin = self.plugins[id_list[0]]
                 datasource = plugin.get_datasource()
-                if datasource:
-                    datasource_pk = query.id.replace("{}-".format(id_list[0]),
-                                                     "", 1)  # The datasource id prefix needs to be removed
-
-                    plugin_views = plugin.get_plugin_access()
-                    if self.synthesis_model in plugin_views:
-                        synthesized_query: QueryById = query.copy()
-                        synthesized_query.id = datasource_pk
-                        synthesized_query.datasource = [datasource.id]
-                        obj: Base = plugin_views[self.synthesis_model].get(query=synthesized_query)
-                        return SynthesisResponse(query=query, data=obj)
-                    else:
-                        raise Exception(f"There is no detail for {query.id}")
-                else:
-                    raise Exception(f"DataSource not not found for id {query.id}")
             except KeyError:
-                raise Exception(f"Invalid id {query.id}")
-        return SynthesisResponse(query=query)
+                pass
+
+            if datasource:
+                datasource_pk = query.id.replace("{}-".format(id_list[0]),
+                                                 "", 1)  # The datasource id prefix needs to be removed
+
+                plugin_views = plugin.get_plugin_access()
+                if self.synthesis_model in plugin_views:
+                    synthesized_query: QueryById = query.copy()
+                    synthesized_query.id = datasource_pk
+                    synthesized_query.datasource = [datasource.id]
+                    obj: Base = plugin_views[self.synthesis_model].get(query=synthesized_query)
+                    return SynthesisResponse(query=query, data=obj)
+                else:
+                    messages.append((SynthesisMessage(
+                        msg=f"Plugin view does not exist",
+                        where=[plugin.get_datasource().id, self.synthesis_model.__name__],
+                        level=MessageLevelEnum.WARN)))
+            else:
+                messages.append((SynthesisMessage(
+                    msg=f"DataSource not not found for id {query.id}",
+                    where=[],
+                    level=MessageLevelEnum.ERROR)))
+
+        return SynthesisResponse(query=query, messages=messages)
 
 
 class MonitoringFeatureAccess(DataSourceModelAccess):

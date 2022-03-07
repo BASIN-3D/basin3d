@@ -10,19 +10,21 @@ from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.synthesis import DataSourceModelIterator
 from basin3d.core.types import SamplingMedium
-from basin3d.synthesis import TimeseriesOutputType, get_timeseries_data, register, PandasTimeseriesData, HDFTimeseriesData
+from basin3d.synthesis import TimeseriesOutputType, get_timeseries_data, register, PandasTimeseriesData, \
+    HDFTimeseriesData
 
 
 def test_register():
     """Test basic plugin registration"""
 
-    from tests.testplugins import alpha
-    from basin3d.plugins import usgs
-    synthesizer = register()
+    synthesizer = register(["basin3d.plugins.usgs.USGSDataSourcePlugin",
+                            "tests.testplugins.alpha.AlphaSourcePlugin"])
 
     datasources = synthesizer.datasources
     assert len(datasources) == 2
 
+    from basin3d.plugins import usgs
+    from tests.testplugins import alpha
     assert datasources[0].id_prefix == usgs.USGSDataSourcePlugin.get_id_prefix()
     assert datasources[0].id == 'USGS'
     assert datasources[0].location == 'https://waterservices.usgs.gov/nwis/'
@@ -49,11 +51,35 @@ def test_monitoring_features_found():
     if isinstance(monitoring_featurues, DataSourceModelIterator):
         count = 0
         assert monitoring_featurues.synthesis_response is not None
-        assert monitoring_featurues.synthesis_response.query is not None
+        assert monitoring_featurues.synthesis_response.dict() == {'data': None,
+                                                                  'messages': [],
+                                                                  'query': {'datasource': None,
+                                                                            'feature_type': None,
+                                                                            'monitoring_features': None,
+                                                                            'parent_features': None}}
         assert isinstance(monitoring_featurues.synthesis_response.query, QueryMonitoringFeature)
 
         for mf in monitoring_featurues:
             count += 1
+
+        assert monitoring_featurues.synthesis_response is not None
+        assert monitoring_featurues.synthesis_response.dict() == {'data': None,
+                                                                  'messages': [{'level': 'WARN',
+                                                                                'msg': 'message1',
+                                                                                'where': ['Alpha',
+                                                                                          'MonitoringFeature']},
+                                                                               {'level': 'WARN',
+                                                                                'msg': 'message2',
+                                                                                'where': ['Alpha',
+                                                                                          'MonitoringFeature']},
+                                                                               {'level': 'WARN',
+                                                                                'msg': 'message3',
+                                                                                'where': ['Alpha',
+                                                                                          'MonitoringFeature']}],
+                                                                  'query': {'datasource': None,
+                                                                            'feature_type': None,
+                                                                            'monitoring_features': None,
+                                                                            'parent_features': None}}
 
         assert count == 2
     else:
@@ -79,7 +105,8 @@ def test_measurement_timeseries_tvp_observations_count():
         count = 0
         assert measurement_timeseries_tvp_observations.synthesis_response is not None
         assert measurement_timeseries_tvp_observations.synthesis_response.query is not None
-        assert isinstance(measurement_timeseries_tvp_observations.synthesis_response.query, QueryMeasurementTimeseriesTVP)
+        assert isinstance(measurement_timeseries_tvp_observations.synthesis_response.query,
+                          QueryMeasurementTimeseriesTVP)
         assert measurement_timeseries_tvp_observations.synthesis_response.query.monitoring_features == ['test']
         assert measurement_timeseries_tvp_observations.synthesis_response.query.observed_property_variables == ['test']
         assert measurement_timeseries_tvp_observations.synthesis_response.query.start_date == datetime.date(2016, 2, 1)
@@ -283,7 +310,8 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
 
 @pytest.mark.parametrize('filters, expected_results',
                          [({'monitoring_features': ['A-1', 'A-2'], 'statistic': None},
-                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX'], 'df_shape': (9, 3),
+                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX'],
+                            'df_shape': (9, 3),
                             'no_observations_variable': None}),
                           ({'monitoring_features': ['A-1', 'A-2', 'A-3', 'A-4'], 'statistic': ['MEAN']},
                            {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN'], 'df_shape': (9, 2),
@@ -297,7 +325,8 @@ def test_get_timeseries_data_filtering(filters, expected_results):
 
     synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
 
-    alpha_result = get_timeseries_data(synthesizer=synthesizer, output_path=None, output_type=TimeseriesOutputType.PANDAS, cleanup=True,
+    alpha_result = get_timeseries_data(synthesizer=synthesizer, output_path=None,
+                                       output_type=TimeseriesOutputType.PANDAS, cleanup=True,
                                        monitoring_features=filters['monitoring_features'],
                                        observed_property_variables=['ACT', 'Al'], start_date='2016-02-01',
                                        statistic=filters['statistic'])

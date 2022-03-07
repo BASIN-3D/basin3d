@@ -1,6 +1,6 @@
 """
 `basin3d.core.connection`
-************************
+*************************
 
 .. currentmodule:: basin3d.core.connection
 
@@ -163,12 +163,11 @@ class HTTPConnectionOAuth2(HTTPConnectionDataSource):
         OAuth Client credentials (client_id, client_secret) stored in the
         DataSource.
 
-            - *Url:* https://:class:`basin3d.models.DataSource.location`<auth_token_path>
-            - *Scope:* <token_scope>
-            - *Grant Type:* <grant_type>
-            - *Client Id:* stored in encrypted :class:`basin3d.models.DataSource` field
-            - *Client Secret:* stored in encrypted :class:`basin3d.models.DataSource` field
-
+        - *Url:* https://<datasource location>/<auth_token_path>
+        - *Scope:* <token_scope>
+        - *Grant Type:* <grant_type>
+        - *Client Id:* stored in encrypted :class:`basin3d.models.DataSource` field
+        - *Client Secret:* stored in encrypted :class:`basin3d.models.DataSource` field
 
         Example JSON Response::
 

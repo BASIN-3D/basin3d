@@ -56,7 +56,7 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.graphviz',
-    'sphinx_rtd_theme',
+    'sphinx_rtd_theme'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

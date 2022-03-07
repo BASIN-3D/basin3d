@@ -1,7 +1,7 @@
 """
 
 `basin3d.plugins.usgs`
-****************************************
+**********************
 
 .. currentmodule:: basin3d.plugins.usgs
 
@@ -11,36 +11,35 @@
 
 
 * :class:`USGSDataSourcePlugin` - This Data Source plugin maps the USGS Daily Values Data Source to the
-    WFSFA broker REST API
+    BASIN-3D Models
 
-USGS to WFSFA Broker Mapping
-+++++++++++++++++++++++++++++++++
+USGS to BASIN-3D Mapping
+++++++++++++++++++++++++
 The table below describes how BASIN-3D synthesis models are mapped to the USGS Daily Values Source
 models.
 
-=================== === ============================================================
-USGS NWIS              Broker
-=================== === ============================================================
-``nwis/dv``         >> :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
-------------------- --- ------------------------------------------------------------
-``nwis/sites``      >> :class:`basin3d.synthesis.models.field.MonitoringFeature`
-------------------- --- ------------------------------------------------------------
-``new_huc_rdb.txt`` >> :class:`basin3d.synthesis.models.field.MonitoringFeature`
- * Region to Region
- * Subregion to Subregion
- * Accounting Unit to Basin
- * Watershed to Subbasin
-=================== === ============================================================
+=================== === ==================================================================================
+USGS NWIS               BASIN-3D
+=================== === ==================================================================================
+``nwis/dv``         >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
+------------------- --- ----------------------------------------------------------------------------------
+``nwis/sites``      >>  :class:`basin3d.synthesis.models.field.MonitoringFeature`
+------------------- --- ----------------------------------------------------------------------------------
+``new_huc_rdb.txt`` >>  :class:`basin3d.synthesis.models.field.MonitoringFeature`
+                         * Region to Region
+                         * Subregion to Subregion
+                         * Accounting Unit to Basin
+                         * Watershed to Subbasin
+=================== === ==================================================================================
 
 
-View Classes
-++++++++++++
+Access Classes
+++++++++++++++
 
-The following are the view classes that map *USGS Data Source API* to the *WFSFA
-Broker REST API*.
+The following are the access classes that map *USGS Data Source API* to the *BASIN-3D Models*.
 
-* :class:`USGSMeasurementTimeseriesTVPObservationView` - View for accessing a group of data points grouped by time, space, model, sample  etc.
-* :class:`USGSMonitoringFeatureView` - View for accessing monitoring features
+* :class:`USGSMeasurementTimeseriesTVPObservationAccess` - Access for accessing a group of data points grouped by time, space, model, sample  etc.
+* :class:`USGSMonitoringFeatureAccess` - Access for accessing monitoring features
 
 
 
@@ -97,12 +96,13 @@ def map_statistic_code(stat_cd):
 
 
 def generator_usgs_measurement_timeseries_tvp_observation(view,
-                                                          query: QueryMeasurementTimeseriesTVP):
+                                                          query: QueryMeasurementTimeseriesTVP,
+                                                          synthesis_messages):
     """
     Get the Data Points for USGS Daily Values
 
     =================== === ===================
-    USGS NWIS               Broker
+    USGS NWIS               BASIN-3D
     =================== === ===================
     ``nwis/dv``          >> ``data_points/``
     =================== === ===================
@@ -128,6 +128,7 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
         for stat in query.statistic:
             sythesized_stat = USGS_STATISTIC_MAP.get(stat)
             if not sythesized_stat:
+                synthesis_messages.append(f"USGS Daily Values service does not support statistic {stat}")
                 logger.info(f"USGS Daily Values service does not support statistic {stat}")
             else:
                 statistics.append(sythesized_stat)
@@ -166,11 +167,12 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
                     yield data_json
 
         except json.decoder.JSONDecodeError:
-
+            synthesis_messages.append("JSON Not Returned: {}".format(response.content))
             logger.error("JSON Not Returned: {}".format(response.content))
     else:
         import re
         p = re.compile(r'<.*?>')
+        synthesis_messages.append("HTTP {}: {}".format(response.status_code, p.sub(' ', response.text)))
         logger.error("HTTP {}: {}".format(response.status_code, p.sub(' ', response.text)))
 
 
@@ -200,7 +202,8 @@ def iter_rdb_to_json(rdb_text):
                 yield json_object
 
 
-def _load_point_obj(datasource, json_obj, feature_observed_properties, observed_property_variables=None):
+def _load_point_obj(datasource, json_obj, feature_observed_properties, synthesis_messages,
+                    observed_property_variables=None):
     """
     Instantiate the object
 
@@ -238,6 +241,7 @@ def _load_point_obj(datasource, json_obj, feature_observed_properties, observed_
         try:
             lat, lon = float(json_obj['dec_lat_va']), float(json_obj['dec_long_va'])
         except Exception as e:
+            synthesis_messages.append(f"Error getting latlon: {str(e)}")
             logger.error(str(e))
 
         monitoring_feature = MonitoringFeature(
@@ -278,11 +282,11 @@ def _load_point_obj(datasource, json_obj, feature_observed_properties, observed_
 
 class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
     """
-    View for mapping USGS HUC Regions, SubRegions and Accounting Units to
+    Access for mapping USGS HUC Regions, SubRegions and Accounting Units to
     :class:`~basin3d.synthesis.models.field.Region` objects.
 
     ============== === ====================================================
-    USGS NWIS          Broker
+    USGS NWIS          BASIN-3D
     ============== === ====================================================
     HUCs            >> :class:`basin3d.synthesis.models.field.Region`
     ============== === ====================================================
@@ -295,7 +299,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         Get the Regions
 
         =================== === ===================
-        USGS NWIS               Broker
+        USGS NWIS               BASIN-3D
         =================== === ===================
         ``new_huc_rdb.txt``  >> ``MonitoringFeature/``
         =================== === ===================
@@ -304,6 +308,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         :returns: a generator object that yields :class:`~basin3d.synthesis.models.field.MonitoringFeature`
             objects
         """
+        synthesis_messages: List[str] = []
 
         feature_type = isinstance(query.feature_type, FeatureTypeEnum) and query.feature_type.value or query.feature_type
         if feature_type in USGSDataSourcePlugin.feature_types or feature_type is None:
@@ -322,7 +327,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
 
             if not feature_type or feature_type != FeatureTypeEnum.POINT:
 
-                huc_text = self.get_hydrological_unit_codes()
+                huc_text = self.get_hydrological_unit_codes(synthesis_messages=synthesis_messages)
                 logging.debug(f"{self.__class__.__name__}.list url:{URL_USGS_HUC}")
 
                 for json_obj in [o for o in iter_rdb_to_json(huc_text) if not parent_features or [p for p in parent_features if o["huc"].startswith(p)]]:
@@ -383,22 +388,30 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                 if usgs_site_response and usgs_site_response.status_code == 200:
 
                     for v in iter_rdb_to_json(usgs_site_response.text):
-                        yield _load_point_obj(datasource=self, json_obj=v,
+                        yield _load_point_obj(datasource=self, json_obj=v, synthesis_messages=synthesis_messages,
                                               feature_observed_properties=feature_observed_properties)
 
         else:
+            synthesis_messages.append(f"Feature type {feature_type} not supported by {self.datasource.name}.")
             logger.warning(f"Feature type {feature_type} not supported by {self.datasource.name}.")
 
-    def get_hydrological_unit_codes(self):
+        return StopIteration(synthesis_messages)
+
+
+    def get_hydrological_unit_codes(self, synthesis_messages):
         """Get the hydrological unit codes for USGS"""
 
         try:
             response = get_url(URL_USGS_HUC, timeout=0.5)
             if response.status_code == 200:
                 return response.text
+            else:
+                synthesis_messages.append(f"Get failed for {URL_USGS_HUC} - Failing over to stored HUC codes")
         except requests.exceptions.ReadTimeout:
+            synthesis_messages.append(f"Read Timeout for {URL_USGS_HUC} - Failing over to stored HUC codes")
             logger.warning(f"Read Timeout for {URL_USGS_HUC} - Failing over to stored HUC codes")
         except requests.exceptions.ConnectTimeout:
+            synthesis_messages.append(f"Connection Timeout for {URL_USGS_HUC} - Failing over to stored HUC codes")
             logger.warning(f"Connection Timeout for {URL_USGS_HUC} - Failing over to stored HUC codes")
 
         return usgs_huc_codes.CONTENT
@@ -407,7 +420,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         """ Get a single Region object
 
         ===================== === =====================
-        USGS NWIS                 Broker
+        USGS NWIS                 BASIN-3D
         ===================== === =====================
         ``{huc}``              >>  ``Primary key (query.id)``
         --------------------- --- ---------------------
@@ -417,6 +430,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         :param query: The query info object
         :return: a serialized ``MonitoringFeature`` object
         """
+
         if len(query.id) == 2:
             mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.REGION)
         elif len(query.id) == 4:
@@ -444,7 +458,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         Serialize an USGS Daily Values Data Source City object into a :class:`~basin3d.synthesis.models.field.Region` object
 
         ============== === =================
-        USGS NWIS          Broker
+        USGS NWIS          BASIN-3D
         ============== === =================
         ``{huc}``  >>      ``MonitoringFeature.id``
         ============== === =================
@@ -505,11 +519,11 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
     """
     https://waterservices.usgs.gov/rest/DV-Service.html
 
-    View for mapping USGS water services daily value data to
+    Access for mapping USGS water services daily value data to
     :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation` objects.
 
     ============== === =========================================================
-    USGS NWIS          Broker
+    USGS NWIS          BASIN-3D
     ============== === =========================================================
     Daily Values    >> :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
     ============== === =========================================================
@@ -520,9 +534,10 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
     def result_quality(self, qualifiers):
         """
         Daily Value Qualification Code (dv_rmk_cd)
-        ---------------------------------
+
+        ====  ================================================================================
         Code  Description
-        ---------------------------------
+        ====  ================================================================================
         e     Value has been edited or estimated by USGS personnel and is write protected
         &     Value was computed from affected unit values
         E     Value was computed from estimated unit values.
@@ -532,7 +547,9 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         >     The value is known to be greater than reported value and is write protected.
         1     Value is write protected without any remark code to be printed
         2     Remark is write protected without any remark code to be printed
-              No remark (blank)
+        _     No remark (blank)
+        ====  ================================================================================
+
         :param qualifiers:
         :return:
         """
@@ -554,7 +571,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         Get the Data Points for USGS Daily Values
 
         =================== === ======================
-        USGS NWIS               Broker
+        USGS NWIS               BASIN-3D
         =================== === ======================
         ``nwis/dv``          >> ``measurement_tvp_timeseries/``
         =================== === ======================
@@ -562,7 +579,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         :returns: a generator object that yields :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
             objects
         """
-        search_params = ""
+        synthesis_messages = []
         feature_obj_dict = {}
         if not query.monitoring_features:
             return None
@@ -579,6 +596,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             usgs_site_response = get_url(url)
             logging.debug(f"{self.__class__.__name__}.list url:{url}")
         except Exception as e:
+            synthesis_messages.append("Could not connect to USGS site info: {}".format(e))
             logging.warning("Could not connect to USGS site info: {}".format(e))
 
         if usgs_site_response:
@@ -587,7 +605,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                     feature_obj_dict[v["site_no"]] = v
 
         # Iterate over data objects returned
-        for data_json in generator_usgs_measurement_timeseries_tvp_observation(self, query):
+        for data_json in generator_usgs_measurement_timeseries_tvp_observation(self, query, synthesis_messages):
             unit_of_measurement = data_json["variable"]["unit"]['unitCode']
             timezone_offset = data_json["sourceInfo"]["timeZoneInfo"]["defaultTimeZone"]["zoneOffset"]
 
@@ -599,6 +617,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 monitoring_feature = _load_point_obj(
                     datasource=self,
                     json_obj=feature_obj_dict[feature_id], feature_observed_properties=dict(),
+                    synthesis_messages=synthesis_messages,
                     observed_property_variables="Find observed property variables at monitoring feature url")
             else:
                 # ToDo: expand this to use the info in the data return
@@ -636,6 +655,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                                 # Hardcoded unit conversion for river discharge parameters
                                 data, unit_of_measurement = convert_discharge(data, parameter, unit_of_measurement)
                             except Exception as e:
+                                synthesis_messages.append(f"Unit Conversion Issue: {str(e)}")
                                 logger.error(str(e))
                                 data = None
                             # What do do with bad values?
@@ -643,6 +663,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                             result_points.append(TimeValuePair(timestamp=value['dateTime'], value=data))
 
                         except Exception as e:
+                            synthesis_messages.append(f"TimeValuePair ERROR: {str(e)}")
                             logger.error(e)
 
             timeseries_result_quality = query.result_quality
@@ -671,6 +692,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
             yield measurement_timeseries_tvp_observation
 
+        return StopIteration(synthesis_messages)
 
 @basin3d_plugin
 class USGSDataSourcePlugin(DataSourcePluginPoint):

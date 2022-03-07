@@ -107,7 +107,7 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
 def test_usgs_monitoring_feature(query, feature_type, monkeypatch):
     """Test USGS search by region  """
 
-    def mock_get_huc_codes(*args):
+    def mock_get_huc_codes(*args, **kwargs):
         return get_text("new_huc_rdb.txt")
 
     monkeypatch.setattr(USGSMonitoringFeatureAccess, 'get_hydrological_unit_codes', mock_get_huc_codes)

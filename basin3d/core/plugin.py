@@ -31,7 +31,7 @@ def get_feature_type(feature_type, return_format="enum"):
     Return the feature type if exists in the request
     :param feature_type:
     :param return_format: "enum" (default) = the FeatureTypeEnum enum,
-                   otherwise return the text version
+    otherwise return the text version
     :return: the feature_type in the format specified, None if none exists
     """
     if feature_type:
