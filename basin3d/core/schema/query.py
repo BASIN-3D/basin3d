@@ -108,8 +108,8 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
     end_date: Optional[date] = Field(title="End Date", description="Filter by data taken on or before the end date")
     statistic: Optional[List[StatisticEnum]] = Field(title="Statistic",
                                                      description="Return specified statistics, if they exist.")
-    result_quality: Optional[ResultQualityEnum] = Field(title="Result Quality",
-                                                        description="Filter by specified result quality")
+    result_quality: Optional[List[ResultQualityEnum]] = Field(title="Result Quality",
+                                                              description="Filter by specified result qualities")
 
     def __init__(self, **data):
         """

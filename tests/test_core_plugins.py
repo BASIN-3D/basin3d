@@ -119,7 +119,7 @@ def test_get_feature_type(feature_name, return_format, result):
                                                     'where': ['Alpha', 'MeasurementTimeseriesTVPObservation']}],
      "measurement_timeseries_tvp_observations",
      {'start_date': '2019-10-01', 'observed_property_variables': ["Ag"],
-      'monitoring_features': ['region']}),
+      'monitoring_features': ['A-region']}),
 ], ids=["ErrorSource.MF", "ErrorSource.TVP", "AlphaSource.MF", "USGS.MR", "NoPluginViews.TVP", "NoPluginViews.MF",
         "AlphaSource.TVP"])
 def test_plugin_exceptions(plugin, messages, synthesis_call, synthesis_args):

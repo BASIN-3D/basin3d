@@ -379,7 +379,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *aggregation_duration:* enum, time period represented by observation (YEAR, MONTH, DAY, HOUR, MINUTE, SECOND)
     * *unit_of_measurement:* string, units in which the observation is reported
     * *statistic:* enum, statistical property of the observation result (MEAN, MIN, MAX, TOTAL)
-    * *result_quality:* enum, quality assessment of the result (CHECKED, UNCHECKED)
+    * *result_quality:* enum, quality assessment of the result (VALIDATED, UNVALIDATED, SUSPECTED, REJECTED, ESTIMATED)
 
     **Filter** by the following attributes (?attribute=parameter&attribute=parameter&...):
 
@@ -390,7 +390,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *aggregation_duration (default: DAY):* enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND)
     * *statistic (optional):* List of statistic options, enum (INSTANT|MEAN|MIN|MAX|TOTAL)
     * *datasource (optional):* a single data source id prefix (e.g ?datasource=`datasource.id_prefix`)
-    * *result_quality (optional):* enum (UNCHECKED|CHECKED)
+    * *result_quality (optional):* enum (VALIDATED|UNVALIDATED|SUSPECTED|REJECTED|ESTIMATED)
 
     **Restrict fields** with query parameter ‘fields’. (e.g. ?fields=id,name)
 

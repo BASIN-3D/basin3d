@@ -15,7 +15,7 @@ from typing import Iterator
 from pydantic import ValidationError
 
 from basin3d.core.models import Base
-from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum, StatisticEnum
 from basin3d.core.types import SamplingMedium
 from basin3d.synthesis import register, get_timeseries_data
 
@@ -45,7 +45,11 @@ def get_url_text(text, status=200):
         "url": "/testurl"})
 
 
-def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
+@pytest.mark.parametrize('additional_query_params',
+                         [({"monitoring_features": ["USGS-09110990", "USGS-09111250"], "observed_property_variables": []}),
+                          ({"observed_property_variables": ["RDC"]})],
+                         ids=['missing-variables', 'missing-monitoring_features'])
+def test_measurement_timeseries_tvp_observations_usgs_errors(additional_query_params, monkeypatch):
     """ Test USGS Timeseries data query"""
 
     mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_mtvp_sites.rdb")),
@@ -54,27 +58,49 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
 
-    query0 = {
-        "monitoring_features": ["USGS-09110990", "USGS-09111250"],
-        "observed_property_variables": [],
+    query = {
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": "DAY",
-        "results_quality": "CHECKED"
+        "aggregation_duration": TimeFrequencyEnum.DAY,
+        "quality": [ResultQualityEnum.VALIDATED],
+        **additional_query_params
     }
     with pytest.raises(ValidationError):
-        synthesizer.measurement_timeseries_tvp_observations(**query0)
+        synthesizer.measurement_timeseries_tvp_observations(**query)
 
-    query1 = {
-        "monitoring_features": ["USGS-09110990", "USGS-09111250"],
-        "observed_property_variables": ["RDC"],
+
+@pytest.mark.parametrize('additional_filters, usgs_response, expected_results',
+                         [
+                          # all-good
+                          ({"monitoring_features": ["USGS-09110990", "USGS-09111250"], "observed_property_variables": ["RDC"], "result_quality": [ResultQualityEnum.VALIDATED]},
+                           "usgs_nwis_dv_p00060_l09110990_l09111250.json", {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED], "count": 2}),
+                          # some-quality-filtered-data
+                          ({"monitoring_features": ["USGS-09110990"], "observed_property_variables": ["WT"], "result_quality": [ResultQualityEnum.UNVALIDATED]},
+                           "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json",
+                           {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.UNVALIDATED], "count": 1, "synthesis_msgs": ['09110000 - 00010: 2 timestamps did not match data quality query.']}),
+                          # all-data-filtered
+                          ({"monitoring_features": ["USGS-09110990"], "observed_property_variables": ["WT"], "result_quality": [ResultQualityEnum.REJECTED]},
+                           "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json",
+                           {"statistic": StatisticEnum.MEAN, "result_quality": [], "count": 1, "synthesis_msgs": ['09110000 - 00010: 4 timestamps did not match data quality query.', '09110000 had no valid data values for 00010 that match the query.']})
+                         ],
+                         ids=['all-good', 'some-quality-filtered-data', 'all-data-filtered'])
+def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_response, expected_results, monkeypatch):
+    """ Test USGS Timeseries data query"""
+
+    mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_mtvp_sites.rdb")),
+                                               get_url(get_json(usgs_response))]))
+
+    monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
+    synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
+
+    query = {
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": "DAY",
-        "results_quality": "CHECKED"
+        "aggregation_duration": TimeFrequencyEnum.DAY,
+        **additional_filters
     }
 
-    measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
+    measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query)
 
     # loop through generator and serialized the object, get actual object and compare
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
@@ -83,20 +109,16 @@ def test_measurement_timeseries_tvp_observations_usgs(monkeypatch):
             print(timeseries.to_json())
             data = json.loads(timeseries.to_json())
             count += 1
-            assert data["statistic"] == "MEAN"
-        assert count == 2
+            assert data["statistic"] == expected_results.get("statistic")
+            assert data["result_quality"] == expected_results.get("result_quality")
+        assert count == expected_results.get("count")
+        if expected_results.get('synthesis_msgs'):
+            expected_msgs = expected_results.get('synthesis_msgs')
+            msgs = measurement_timeseries_tvp_observations.synthesis_response.messages
+            for idx, msg in enumerate(msgs):
+                assert msg.msg == expected_msgs[idx]
     else:
         pytest.fail("Returned object must be iterator")
-
-    query2 = {
-        "observed_property_variables": ["RDC"],
-        "start_date": "2020-04-01",
-        "end_date": "2020-04-30",
-        "aggregation_duration": "DAY",
-        "results_quality": "CHECKED"
-    }
-    with pytest.raises(ValidationError):
-        synthesizer.measurement_timeseries_tvp_observations(**query2)
 
 
 @pytest.mark.parametrize("query, feature_type", [({"id": "USGS-13"}, "region"),
@@ -212,7 +234,7 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
 
 
 @pytest.mark.parametrize("query, expected_count", [({"monitoring_features": ["USGS-09129600"], "feature_type": "point"}, 1)],
-                        ids=["point_by_id"])
+                         ids=["point_by_id"])
 def test_usgs_monitoring_features3(query, expected_count, monkeypatch):
     """Test USGS search by region  """
 
@@ -295,7 +317,7 @@ def test_usgs_get_data(monkeypatch):
     assert var_metadata['basin_3d_variable_full_name'] == 'River Discharge'
     assert var_metadata['statistic'] == 'MEAN'
     assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
-    assert var_metadata['quality'] == ResultQualityEnum.CHECKED
+    assert var_metadata['quality'] == ResultQualityEnum.VALIDATED
     assert var_metadata['sampling_medium'] == SamplingMedium.WATER
     assert var_metadata['sampling_feature_id'] == 'USGS-09110000'
     assert var_metadata['datasource'] == 'USGS'
@@ -304,39 +326,81 @@ def test_usgs_get_data(monkeypatch):
     assert usgs_metadata_df['USGS-09110000__WT__MIN']['statistic'] == 'MIN'
     assert usgs_metadata_df['USGS-09110000__WT__MAX']['statistic'] == 'MAX'
 
+# set the following header names
+mean_rdc = 'USGS-09110000__RDC__MEAN'
+mean_wt = 'USGS-09110000__WT__MEAN'
+min_wt = 'USGS-09110000__WT__MIN'
+max_wt = 'USGS-09110000__WT__MAX'
 
-@pytest.mark.parametrize("query, shape", [(['MEAN'], (4,3)),
-                                          (['MIN','MAX'], (4,3))])
-def test_usgs_get_data2(query, shape, monkeypatch):
+# set short variable names for ResultQualityEnum values
+VAL = ResultQualityEnum.VALIDATED
+UNVAL = ResultQualityEnum.UNVALIDATED
+REJECTED = ResultQualityEnum.REJECTED
+EST = ResultQualityEnum.ESTIMATED
+NOT_SUP = ResultQualityEnum.NOT_SUPPORTED
+@pytest.mark.parametrize('query, usgs_response, expected_shape, expected_columns, expected_record_counts, expected_quality_metadata',
+                         [({'statistic': ['MEAN']}, 'usgs_get_data_09110000_MEAN.json', (4, 3), [mean_rdc, mean_wt], [4, 4], [VAL, VAL]),
+                          ({'statistic': ['MIN', 'MAX']}, 'usgs_get_data_09110000_MIN_MAX.json', (4, 3), [min_wt, max_wt], [4, 4], [VAL, VAL]),
+                          # quality: all VAL, query VAL'
+                          ({'result_quality': [VAL]}, 'usgs_get_data_09110000_VALIDATED.json', (4, 3), [mean_rdc, mean_wt], [4, 4], [VAL, VAL]),
+                          # quality: all VAL, query UNVAL
+                          ({'result_quality': [UNVAL]}, 'usgs_get_data_09110000_VALIDATED.json', None, None, None, None),
+                          # quality: all VAL, query REJECTED (not supported)
+                          ({'result_quality': [REJECTED]}, 'usgs_get_data_09110000_VALIDATED.json', None, None, None, None),
+                          # quality: mix VAL-UNVAL, query VAL
+                          ({'result_quality': [VAL]}, 'usgs_get_data_09110000_VALIDATED_UNVALIDATED.json', (4, 3), [mean_rdc, mean_wt], [4, 2], [VAL, VAL]),
+                          # quality: VAL-UNVAL, query UNVAL
+                          ({'result_quality': [UNVAL]}, 'usgs_get_data_09110000_VALIDATED_UNVALIDATED.json', (2, 2), [mean_wt], [2], [UNVAL]),
+                          # quality: mix VAL-UNVAL, query VAL-UNVAL
+                          ({'result_quality': [VAL, UNVAL]}, 'usgs_get_data_09110000_VALIDATED_UNVALIDATED.json', (4, 3), [mean_rdc, mean_wt], [4, 4], [VAL, f'{VAL};{UNVAL}']),
+                          # quality: mix VAL-UNVAL-EST, query VAL-UNVAL
+                          ({'result_quality': [VAL, UNVAL]}, 'usgs_get_data_09110000_VALIDATED_UNVALIDATED_ESTIMATED.json', (4, 5), [mean_rdc, mean_wt, min_wt, max_wt], [4, 1, 4, 4], [UNVAL, VAL, VAL, VAL]),
+                          # query: mix VAL-UNVAL-EST, query EST
+                          ({'result_quality': [EST]}, 'usgs_get_data_09110000_VALIDATED_UNVALIDATED_ESTIMATED.json', (2, 2), [mean_wt], [2], [EST]),
+                          # query: mix VAL-UNVAL-EST, no query (includes NOT_SUPPORTED)
+                          ({}, 'usgs_get_data_09110000_VALIDATED_UNVALIDATED_ESTIMATED.json', (4, 5), [mean_rdc, mean_wt, min_wt, max_wt], [4, 4, 4, 4, 4], [UNVAL, f'{VAL};{NOT_SUP};{EST}', VAL, VAL]),
+                          ],
+                         ids=['statistic: mean', 'statistic: min-max',
+                              'quality: all VAL, query VAL', 'quality: all VAL, query UNVAL', 'quality: all VAL, query REJECTED (not supported)',
+                              'quality: mix VAL-UNVAL, query VAL', 'quality: VAL-UNVAL, query UNVAL', 'quality: mix VAL-UNVAL, query VAL-UNVAL',
+                              'quality: mix VAL-UNVAL-EST, query VAL-UNVAL', 'query: mix VAL-UNVAL-EST, query EST', 'query: mix VAL-UNVAL-EST, no query (includes NOT_SUPPORTED)'])
+def test_usgs_get_data_with_queries(query, usgs_response, expected_shape, expected_columns, expected_record_counts,
+                                    expected_quality_metadata, monkeypatch):
 
     get_rdb = get_url_text(get_text("usgs_get_data_rdb_09110000.rdb"))
     mock_get_url_mean = MagicMock(side_effect=list([get_rdb,
-                                                    get_url(get_json("usgs_get_data_09110000_MEAN.json")),
-                                                    get_rdb,
-                                                    get_url(get_json("usgs_get_data_09110000_MIN_MAX.json"))]))
+                                                    get_url(get_json(usgs_response))]))
+
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url_mean)
 
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
 
-    # check filtering by single statistic
+    # check filtering by query
     usgs_data = get_timeseries_data(synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
                                     observed_property_variables=['RDC', 'WT'], start_date='2019-10-25',
-                                    end_date='2019-10-28', statistic=query)
-    usgs_df = usgs_data.data
+                                    end_date='2019-10-28', **query)
 
-    # check the dataframe
-    assert isinstance(usgs_df, pd.DataFrame) is True
-    for column_name in list(usgs_df.columns):
-        assert column_name in ['TIMESTAMP', 'USGS-09110000__RDC__MEAN', 'USGS-09110000__WT__MEAN']
-    assert usgs_df.shape == shape
+    if expected_shape is not None:
+        # check the dataframe
+        usgs_df = usgs_data.data
+        assert isinstance(usgs_df, pd.DataFrame) is True
+        expected_columns.append('TIMESTAMP')
+        for column_name in list(usgs_df.columns):
+            assert column_name in expected_columns
+        assert usgs_df.shape == expected_shape
 
-    usgs_data = get_timeseries_data(synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
-                                    observed_property_variables=['RDC', 'WT'], start_date='2019-10-25',
-                                    end_date='2019-10-28', statistic=query)
-    usgs_df = usgs_data.data
+        # check metadata
+        usgs_metadata_store = usgs_data.metadata
+        # check record counts
+        for idx, column_name in enumerate(expected_columns):
+            if column_name == 'TIMESTAMP':
+                continue
+            var_metadata = usgs_metadata_store.get(column_name)
+            assert var_metadata['records'] == expected_record_counts[idx]
+            result_quality = var_metadata['quality']
+            expected_quality = expected_quality_metadata[idx].split(';')
+            assert all(qual in result_quality for qual in expected_quality) and all(qual in expected_quality for qual in result_quality.split(';')) is True
 
-    # check the dataframe
-    assert isinstance(usgs_df, pd.DataFrame) is True
-    for column_name in list(usgs_df.columns):
-        assert column_name in ['TIMESTAMP', 'USGS-09110000__WT__MIN', 'USGS-09110000__WT__MAX']
-    assert usgs_df.shape == shape
+    else:
+        assert usgs_data.data is None
+        assert usgs_data.metadata is None
