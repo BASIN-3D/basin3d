@@ -7,6 +7,9 @@ from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import MonitoringFeature
 from basin3d.core.plugin import get_feature_type
 from basin3d.core.schema.enum import FeatureTypeEnum
+from basin3d.core.schema.query import SynthesisResponse
+from basin3d.core.synthesis import DataSourceModelIterator
+from basin3d.synthesis import register
 
 
 def test_plugin_metadata():
@@ -35,7 +38,7 @@ def test_plugin_access_objects():
     assert plugin_access_objects[
                basin3d.core.models.MonitoringFeature].__class__.__name__ == 'tests.testplugins.alpha.AlphaMonitoringFeatureAccess'
     assert plugin_access_objects[basin3d.core.models.MeasurementTimeseriesTVPObservation].__class__.__name__ == \
-        'tests.testplugins.alpha.AlphaMeasurementTimeseriesTVPObservationAccess'
+           'tests.testplugins.alpha.AlphaMeasurementTimeseriesTVPObservationAccess'
 
 
 def test_plugin_incomplete():
@@ -82,3 +85,56 @@ def test_get_feature_type(feature_name, return_format, result):
 
     feature_type = get_feature_type(feature_name, return_format)
     assert result == feature_type
+
+
+@pytest.mark.parametrize("plugin, messages, synthesis_call, synthesis_args", [
+    ("tests.testplugins.plugin_error.ErrorSourcePlugin",
+     [{'msg': 'Unexpected Error(Exception): This is a list_monitoring_features exception',
+       'level': 'ERROR',
+       'where': ['Error', 'MonitoringFeature']}], "monitoring_features", {}),
+    ("tests.testplugins.plugin_error.ErrorSourcePlugin", [{'level': 'ERROR',
+                                                           'msg': 'Unexpected Error(Exception): This is a '
+                                                                  'find_measurement_timeseries_tvp_observations error',
+                                                           'where': ['Error', 'MeasurementTimeseriesTVPObservation']}],
+     "measurement_timeseries_tvp_observations",
+     {'start_date': '2019-10-01', 'observed_property_variables': ["Ag"],
+      'monitoring_features': ['region']}),
+    ("tests.testplugins.alpha.AlphaSourcePlugin", [{'level': 'ERROR',
+                                                    'msg': 'DataSource not not found for id E-1234',
+                                                    'where': []}], "monitoring_features", {"id": 'E-1234'}),
+    ("basin3d.plugins.usgs.USGSDataSourcePlugin", [{'level': 'ERROR',
+                                                    'msg': 'DataSource not not found for id E-1234',
+                                                    'where': []}], "monitoring_features", {"id": 'E-1234'}),
+    ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin", [{'level': 'WARN',
+                                                                'msg': 'Plugin view does not exist',
+                                                                'where': ['NoPluginView',
+                                                                          'MeasurementTimeseriesTVPObservation']}],
+     "measurement_timeseries_tvp_observations", {'start_date': '2019-10-01', 'observed_property_variables': ["Ca"],
+                                                 'monitoring_features': ['region']}),
+    ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin", [{'level': 'WARN',
+                                                                'msg': 'Plugin view does not exist',
+                                                                'where': ['NoPluginView', 'MonitoringFeature']}],
+     "monitoring_features", {'id': 'NPV-01'}),
+    ("tests.testplugins.alpha.AlphaSourcePlugin", [{'level': 'WARN',
+                                                    'msg': 'Synthesis generated warnings but they are in the wrong format',
+                                                    'where': ['Alpha', 'MeasurementTimeseriesTVPObservation']}],
+     "measurement_timeseries_tvp_observations",
+     {'start_date': '2019-10-01', 'observed_property_variables': ["Ag"],
+      'monitoring_features': ['region']}),
+], ids=["ErrorSource.MF", "ErrorSource.TVP", "AlphaSource.MF", "USGS.MR", "NoPluginViews.TVP", "NoPluginViews.MF",
+        "AlphaSource.TVP"])
+def test_plugin_exceptions(plugin, messages, synthesis_call, synthesis_args):
+    """Test that basin3d handles unexpected exceptions"""
+
+    synthesizer = register([plugin])
+    result = getattr(synthesizer, synthesis_call)(**synthesis_args)
+
+    if isinstance(result, DataSourceModelIterator):
+        for _ in result:
+            pass
+        synthesis_response = result.synthesis_response
+    else:
+        synthesis_response = result
+
+    syn_response = synthesis_response.dict()
+    assert syn_response["messages"] == messages

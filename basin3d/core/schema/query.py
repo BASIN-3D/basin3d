@@ -2,7 +2,7 @@
 `basin3d.core.schema.query`
 ***************************
 
-.. currentmodule:: basin3d.core.schema
+.. currentmodule:: basin3d.core.schema.query
 
 :platform: Unix, Mac
 :synopsis: BASIN-3D Query Schema
@@ -20,7 +20,7 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum, StatisticEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, MessageLevelEnum, ResultQualityEnum, StatisticEnum, TimeFrequencyEnum
 
 
 def _to_camelcase(string) -> str:
@@ -126,6 +126,29 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
         super().__init__(**data)
 
 
+class SynthesisMessage(BaseModel):
+    """BASIN-3D Synthesis Message """
+
+    msg: str = Field(title="Msg", description="The synthesis message ")
+    level: MessageLevelEnum = Field(title="Level", description="The severity level of the message.")
+    where: Optional[List[str]] = Field([], title="Where",
+                                       description="The place in BASIN-3D where the synthesis message was generated "
+                                                   "from. "
+                                                   "If empty or null, this is a BASIN-3D error, the first item in "
+                                                   "the list is the datsource id, "
+                                                   "the second should be the synthesis model.")
+
+    class Config:
+        # output fields to camelcase
+        alias_generator = _to_camelcase
+        # whether an aliased field may be populated by its name as given by the model attribute
+        #  (allows bot camelcase and underscore fields)
+        allow_population_by_field_name = True
+        # Instead of using enum class use enum value (string object)
+        use_enum_values = True
+        # Validate all fields when initialized
+        validate_all = True
+
 class SynthesisResponse(BaseModel):
     """BASIN-3D Synthesis Response """
 
@@ -133,6 +156,8 @@ class SynthesisResponse(BaseModel):
     data: Optional[Union[object, List[object]]] = Field(title="Data",
                                                         description="The data for the current response. Empty if provided "
                                                                     "via Iterator.")
+    messages: List[SynthesisMessage] = Field([], title="Messages",
+                                             description="The synthesis messages for this response")
 
     class Config:
         # output fields to camelcase

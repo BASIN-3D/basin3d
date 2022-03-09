@@ -2,7 +2,7 @@
 `basin3d.core.schema.enum`
 ***************************
 
-.. currentmodule:: basin3d.core.schema
+.. currentmodule:: basin3d.core.schema.enum
 
 :platform: Unix, Mac
 :synopsis: BASIN-3D Enumeration Schema
@@ -103,3 +103,11 @@ class StatisticEnum(str, BaseEnum):
     MIN = "MIN"
     MAX = "MAX"
     TOTAL = "TOTAL"
+
+
+class MessageLevelEnum(str, BaseEnum):
+    """Enumeration of Message Levels"""
+
+    WARN = "WARN"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"

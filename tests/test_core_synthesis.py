@@ -13,3 +13,4 @@ def test_extract_query_param_ids(values, filtered_params):
 
     synthesized_values = _synthesize_query_identifiers(values, "F")
     assert synthesized_values == filtered_params
+
