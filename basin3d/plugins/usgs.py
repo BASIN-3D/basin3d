@@ -57,7 +57,7 @@ from basin3d.core.schema.query import FeatureTypeEnum, QueryById, QueryMeasureme
 from basin3d.core.access import get_url
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, GeographicCoordinate, \
     MeasurementMetadataMixin, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
-    TimeMetadataMixin, TimeValuePair
+    TimeMetadataMixin, TimeValuePair, ResultListTVP
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin
 from basin3d.core.types import SpatialSamplingShapes
 from basin3d.plugins import usgs_huc_codes
@@ -92,7 +92,7 @@ def map_statistic_code(stat_cd):
     for k, v in USGS_STATISTIC_MAP.items():
         if stat_cd == v:
             return k
-    return 'NOT SUPPORTED'  # consider making this part of the Mixin Statistic type
+    return 'NOT_SUPPORTED'  # consider making this part of the Mixin Statistic type
 
 
 def generator_usgs_measurement_timeseries_tvp_observation(view,
@@ -531,39 +531,41 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
     synthesis_model_class = MeasurementTimeseriesTVPObservation
 
-    def result_quality(self, qualifiers):
+    def map_result_quality(self, qualifiers):
         """
         Daily Value Qualification Code (dv_rmk_cd)
 
-        ====  ================================================================================
-        Code  Description
-        ====  ================================================================================
-        e     Value has been edited or estimated by USGS personnel and is write protected
-        &     Value was computed from affected unit values
-        E     Value was computed from estimated unit values.
-        A     Approved for publication -- Processing and review completed.
-        P     Provisional data subject to revision.
-        <     The value is known to be less than reported value and is write protected.
-        >     The value is known to be greater than reported value and is write protected.
-        1     Value is write protected without any remark code to be printed
-        2     Remark is write protected without any remark code to be printed
-        _     No remark (blank)
-        ====  ================================================================================
+        =============  =========  ================================================================================
+        BASIN-3D Code  USGS Code  Description
+        =============  =========  ================================================================================
+        ESTIMATED      e          Value has been edited or estimated by USGS personnel and is write protected
+        NOT_SUPPORTED  &          Value was computed from affected unit values
+        ESTIMATED      E          Value was computed from estimated unit values.
+        VALIDATED      A          Approved for publication -- Processing and review completed.
+        UNVALIDATED    P          Provisional data subject to revision.
+        NOT_SUPPORTED  <          The value is known to be less than reported value and is write protected.
+        NOT_SUPPORTED  >          The value is known to be greater than reported value and is write protected.
+        NOT_SUPPORTED  1          Value is write protected without any remark code to be printed
+        NOT_SUPPORTED  2          Remark is write protected without any remark code to be printed
+        NOT_SUPPORTED  _          No remark (blank)
+        =============  =========  ================================================================================
 
         :param qualifiers:
         :return:
         """
         if "A" in qualifiers:
-            return ResultQualityEnum.CHECKED
+            return ResultQualityEnum.VALIDATED
         elif "P" in qualifiers:
-            return ResultQualityEnum.UNCHECKED
+            return ResultQualityEnum.UNVALIDATED
+        elif "E" in qualifiers or "e" in qualifiers:
+            return ResultQualityEnum.ESTIMATED
         else:
-            return 'NOT_SET'
+            return ResultQualityEnum.NOT_SUPPORTED
 
     def get_result_qualifiers(self, qualifiers):
         timeseries_qualifiers = set()
         for qualifier in qualifiers:
-            timeseries_qualifiers.add(self.result_quality(qualifier["qualifierCode"]))
+            timeseries_qualifiers.add(self.map_result_quality(qualifier["qualifierCode"]))
         return timeseries_qualifiers
 
     def list(self, query: QueryMeasurementTimeseriesTVP):
@@ -625,28 +627,28 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 monitoring_feature = None
 
             # deal with statistic
-            basin3d_statistic = "NOT SET"
+            basin3d_statistic = "NOT_SET"
             if statistic:
                 basin3d_statistic = map_statistic_code(statistic)
 
-            result_points = []
-            result_qualifiers = set()
+            result_TVPs = []
+            result_TVP_quality = []
+            result_quality = set()
+            has_filtered_data_points = 0
+
+            if len(data_json["values"]) > 1:
+                # Cannot think of the case in which response should have more than one values so adding a message to track it.
+                synthesis_messages.append(f'{feature_id} has more than one timeseries returned for {parameter}. Contact plugin developer if you see this message.')
 
             for values in data_json["values"]:
-                result_qualifiers.update(self.get_result_qualifiers(values["qualifier"]))
+                # The original code checked what USGS reported for the qualities present in the timeseries. Instead will build from individual point qualities below.
+                # result_quality.update(self.get_result_qualifiers(values["qualifier"]))
 
                 for value in values["value"]:
 
-                    # VAL: with result quality here, the quality of last value in the timeseries will be used.
-                    #      Is the value the same throughout the time series?
-                    result_quality = self.result_quality(value['qualifiers'])
+                    result_point_quality = self.map_result_quality(value['qualifiers'])
 
-                    # TODO: write some tests for this which will require mocking a data return.
-                    # Only filter if quality_checked is True
-                    # if QUERY_PARAM_RESULT_QUALITY not in kwargs or not kwargs[QUERY_PARAM_RESULT_QUALITY] or \
-                    #         (QUERY_PARAM_RESULT_QUALITY in kwargs and kwargs[
-                    #          QUERY_PARAM_RESULT_QUALITY] == result_quality):
-                    if not query.result_quality or query.result_quality == result_quality:
+                    if not query.result_quality or result_point_quality in query.result_quality:
 
                         # Get the broker parameter
                         try:
@@ -654,26 +656,33 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                                 data: Optional[float] = float(value['value'])
                                 # Hardcoded unit conversion for river discharge parameters
                                 data, unit_of_measurement = convert_discharge(data, parameter, unit_of_measurement)
+
+                                if data:
+                                    result_quality.add(result_point_quality)
+                                    result_TVPs.append(TimeValuePair(timestamp=value['dateTime'], value=data))
+                                    result_TVP_quality.append(result_point_quality)
+
+                                continue
+
                             except Exception as e:
                                 synthesis_messages.append(f"Unit Conversion Issue: {str(e)}")
                                 logger.error(str(e))
-                                data = None
-                            # What do do with bad values?
-
-                            result_points.append(TimeValuePair(timestamp=value['dateTime'], value=data))
 
                         except Exception as e:
                             synthesis_messages.append(f"TimeValuePair ERROR: {str(e)}")
                             logger.error(e)
 
-            timeseries_result_quality = query.result_quality
-            if not timeseries_result_quality:
-                if ResultQualityEnum.CHECKED in result_qualifiers:
-                    timeseries_result_quality = ResultQualityEnum.CHECKED
-                if ResultQualityEnum.UNCHECKED in result_qualifiers:
-                    timeseries_result_quality = ResultQualityEnum.UNCHECKED
-                if (ResultQualityEnum.PARTIALLY_CHECKED in result_qualifiers and ResultQualityEnum.CHECKED in result_qualifiers):
-                    timeseries_result_quality = ResultQualityEnum.PARTIALLY_CHECKED
+                    elif query.result_quality and result_point_quality not in query.result_quality:
+                        has_filtered_data_points += 1
+
+                if has_filtered_data_points > 0:
+                    msg = f'{feature_id} - {parameter}: {str(has_filtered_data_points)} timestamps did not match data quality query.'
+                    synthesis_messages.append(msg)
+
+                if len(result_TVPs) == 0:
+                    msg = f'{feature_id} had no valid data values for {parameter} that match the query.'
+                    synthesis_messages.append(msg)
+                    continue
 
             measurement_timeseries_tvp_observation = MeasurementTimeseriesTVPObservation(
                 self,
@@ -682,9 +691,9 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 feature_of_interest_type=FeatureTypeEnum.POINT,
                 feature_of_interest=monitoring_feature,
                 utc_offset=int(timezone_offset.split(":")[0]),
-                result_points=result_points,
+                result=ResultListTVP(value=result_TVPs, quality=result_TVP_quality),
                 observed_property_variable=parameter,
-                result_quality=timeseries_result_quality,
+                result_quality=list(result_quality),
                 aggregation_duration=query.aggregation_duration,
                 time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,
                 statistic=basin3d_statistic

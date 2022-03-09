@@ -86,14 +86,23 @@ FEATURE_SHAPE_TYPES = {
 class ResultQualityEnum(str, BaseEnum):
     """Enumeration for Result Quality"""
 
-    #: The result has been checked for quality
-    CHECKED = "CHECKED"
+    #: The result is raw or unchecked for quality. Synonyms: Unchecked, Preliminary, No QC
+    UNVALIDATED = "UNVALIDATED"
 
-    #: The result is raw or unchecked for quality
-    UNCHECKED = "UNCHECKED"
+    #: The result has been checked for quality and no issues identified. Synonyms: Checked, Accepted, Pass, OK, Good
+    VALIDATED = "VALIDATED"
 
-    #: The result contains checked and unchecked portions
-    PARTIALLY_CHECKED = "PARTIALLY_CHECKED"
+    #: The result is identified as poor quality. Synonyms: Poor, Bad, Unaccepted
+    REJECTED = "REJECTED"
+
+    #: The result's quality is suspect. Synonyms: Questionable, Doubtful, Spike/Noise, Flagged
+    SUSPECTED = "SUSPECTED"
+
+    #: The result is estimated. Synonyms: Interpolated, Modeled.
+    ESTIMATED = "ESTIMATED"
+
+    #: The quality type is not supported
+    NOT_SUPPORTED = "NOT_SUPPORTED"
 
 
 class StatisticEnum(str, BaseEnum):

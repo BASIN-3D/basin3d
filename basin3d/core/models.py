@@ -1163,7 +1163,7 @@ class Observation(Base):
         self._observed_property: ObservedProperty = None
         self._feature_of_interest: MonitoringFeature = None
         self._feature_of_interest_type: FeatureTypeEnum = None
-        self._result_quality: ResultQualityEnum = None
+        self._result_quality: List[ResultQualityEnum] = []
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
@@ -1246,12 +1246,12 @@ class Observation(Base):
         self._feature_of_interest_type = value
 
     @property
-    def result_quality(self) -> 'ResultQualityEnum':
+    def result_quality(self) -> List['ResultQualityEnum']:
         """The result quality assessment. See :class:`ResultQuality`"""
         return self._result_quality
 
     @result_quality.setter
-    def result_quality(self, value: 'ResultQualityEnum'):
+    def result_quality(self, value: List['ResultQualityEnum']):
         self._result_quality = value
 
 
@@ -1361,26 +1361,56 @@ class MeasurementMetadataMixin(object):
         self._statistic = value
 
 
+class ResultListTVP(Base):
+    """
+    Result Point Float
+    """
+    def __init__(self, **kwargs):
+        self._value: List['TimeValuePair'] = []
+        self._quality: List['ResultQualityEnum'] = []
+
+        # Initialize after the attributes have been set
+        super().__init__(None, **kwargs)
+
+    @property
+    def value(self) -> List['TimeValuePair']:
+        """Result that was measured"""
+        return self._value
+
+    @value.setter
+    def value(self, value: List['TimeValuePair']):
+        self._value = value
+
+    @property
+    def quality(self) -> List['ResultQualityEnum']:
+        """Result that was measured"""
+        return self._quality
+
+    @quality.setter
+    def quality(self, value: List['ResultQualityEnum']):
+        self._quality = value
+
+
 class MeasurementTimeseriesTVPResultMixin(object):
     """
     Result Mixin: Measurement Timeseries TimeValuePair
     """
 
     def __init__(self, *args, **kwargs):
-        self._result_points: List['TimeValuePair'] = []
+        self._result: 'ResultListTVP' = None
         self._unit_of_measurement: str = None
 
         # Instantiate the serializer superclass
         super(MeasurementTimeseriesTVPResultMixin, self).__init__(*args, **kwargs)
 
     @property
-    def result_points(self) -> List['TimeValuePair']:
+    def result(self) -> 'ResultListTVP':
         """A list of results """
-        return self._result_points
+        return self._result
 
-    @result_points.setter
-    def result_points(self, value: List['TimeValuePair']):
-        self._result_points = value
+    @result.setter
+    def result(self, value: 'ResultListTVP'):
+        self._result = value
 
     @property
     def unit_of_measurement(self) -> str:
@@ -1392,26 +1422,57 @@ class MeasurementTimeseriesTVPResultMixin(object):
         self._unit_of_measurement = value
 
 
+class ResultPointFloat(Base):
+    """
+    Result Point Float
+    """
+    def __init__(self, **kwargs):
+        self._value: float = None
+        self._quality: 'ResultQualityEnum' = None
+
+        # Initialize after the attributes have been set
+        super().__init__(None, **kwargs)
+
+    @property
+    def value(self) -> float:
+        """Result that was measured"""
+        return self._value
+
+    @value.setter
+    def value(self, value: float):
+        self._value = value
+
+    @property
+    def quality(self) -> 'ResultQualityEnum':
+        """Result that was measured"""
+        return self._quality
+
+    @quality.setter
+    def quality(self, value: 'ResultQualityEnum'):
+        self._quality = value
+
+
 class MeasurementResultMixin(object):
     """
     Result Mixin: Measurement
     """
 
-    def __init__(self, *args, **kwargs):
-        self._result_value: float = None
+    def __init__(self, **kwargs):
+        # self._result_value: float = None
+        self._result: 'ResultPointFloat' = None
         self._unit_of_measurement: str = None
 
         # Instantiate the serializer superclass
-        super(MeasurementResultMixin, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
     @property
-    def result_value(self) -> float:
-        """Numeric value that was measured"""
-        return self._result_value
+    def result(self) -> 'ResultPointFloat':
+        """Result"""
+        return self._result
 
-    @result_value.setter
-    def result_value(self, value: float):
-        self._result_value = value
+    @result.setter
+    def result(self, value: 'ResultPointFloat'):
+        self._result = value
 
     @property
     def unit_of_measurement(self) -> str:

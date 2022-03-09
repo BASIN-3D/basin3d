@@ -448,7 +448,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
     basin_3d_variable_full_name = Water Temperature
     statistic = MEAN
     temporal_aggregation = DAY
-    quality = CHECKED
+    quality = VALIDATED
     sampling_medium = WATER
     sampling_feature_id = USGS-09110000
     sampling_feature_name = TAYLOR RIVER AT ALMONT, CO.
@@ -472,14 +472,14 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
     :param kwargs: The minimum required arguments to return a pandas DataFrame are monitoring features, observed property variables, and start date
 
            Required parameters for a *MeasurementTimeseriesTVPObservation*:
-               * **monitoring_features**
-               * **observed_property_variables**
+               * **monitoring_features (list)**
+               * **observed_property_variables (list)**
                * **start_date**
            Optional parameters for *MeasurementTimeseriesTVPObservation*:
                * **end_date**
                * **aggregation_duration** = resolution = DAY  (only DAY is currently supported)
-               * **statistic**
-               * **result_quality**
+               * **statistic (list)**
+               * **result_quality (list)**
                * **datasource**
 
     :return: A Synthesized Timeseries Data Class
@@ -539,13 +539,19 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                 logger.warning(
                     f'Results statistic {statistic} not in the specified query statistic(s): '
                     f'{query.statistic}.')
+            # convert result_quality from a list to str if there are quality values
+            result_quality = None
+            if data_obj.result_quality:
+                result_quality = ';'.join(data_obj.result_quality)
 
             synthesized_variable_name = f'{sampling_feature_id}__{observed_property_variable_id}__{statistic}'
 
             results_start = None
             results_end = None
-            results = data_obj.result_points
+            records = 0
+            results = data_obj.result.value
             if results:
+                records = len(results)
                 results_start = results[0][0]
                 results_end = results[-1][0]
                 iso_format = '%Y-%m-%dT%H:%M:%S.%f'
@@ -564,13 +570,13 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
             metadata_store[synthesized_variable_name] = {
                 'data_start': results_start,
                 'data_end': results_end,
-                'records': len(results),
+                'records': records,
                 'units': data_obj.unit_of_measurement,
                 'basin_3d_variable': observed_property_variable_id,
                 'basin_3d_variable_full_name': observed_property.observed_property_variable.full_name,
                 'statistic': statistic,
                 'temporal_aggregation': aggregation_duration,
-                'quality': data_obj.result_quality,
+                'quality': result_quality,
                 'sampling_medium': observed_property.sampling_medium,
                 'sampling_feature_id': sampling_feature_id,
                 'sampling_feature_name': feature_of_interest.name,

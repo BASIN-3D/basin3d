@@ -37,7 +37,7 @@ author = 'Charuleka Varadharajan, Valerie Hendrix, Danielle Christianson'
 # part of setuptools
 release = "0.noversion"
 try:
-    from basin3d.version import __release__
+    from basin3d.version import __release__  # type: ignore
     release = __release__
 except ImportError:
     try:

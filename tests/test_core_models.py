@@ -2,7 +2,7 @@ import pytest
 
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, DepthCoordinate, \
     GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, Observation, ObservedProperty, \
-    ObservedPropertyVariable, RelatedSamplingFeature, RepresentativeCoordinate, TimeValuePair, \
+    ObservedPropertyVariable, RelatedSamplingFeature, RepresentativeCoordinate, TimeValuePair, ResultListTVP, \
     VerticalCoordinate, DataSource
 from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum
 from basin3d.core.types import SamplingMedium, SpatialSamplingShapes
@@ -205,7 +205,7 @@ def test_observation_create(plugin_access_alpha):
         id='timeseries01',
         utc_offset='9',
         phenomenon_time='20180201',
-        result_quality=ResultQualityEnum.CHECKED,
+        result_quality=ResultQualityEnum.VALIDATED,
         feature_of_interest='Point011')
 
     assert obs01.datasource.id == 'Alpha'
@@ -213,7 +213,7 @@ def test_observation_create(plugin_access_alpha):
     assert obs01.utc_offset == '9'
     assert obs01.phenomenon_time == '20180201'
     assert obs01.observed_property is None
-    assert obs01.result_quality == ResultQualityEnum.CHECKED
+    assert obs01.result_quality == ResultQualityEnum.VALIDATED
     assert obs01.feature_of_interest == 'Point011'
 
 
@@ -225,14 +225,15 @@ def test_measurement_timeseries_tvp_observation_create(plugin_access_alpha):
         id='timeseries01',
         utc_offset='9',
         phenomenon_time='20180201',
-        result_quality=ResultQualityEnum.CHECKED,
+        result_quality=[ResultQualityEnum.VALIDATED],
         feature_of_interest='Point011',
         feature_of_interest_type=FeatureTypeEnum.POINT,
         aggregation_duration='daily',
         time_reference_position='start',
         observed_property_variable='Acetate',
         statistic='mean',
-        result_points=[TimeValuePair('201802030100', '5.32')],
+        result=ResultListTVP(value=[TimeValuePair('201802030100', '5.32')],
+                             quality=[ResultQualityEnum.VALIDATED]),
         unit_of_measurement='m'
     )
 
@@ -250,7 +251,7 @@ def test_measurement_timeseries_tvp_observation_create(plugin_access_alpha):
             location='https://asource.foo/', credentials={}),
         datasource_description='')
     assert obs01.observed_property_variable == 'ACT'
-    assert obs01.result_quality == ResultQualityEnum.CHECKED
+    assert obs01.result_quality == [ResultQualityEnum.VALIDATED]
     assert obs01.feature_of_interest == 'Point011'
     assert obs01.feature_of_interest_type == FeatureTypeEnum.POINT
     assert obs01.aggregation_duration == 'daily'
@@ -258,3 +259,5 @@ def test_measurement_timeseries_tvp_observation_create(plugin_access_alpha):
     assert obs01.statistic == 'mean'
     assert obs01.unit_of_measurement == 'm'
     assert obs01.datasource.id == 'Alpha'
+    assert obs01.result.value[0] == TimeValuePair('201802030100', '5.32')
+    assert obs01.result.quality[0] == ResultQualityEnum.VALIDATED

@@ -272,7 +272,7 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['basin_3d_variable_full_name'] == 'Acetate (CH3COO)'
         assert var_metadata['statistic'] == 'MEAN'
         assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
-        assert var_metadata['quality'] == ResultQualityEnum.CHECKED
+        assert var_metadata['quality'] == ResultQualityEnum.VALIDATED
         assert var_metadata['sampling_medium'] == SamplingMedium.WATER
         assert var_metadata['sampling_feature_id'] == 'A-1'
         assert var_metadata['datasource'] == 'Alpha'
@@ -283,6 +283,10 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
 
         assert list(alpha_metadata_df.columns) == ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX', 'A-4__Al__MAX']
         assert len(alpha_metadata_df) == 20
+
+        # Check the other data quality aggregations
+        assert alpha_metadata_df['A-2__ACT__MAX']['quality'] == ';'.join([ResultQualityEnum.UNVALIDATED, ResultQualityEnum.REJECTED])
+        assert alpha_metadata_df['A-4__Al__MAX']['quality'] == ';'.join([ResultQualityEnum.VALIDATED, ResultQualityEnum.UNVALIDATED, ResultQualityEnum.REJECTED])
 
         # check the metadata with no observations
         # Get synthesized variable field names and values
@@ -295,7 +299,7 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['basin_3d_variable_full_name'] == 'Aluminum (Al)'
         assert var_metadata['statistic'] == 'MEAN'
         assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
-        assert var_metadata['quality'] == ResultQualityEnum.CHECKED
+        assert var_metadata['quality'] is None
         assert var_metadata['sampling_medium'] == SamplingMedium.WATER
         assert var_metadata['sampling_feature_id'] == 'A-3'
         assert var_metadata['datasource'] == 'Alpha'
@@ -303,24 +307,64 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
 
         assert list(alpha_metadata_nodata_df.columns) == ['TIMESTAMP', 'A-3__Al__MEAN']
         assert len(alpha_metadata_nodata_df) == 20
+
     finally:
         # remove temporary directory
         if output_path and os.path.exists(output_path):
             shutil.rmtree(output_path)
 
+VAL = ResultQualityEnum.VALIDATED
+UNVAL = ResultQualityEnum.UNVALIDATED
+EST = ResultQualityEnum.ESTIMATED
+REJ = ResultQualityEnum.REJECTED
+
 
 @pytest.mark.parametrize('filters, expected_results',
-                         [({'monitoring_features': ['A-1', 'A-2'], 'statistic': None},
-                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX'],
-                            'df_shape': (9, 3),
-                            'no_observations_variable': None}),
+                         [
+                          # monitoring_features
+                          ({'monitoring_features': ['A-1', 'A-2']},
+                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX'], 'df_shape': (9, 3),
+                            'no_observations_variable': None,
+                            'quality_filter_checks': {}}),
+                          # statistic
                           ({'monitoring_features': ['A-1', 'A-2', 'A-3', 'A-4'], 'statistic': ['MEAN']},
                            {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN'], 'df_shape': (9, 2),
-                            'no_observations_variable': 'A-3__Al__MEAN'}),
+                            'no_observations_variable': ['A-3__Al__MEAN'],
+                            'quality_filter_checks': {}}),
+                          # monitoring_feature_and_statistic
                           ({'monitoring_features': ['A-3', 'A-4'], 'statistic': ['MIN']},
                            {'has_data': False, 'columns': None, 'df_shape': None,
-                            'no_observations_variable': None})],
-                         ids=['monitoring_features', 'statistic', 'monitoring_feature_and_statistic'])
+                            'no_observations_variable': None,
+                            'quality_filter_checks': {}}),
+                          # quality-VALIDATED
+                          ({'monitoring_features': ['A-1', 'A-2', 'A-3', 'A-4'], 'result_quality': [VAL]},
+                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-4__Al__MAX'], 'df_shape': (9, 3),
+                            'no_observations_variable': [],
+                            'quality_filter_checks': [('A-1__ACT__MEAN', 9, [VAL]), ('A-4__Al__MAX', 7, [VAL])]}),
+                          # quality-UNVALIDATED
+                          ({'monitoring_features': ['A-1', 'A-2', 'A-3', 'A-4'], 'result_quality': [UNVAL]},
+                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-2__ACT__MAX', 'A-4__Al__MAX'], 'df_shape': (7, 3),
+                            'no_observations_variable': [],
+                            'quality_filter_checks': [('A-2__ACT__MAX', 7, [UNVAL]), ('A-4__Al__MAX', 1, [UNVAL])]}),
+                          # quality-VALIDATED+UNVALIDATED
+                          ({'monitoring_features': ['A-1', 'A-2', 'A-3', 'A-4'], 'result_quality': [VAL, UNVAL]},
+                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN', 'A-2__ACT__MAX', 'A-4__Al__MAX'], 'df_shape': (9, 4),
+                            'no_observations_variable': [],
+                            'quality_filter_checks': [('A-1__ACT__MEAN', 9, [VAL]), ('A-2__ACT__MAX', 7, [UNVAL]), ('A-4__Al__MAX', 8, [VAL, UNVAL])]}),
+                          # quality-ESTIMATED: no data
+                          ({'monitoring_features': ['A-1', 'A-2', 'A-3', 'A-4'], 'result_quality': [EST]},
+                           {'has_data': False, 'columns': None, 'df_shape': None,
+                            'no_observations_variable': [],  # b/c no MeasTVPOvs returned, this is none
+                            'quality_filter_checks': []}),
+                          # statistic_and_quality: MAX and VALIDATED
+                          ({'monitoring_features': ['A-1', 'A-2', 'A-3', 'A-4'], 'result_quality': [VAL], 'statistic': ['MEAN']},
+                           {'has_data': True, 'columns': ['TIMESTAMP', 'A-1__ACT__MEAN'], 'df_shape': (9, 2),
+                            'no_observations_variable': [],
+                            'quality_filter_checks': [('A-1__ACT__MEAN', 9, [VAL])]}),
+                          ],
+                         ids=[ 'monitoring_features', 'statistic', 'monitoring_feature_and_statistic',
+                              'quality-VALIDATED', 'quality-UNVALIDATED', 'quality-VALIDATED+UNVALIDATED', 'quality-ESTIMATED',
+                              'statistic_and_quality: MAX and VALIDATED'])
 def test_get_timeseries_data_filtering(filters, expected_results):
     """Test processing for get_timeseries_data statistic"""
 
@@ -328,9 +372,8 @@ def test_get_timeseries_data_filtering(filters, expected_results):
 
     alpha_result = get_timeseries_data(synthesizer=synthesizer, output_path=None,
                                        output_type=TimeseriesOutputType.PANDAS, cleanup=True,
-                                       monitoring_features=filters['monitoring_features'],
                                        observed_property_variables=['ACT', 'Al'], start_date='2016-02-01',
-                                       statistic=filters['statistic'])
+                                       **filters)
     assert alpha_result
     alpha_df = alpha_result.data
     if expected_results['has_data']:
@@ -342,7 +385,21 @@ def test_get_timeseries_data_filtering(filters, expected_results):
 
     no_observation_variable = expected_results['no_observations_variable']
     if no_observation_variable:
-        assert no_observation_variable in alpha_result.variables_no_observations
-        assert no_observation_variable not in alpha_result.variables
+        for var in no_observation_variable:
+            assert var in alpha_result.variables_no_observations
+            assert var not in alpha_result.variables
     else:
         assert len(alpha_result.variables_no_observations) == 0
+
+    if expected_results['quality_filter_checks']:
+        for expected_result in expected_results['quality_filter_checks']:
+            column_name, expected_data_values, expected_quality_metadata = expected_result
+            data_count = 0
+            for data_point in alpha_df.get(column_name):
+                if not pd.isna(data_point):
+                    data_count += 1
+            metadata_store_column = alpha_result.metadata.get(column_name)
+            assert data_count == expected_data_values
+            assert metadata_store_column.get('records') == expected_data_values
+            metadata_quality = metadata_store_column.get('quality')
+            assert all(qual in metadata_quality for qual in expected_quality_metadata) and all(qual in expected_quality_metadata for qual in metadata_quality.split(';')) is True

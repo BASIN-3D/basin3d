@@ -24,8 +24,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "observed_property_variables": [],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": "DAY",
-        "results_quality": "CHECKED"
+        "aggregation_duration": TimeFrequencyEnum.DAY,
+        "results_quality": ResultQualityEnum.VALIDATED
     }
 
     with pytest.raises(ValidationError):
@@ -36,8 +36,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "observed_property_variables": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": "DAY",
-        "results_quality": "CHECKED"
+        "aggregation_duration": TimeFrequencyEnum.DAY,
+        "results_quality": ResultQualityEnum.VALIDATED
     }
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
@@ -54,8 +54,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "observed_property_variables": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": "DAY",
-        "results_quality": "CHECKED"
+        "aggregation_duration": TimeFrequencyEnum.DAY,
+        "results_quality": ResultQualityEnum.VALIDATED
     }
 
     with pytest.raises(ValidationError):
@@ -163,7 +163,7 @@ def test_usgs_get_data():
     assert var_metadata['basin_3d_variable_full_name'] == 'River Discharge'
     assert var_metadata['statistic'] == 'MEAN'
     assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
-    assert var_metadata['quality'] == ResultQualityEnum.CHECKED
+    assert var_metadata['quality'] == ResultQualityEnum.VALIDATED
     assert var_metadata['sampling_medium'] == SamplingMedium.WATER
     assert var_metadata['sampling_feature_id'] == 'USGS-09110000'
     assert var_metadata['datasource'] == 'USGS'
@@ -195,3 +195,25 @@ def test_usgs_get_data():
     for column_name in list(usgs_df.columns):
         assert column_name in ['TIMESTAMP', 'USGS-09110000__WT__MIN', 'USGS-09110000__WT__MAX']
     assert usgs_df.shape == (4, 3)
+
+    # check filtering by quality = VALIDATED (filter by MEAN)
+    usgs_data = get_timeseries_data(synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
+                                    observed_property_variables=['RDC', 'WT'], start_date='2019-10-25',
+                                    end_date='2019-10-28', result_quality=[ResultQualityEnum.VALIDATED], statistic=['MEAN'])
+    usgs_df = usgs_data.data
+
+    # check the dataframe
+    assert isinstance(usgs_df, pd.DataFrame) is True
+    for column_name in list(usgs_df.columns):
+        assert column_name in ['TIMESTAMP', 'USGS-09110000__RDC__MEAN', 'USGS-09110000__WT__MEAN']
+    assert usgs_df.shape == (4, 3)
+
+    # check filtering by quality = UNVALIDATED (filter by MEAN)
+    usgs_data = get_timeseries_data(synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
+                                    observed_property_variables=['RDC', 'WT'], start_date='2019-10-25',
+                                    end_date='2019-10-28', result_quality=[ResultQualityEnum.UNVALIDATED],
+                                    statistic=['MEAN'])
+    usgs_df = usgs_data.data
+
+    # check there is no dataframe because no data match the query
+    assert isinstance(usgs_df, pd.DataFrame) is False
