@@ -15,7 +15,7 @@
 
 """
 import csv
-import logging
+from basin3d.core import monitor
 from importlib import resources
 from inspect import getmodule
 from string import whitespace
@@ -24,7 +24,7 @@ from typing import Dict, Iterator, List, Optional
 from basin3d.core.models import DataSource, ObservedProperty, ObservedPropertyVariable
 from basin3d.core.types import SamplingMedium
 
-logger = logging.getLogger(__name__)
+logger = monitor.get_logger(__name__)
 
 
 class CatalogException(Exception):
@@ -44,6 +44,7 @@ class CatalogBase:
         :return: tinyDB object
         """
         if not self.is_initialized():
+            logger.debug(f"Initializing {self.__class__.__name__} metadata catalog ")
 
             # initiate db
             self._init_catalog()
@@ -56,9 +57,11 @@ class CatalogBase:
 
             # Load plugins
             for plugin in plugin_list:
+
                 try:
                     # if the plugin doesn't exist then getting the id should fail
                     plugin_id = plugin.get_meta().id
+                    logger.info(f"Loading metadata catalog for Plugin {plugin_id}")
                 except Exception:
                     logger.error(
                         f'Could not retrieve plugin_id. Check that plugin is configured / registered properly.')
@@ -80,6 +83,8 @@ class CatalogBase:
 
                 datasource = plugin.get_datasource()
                 self._process_plugin_variable_mapping(plugin, mapping_filename, datasource)
+
+            logger.info(f"Initialized {self.__class__.__name__} metadata catalog ")
 
     def _init_catalog(self):
         """
@@ -232,6 +237,7 @@ class CatalogBase:
         plugin_package = ".".join(plugin_module.__name__.split(".")[0:-1])
 
         with resources.open_text(plugin_package, map_filename) as map_file:
+            logger.debug(f"Mapping file {map_filename} for plugin package {plugin_package}")
             reader = csv.DictReader(map_file)
 
             # For now, force a specific file format; could change later to just require specific field names
@@ -268,6 +274,7 @@ class CatalogBase:
                     datasource_description=description)
 
                 self._insert(observed_property)
+                logger.debug(f"Mapped {datasource_var} to {observed_property_variable}")
 
 
 class CatalogTinyDb(CatalogBase):

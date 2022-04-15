@@ -46,7 +46,7 @@ The following are the access classes that map *USGS Data Source API* to the *BAS
 ---------------------
 """
 import json
-import logging
+from basin3d.core import monitor
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -62,7 +62,7 @@ from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, b
 from basin3d.core.types import SpatialSamplingShapes
 from basin3d.plugins import usgs_huc_codes
 
-logger = logging.getLogger(__name__)
+logger = monitor.get_logger(__name__)
 
 URL_USGS_HUC = "https://water.usgs.gov/GIS/new_huc_rdb.txt"
 USGS_STATISTIC_MAP: Dict = {
@@ -328,7 +328,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
             if not feature_type or feature_type != FeatureTypeEnum.POINT:
 
                 huc_text = self.get_hydrological_unit_codes(synthesis_messages=synthesis_messages)
-                logging.debug(f"{self.__class__.__name__}.list url:{URL_USGS_HUC}")
+                logger.debug(f"{self.__class__.__name__}.list url:{URL_USGS_HUC}")
 
                 for json_obj in [o for o in iter_rdb_to_json(huc_text) if not parent_features or [p for p in parent_features if o["huc"].startswith(p)]]:
 
@@ -383,7 +383,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                 # Filter by locations with data
                 url = '{}site/?sites={}'.format(self.datasource.location, usgs_sites)
                 usgs_site_response = get_url(url)
-                logging.debug(f"{self.__class__.__name__}.list url:{url}")
+                logger.debug(f"{self.__class__.__name__}.list url:{url}")
 
                 if usgs_site_response and usgs_site_response.status_code == 200:
 
@@ -511,7 +511,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                 # We only want the mean
                 observed_properties_variables.setdefault(location_id, [])
                 observed_properties_variables[location_id].append(parameter)
-            logging.debug("Location DataTypes: {}".format(observed_properties_variables))
+            logger.debug("Location DataTypes: {}".format(observed_properties_variables))
         return observed_properties_variables
 
 
@@ -594,10 +594,10 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         usgs_site_response = None
         try:
             usgs_site_response = get_url(url)
-            logging.debug(f"{self.__class__.__name__}.list url:{url}")
+            logger.debug(f"{self.__class__.__name__}.list url:{url}")
         except Exception as e:
             synthesis_messages.append("Could not connect to USGS site info: {}".format(e))
-            logging.warning("Could not connect to USGS site info: {}".format(e))
+            logger.warning("Could not connect to USGS site info: {}".format(e))
 
         if usgs_site_response:
             for v in iter_rdb_to_json(usgs_site_response.text):

@@ -7,7 +7,6 @@ from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import MonitoringFeature
 from basin3d.core.plugin import get_feature_type
 from basin3d.core.schema.enum import FeatureTypeEnum
-from basin3d.core.schema.query import SynthesisResponse
 from basin3d.core.synthesis import DataSourceModelIterator
 from basin3d.synthesis import register
 
@@ -101,10 +100,10 @@ def test_get_feature_type(feature_name, return_format, result):
       'monitoring_features': ['region']}),
     ("tests.testplugins.alpha.AlphaSourcePlugin", [{'level': 'ERROR',
                                                     'msg': 'DataSource not not found for id E-1234',
-                                                    'where': []}], "monitoring_features", {"id": 'E-1234'}),
+                                                    'where': None}], "monitoring_features", {"id": 'E-1234'}),
     ("basin3d.plugins.usgs.USGSDataSourcePlugin", [{'level': 'ERROR',
                                                     'msg': 'DataSource not not found for id E-1234',
-                                                    'where': []}], "monitoring_features", {"id": 'E-1234'}),
+                                                    'where': None}], "monitoring_features", {"id": 'E-1234'}),
     ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin", [{'level': 'WARN',
                                                                 'msg': 'Plugin view does not exist',
                                                                 'where': ['NoPluginView',

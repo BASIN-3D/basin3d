@@ -1,0 +1,17 @@
+version: 1
+incremental: False
+disable_existing_loggers: True
+formatters:
+  simple:
+    format: "%(asctime)s.%(msecs)03d %(levelname)s %(synthesis_id)s %(name)s %(basin3d_where)s - %(message)s"
+    datefmt: "%Y-%m-%dT%H:%M:%S"
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
+loggers:
+  basin3d:
+    level: INFO
+    handlers: [console]
+    propagate: True

@@ -484,20 +484,6 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
 
     :return: A Synthesized Timeseries Data Class
 
-=======
-
-
-    :param kwargs:
-           Required parameters for a MeasurementTimeseriesTVPObservation:
-               * monitoring_features
-               * observed_property_variables
-               * start_date
-           Optional parameters for MeasurementTimeseriesTVPObservation:
-               * end_date
-               * aggregation_duration = resolution = DAY  (only DAY is currently supported)
-               * statistic, list of statistics
-               * result_quality
-               * datasource
     """
 
     # Check that required parameters are provided. May have to rethink this when we expand to mulitple observation types
@@ -689,7 +675,7 @@ def _output_df(output_directory, output_name, query_info, metadata_store, first_
         num_records = metadata_store[synthesized_variable_name]['records']
         pd_series = pd.Series(result_dict, name=synthesized_variable_name)
         output_df = output_df.join(pd_series)
-        logger.info(f'Added variable {synthesized_variable_name} with {num_records} records.')
+        logger.debug(f'Added variable {synthesized_variable_name} with {num_records} records.')
 
     # generate the metadata -- only separate metadata info with data
     # from metadata without metadata

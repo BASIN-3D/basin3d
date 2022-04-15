@@ -15,7 +15,7 @@
 
 
 """
-import logging
+from basin3d.core import monitor
 from types import MethodType
 from typing import Dict
 
@@ -23,7 +23,7 @@ from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import DataSource
 from basin3d.core.schema.enum import FeatureTypeEnum
 
-logger = logging.getLogger(__name__)
+logger = monitor.get_logger(__name__)
 
 
 def get_feature_type(feature_type, return_format="enum"):

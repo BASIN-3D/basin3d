@@ -14,17 +14,17 @@
     :backlinks: top
 
 """
-
 import logging
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
+from basin3d.core import monitor
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
 from basin3d.core.schema.enum import MessageLevelEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
 
-logger = logging.getLogger(__name__)
+logger = monitor.get_logger(__name__)
 
 
 def _synthesize_query_identifiers(values, id_prefix) -> List[str]:
@@ -56,7 +56,66 @@ def _synthesize_query_identifiers(values, id_prefix) -> List[str]:
             if x.startswith("{}-".format(id_prefix))]
 
 
-class DataSourceModelIterator(Iterator):
+class MonitorMixin(object):
+    """
+    Adds monitor log functionality to a class for logging synthesis messages
+    """
+    def log(self,
+            message: str, level: Optional[MessageLevelEnum] = None, where: Optional[List] = None) -> Optional[SynthesisMessage]:
+        """
+        Add a synthesis message to the synthesis respoonse
+        :param message: The message
+        :param level:  The message level
+        :param where:  Where the message is from
+        :return: SynthesisMessage
+        """
+        logger_level = logging.INFO
+        synthesis_message = None
+        if level:
+            logger_level = level == MessageLevelEnum.CRITICAL and logging.CRITICAL or level == MessageLevelEnum.WARN and logging.WARNING \
+                 or level == MessageLevelEnum.ERROR and logging.ERROR or logging.INFO
+            synthesis_message = SynthesisMessage(msg=message, level=level, where=where)
+        logger.log(logger_level, msg=message, extra=where and {"basin3d_where": ".".join(where)} or {}) # type: ignore
+        return synthesis_message
+
+    def info(self, message: str, where: Optional[List] = None):
+        """
+        Add a info level message
+        :param where:
+        :param message:
+        :return: None
+        """
+        self.log(message, where=where)
+
+    def warn(self, message: str, where: Optional[List] = None) -> Optional[SynthesisMessage]:
+        """
+        Add a warning level message
+        :param where:
+        :param message:
+        :return: SynthesisMessage
+        """
+        return self.log(message, MessageLevelEnum.WARN, where)
+
+    def error(self, message: str, where: Optional[List] = None) -> Optional[SynthesisMessage]:
+        """
+        Add a error level message
+        :param where:
+        :param message:
+        :return: SynthesisMessage
+        """
+        return self.log(message, MessageLevelEnum.ERROR, where)
+
+    def critical(self, message: str, where: Optional[List] = None) -> Optional[SynthesisMessage]:
+        """
+        Add a critical level message
+        :param where:
+        :param message:
+        :return:
+        """
+        return self.log(message, MessageLevelEnum.CRITICAL, where)
+
+
+class DataSourceModelIterator(MonitorMixin, Iterator):
     """
     BASIN-3D Data Source Model generator
     """
@@ -73,6 +132,7 @@ class DataSourceModelIterator(Iterator):
         :param query: the unsynthesized query
         :param model_access: Model access
         """
+
         self._synthesis_response = SynthesisResponse(query=query)
         self._model_access: 'DataSourceModelAccess' = model_access
 
@@ -87,6 +147,8 @@ class DataSourceModelIterator(Iterator):
         self._plugin_index = -1
         self._model_access_iterator = None
         self._next = None
+        self._where: Optional[List] = None
+        self._where_context_token = None
 
     def __next__(self) -> Base:
         """
@@ -97,6 +159,7 @@ class DataSourceModelIterator(Iterator):
         while True:
             # Is there an iterator?  Return the next data item
             if self._model_access_iterator:
+
                 try:
                     self._next = next(self._model_access_iterator)
                     if self._next:
@@ -107,19 +170,9 @@ class DataSourceModelIterator(Iterator):
                     if hasattr(se, "value") and se.value and se.value.args:
                         if isinstance(se.value.args[0], (list, tuple, set)):
                             for m in se.value.args[0]:
-                                self._synthesis_response.messages.append(SynthesisMessage(
-                                    msg=m,
-                                    where=[self._plugins[self._plugin_index].get_datasource().id,
-                                           self._model_access.synthesis_model.__name__],
-                                    level=MessageLevelEnum.WARN
-                                ))
+                                self.warn(message=m)
                         else:
-                            self._synthesis_response.messages.append(SynthesisMessage(
-                                msg=f"Synthesis generated warnings but they are in the wrong format",
-                                where=[self._plugins[self._plugin_index].get_datasource().id,
-                                       self._model_access.synthesis_model.__name__],
-                                level=MessageLevelEnum.WARN
-                            ))
+                            self.warn("Synthesis generated warnings but they are in the wrong format")
 
             # Setup to get the data from the next data source plugin
             self._plugin_index += 1
@@ -127,6 +180,9 @@ class DataSourceModelIterator(Iterator):
 
             # Are there any more plugins?
             if self._plugin_index < len(self._plugins):
+                self._where = [self._plugins[self._plugin_index].get_datasource().id,
+                               self._model_access.synthesis_model.__name__]
+                self._where_context_token = monitor.set_ctx_basin3d_where(self._where)
                 plugin: DataSourcePluginPoint = self._plugins[self._plugin_index]
 
                 try:
@@ -134,6 +190,7 @@ class DataSourceModelIterator(Iterator):
                     plugin_views = plugin.get_plugin_access()
                     if self._model_access.synthesis_model in plugin_views and \
                             hasattr(plugin_views[self._model_access.synthesis_model], "list"):
+
                         # Now synthesize the query object
                         synthesized_query_params: QueryBase = self._model_access.synthesize_query(
                             plugin_views[self._model_access.synthesis_model],
@@ -144,22 +201,30 @@ class DataSourceModelIterator(Iterator):
                         self._model_access_iterator = plugin_views[self._model_access.synthesis_model].list(
                             query=synthesized_query_params)
                     else:
-                        self._synthesis_response.messages.append(SynthesisMessage(
-                            msg=f"Plugin view does not exist",
-                            where=[plugin.get_datasource().id, self._model_access.synthesis_model.__name__],
-                            level=MessageLevelEnum.WARN))
+                        self.warn("Plugin view does not exist")
 
                 except Exception as e:
-                    self._synthesis_response.messages.append(SynthesisMessage(
-                        msg=f"Unexpected Error({e.__class__.__name__}): {str(e)}",
-                        where=[plugin.get_datasource().id, self._model_access.synthesis_model.__name__],
-                        level=MessageLevelEnum.ERROR))
+                    self.error(f"Unexpected Error({e.__class__.__name__}): {str(e)}")
 
             else:
+                # Clear all context
+                if self._where_context_token:
+                    monitor.basin3d_where.reset(self._where_context_token)
                 raise StopIteration
 
+    def log(self, message: str, level: Optional[MessageLevelEnum] = None,  where: Optional[List] = None):  # type: ignore[override]
+        """
+        Add a synthesis message to the synthesis respoonse
+        :param message: The message
+        :param level:  The message level
+        :return: None
+        """
+        synthesis_message = super().log(message, level, self._where)
+        if synthesis_message:
+            self._synthesis_response.messages.append(synthesis_message)
 
-class DataSourceModelAccess:
+
+class DataSourceModelAccess(MonitorMixin):
     """
     Base class for DataSource model access.
     """
@@ -189,6 +254,7 @@ class DataSourceModelAccess:
         # do nothing, subclasses may override this
         raise NotImplementedError
 
+    @monitor.ctx_synthesis
     def list(self, query: QueryBase) -> DataSourceModelIterator:
         """
         Return the synthesized plugin results
@@ -197,6 +263,7 @@ class DataSourceModelAccess:
         """
         return DataSourceModelIterator(query, self)
 
+    @monitor.ctx_synthesis
     def retrieve(self, query: QueryById) -> SynthesisResponse:
         """
         Retrieve a single synthesized value
@@ -220,6 +287,7 @@ class DataSourceModelAccess:
                                                  "", 1)  # The datasource id prefix needs to be removed
 
                 plugin_views = plugin.get_plugin_access()
+                monitor.set_ctx_basin3d_where([plugin.get_datasource().id, self.synthesis_model.__name__])
                 if self.synthesis_model in plugin_views:
                     synthesized_query: QueryById = query.copy()
                     synthesized_query.id = datasource_pk
@@ -227,15 +295,14 @@ class DataSourceModelAccess:
                     obj: Base = plugin_views[self.synthesis_model].get(query=synthesized_query)
                     return SynthesisResponse(query=query, data=obj)
                 else:
-                    messages.append((SynthesisMessage(
-                        msg=f"Plugin view does not exist",
-                        where=[plugin.get_datasource().id, self.synthesis_model.__name__],
-                        level=MessageLevelEnum.WARN)))
+                    messages.append(self.log("Plugin view does not exist",
+                                             MessageLevelEnum.WARN,
+                                             [plugin.get_datasource().id, self.synthesis_model.__name__],
+                                             ))
+
             else:
-                messages.append((SynthesisMessage(
-                    msg=f"DataSource not not found for id {query.id}",
-                    where=[],
-                    level=MessageLevelEnum.ERROR)))
+                messages.append(self.log(f"DataSource not not found for id {query.id}",
+                                MessageLevelEnum.ERROR))
 
         return SynthesisResponse(query=query, messages=messages)
 
