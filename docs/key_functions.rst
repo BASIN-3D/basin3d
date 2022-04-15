@@ -20,4 +20,7 @@ Key Functions
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: basin3d.monitor
+    :members: configure, get_logger
+
 

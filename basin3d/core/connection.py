@@ -16,11 +16,11 @@
 """
 import requests
 import yaml
-import logging
+from basin3d.core import monitor
 
 from basin3d.core.access import get_url, post_url
 
-logger = logging.getLogger(__name__)
+logger = monitor.get_logger(__name__)
 
 
 class HTTPConnectionDataSource(object):
@@ -163,7 +163,7 @@ class HTTPConnectionOAuth2(HTTPConnectionDataSource):
         OAuth Client credentials (client_id, client_secret) stored in the
         DataSource.
 
-        - *Url:* https://<datasource location>/<auth_token_path>
+        - *Url:* `https://<datasource location>/<auth_token_path>`
         - *Scope:* <token_scope>
         - *Grant Type:* <grant_type>
         - *Client Id:* stored in encrypted :class:`basin3d.models.DataSource` field
@@ -346,7 +346,6 @@ class HTTPConnectionTokenAuth(HTTPConnectionDataSource):
             res = requests.get(f'{self.datasource.location}{self.login_path}',
                                params=self.userpass, verify=self.verify_ssl)
             result_json = res.json()
-            # logger.debug(result_json)
             if result_json[0] == 0:
                 return result_json[1]['token']
             elif '{' in result_json[0]:

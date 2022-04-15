@@ -14,9 +14,9 @@
     :backlinks: top
 
 """
-import logging
+from basin3d.core import monitor
 
-logger = logging.getLogger(__name__)
+logger = monitor.get_logger(__name__)
 
 
 def get_url(url, params=None, headers=None, verify=True, **kwargs):
@@ -31,7 +31,7 @@ def get_url(url, params=None, headers=None, verify=True, **kwargs):
     """
     import requests
     response = requests.get(url, params=params, verify=verify, headers=headers, **kwargs)
-    logger.debug("url:{}".format(response.url))
+    logger.info("url:{}".format(response.url))
     return response
 
 
@@ -46,5 +46,5 @@ def post_url(url, params=None, headers=None, verify=True):
     """
     import requests
     response = requests.post(url, params=params, verify=verify, headers=headers)
-    logger.debug("url:{}".format(response.url))
+    logger.info("url:{}".format(response.url))
     return response

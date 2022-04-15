@@ -43,8 +43,11 @@ jobs:
         PYTHONPATH=. pytest -v -m "not flake8 and not mypy" --cov=basin3d --cov-report term --cov-report html:${{ github.workspace }}/artifacts
     - name: Documentation and Doctests
       run: |
+        python setup.py check
+        git tag
         cd docs
-        PYTHONPATH=.. make doctest
+        PYTHONPATH=.. make doctest linkcheck html
+
     - name: Archive code coverage results
       uses: actions/upload-artifact@v2
       with:

@@ -17,6 +17,7 @@ from basin3d.synthesis import TimeseriesOutputType, get_timeseries_data, registe
 def test_register():
     """Test basic plugin registration"""
 
+    from basin3d.synthesis import register
     synthesizer = register(["basin3d.plugins.usgs.USGSDataSourcePlugin",
                             "tests.testplugins.alpha.AlphaSourcePlugin"])
 

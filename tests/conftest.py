@@ -1,8 +1,5 @@
 import pytest
 
-from basin3d.core.models import DataSource, MeasurementTimeseriesTVPObservation
-from basin3d.plugins.usgs import USGSMeasurementTimeseriesTVPObservationAccess
-
 
 def pytest_addoption(parser):
     """
@@ -50,6 +47,7 @@ def datasource(name='Alpha', location='https://asource.foo/', id_prefix='A'):
     """
     Create a DataSource object
     """
+    from basin3d.core.models import DataSource
     return DataSource(id=name, name=name, id_prefix=id_prefix, location=location)
 
 
@@ -58,6 +56,8 @@ def plugin_access_alpha():
     """
     Create a DataSourcePluginAccess object
     """
+    from basin3d.core.models import MeasurementTimeseriesTVPObservation
+
     from tests.testplugins import alpha
     from basin3d.core.catalog import CatalogTinyDb
     catalog = CatalogTinyDb()
@@ -71,6 +71,8 @@ def plugin_access():
     """
     Create a DataSourcePluginAccess object
     """
+    from basin3d.plugins.usgs import USGSMeasurementTimeseriesTVPObservationAccess
+
     from basin3d.plugins import usgs
     from basin3d.core.catalog import CatalogTinyDb
     catalog = CatalogTinyDb()

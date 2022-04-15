@@ -11,6 +11,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.abspath('..'))
@@ -34,11 +35,16 @@ author = 'Charuleka Varadharajan, Valerie Hendrix, Danielle Christianson'
 #
 # The short X.Y version.
 # part of setuptools
-# from basin3d.version import __release__, __version__
-#
-# import os
-# import sys
-version = "0.0.2"
+release = "0.noversion"
+try:
+    from basin3d.version import __release__
+    release = __release__
+except ImportError:
+    try:
+        release = subprocess.check_output(["git", "describe", "--tags"]).rstrip().decode('utf-8')
+    except Exception:
+        pass
+version = release.split("-")[0]
 
 # -- General configuration ---------------------------------------------------
 
@@ -56,8 +62,12 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.graphviz',
-    'sphinx_rtd_theme'
+    'sphinx_rtd_theme',
+    'sphinx.ext.intersphinx',
 ]
+
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
+                       'django-basin3d': ('https://basin3d.readthedocs.io/projects/django-basin3d/en/latest/', None)}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

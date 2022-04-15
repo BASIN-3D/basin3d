@@ -6,7 +6,7 @@ API Reference
 .. automodule:: basin3d.synthesis
     :members:
     :undoc-members:
-    :no-index:
+    :noindex:
 
 .. automodule:: basin3d.plugins.usgs
     :members:
@@ -33,6 +33,10 @@ API Reference
     :undoc-members:
 
 .. automodule:: basin3d.core.models
+    :members:
+    :undoc-members:
+
+.. automodule:: basin3d.core.monitor
     :members:
     :undoc-members:
 
