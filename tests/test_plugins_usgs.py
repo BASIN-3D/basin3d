@@ -106,7 +106,6 @@ def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_r
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
         count = 0
         for timeseries in measurement_timeseries_tvp_observations:
-            print(timeseries.to_json())
             data = json.loads(timeseries.to_json())
             count += 1
             assert data["statistic"] == expected_results.get("statistic")
@@ -151,8 +150,7 @@ def test_usgs_monitoring_feature2(query, feature_type, monkeypatch):
 
     mock_get_url = MagicMock(side_effect=list([
         get_url_text(get_text("new_huc_rdb.txt")),
-        get_url(get_json("usgs_monitoring_features_query_point_09129600.json")),
-        get_url_text(get_text("usgs_monitoring_features_query_point_rdb_09129600.rdb"))
+        get_url_text(get_text("usgs_monitoring_feature_query_point_rdb_09129600.rdb"))
     ]))
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
 
@@ -206,13 +204,12 @@ def test_usgs_monitoring_features(query, expected_count, monkeypatch):
 
 
 @pytest.mark.parametrize("query, expected_count", [
-    ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 49)],
+    ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 52)],
                          ids=["points_by_subbasin"])
 def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
     """Test USGS search by region  """
 
     mock_get_url = MagicMock(side_effect=list([
-        get_url(get_json("usgs_monitoring_features_query_02020004.json")),
         get_url_text(get_text("usgs_monitoring_features_query_point_02020004.rdb"))]))
 
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
@@ -228,8 +225,6 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
         if 'feature_type' in query:
             assert mf.feature_type == query['feature_type'].upper()
 
-    print(query.values(), "count:", count, "expected:", expected_count)
-
     assert count == expected_count
 
 
@@ -239,8 +234,7 @@ def test_usgs_monitoring_features3(query, expected_count, monkeypatch):
     """Test USGS search by region  """
 
     mock_get_url = MagicMock(side_effect=list([
-        get_url(get_json("usgs_monitoring_features_query_point_09129600.json")),
-        get_url_text(get_text("usgs_monitoring_features_query_point_rdb_09129600.rdb"))]))
+        get_url_text(get_text("usgs_monitoring_feature_query_point_rdb_09129600.rdb"))]))
 
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])

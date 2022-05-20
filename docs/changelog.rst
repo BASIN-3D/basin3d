@@ -22,8 +22,7 @@ Installation:
 
 Version 0.0.3
 ##############
-Documentation for user facing documention for use with sphinx and
-deployed in basin3d.readthedocs.org.
+Documentation for user facing documention for use with sphinx and deployed in basin3d.readthedocs.org.
    + Issue `#77 <https://github.com/BASIN-3D/basin3d/issues/77>`_, `#71 <https://github.com/BASIN-3D/basin3d/issues/71>`_, `#67 <https://github.com/BASIN-3D/basin3d/issues/67>`_, `#33 <https://github.com/BASIN-3D/basin3d/issues/33>`_, `#35 <https://github.com/BASIN-3D/basin3d/issues/35>`_, `#36 <https://github.com/BASIN-3D/basin3d/issues/36>`_, `#37 <https://github.com/BASIN-3D/basin3d/issues/37>`_, `#39 <https://github.com/BASIN-3D/basin3d/issues/39>`_, `#20 <https://github.com/BASIN-3D/basin3d/issues/20>`_, `#60 <https://github.com/BASIN-3D/basin3d/issues/60>`_, `#42 <https://github.com/BASIN-3D/basin3d/issues/42>`_, `#52 <https://github.com/BASIN-3D/basin3d/issues/52>`_
 
 Testing:

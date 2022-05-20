@@ -1278,6 +1278,9 @@ class TimeMetadataMixin(object):
     #: Observations aggregated by second
     AGGREGATION_DURATION_SECOND = TimeFrequencyEnum.SECOND
 
+    #: Observations aggregated by no standard frequency, used for instantaneous values
+    AGGREGATION_DURATION_NONE = TimeFrequencyEnum.NONE
+
     #: Observation taken at the start
     TIME_REFERENCE_START = "START"
 

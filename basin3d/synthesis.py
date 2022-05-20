@@ -11,7 +11,7 @@
 Functions
 ----------------
 * :func:`register` - Register the specified plugins or implicitly register loaded plugins
-* :func:`get_timeseries_data` - Wrapper for DataSynthesizer.get_data for timeseries data types. Currently only MeasurementTimeseriesTVPObservations are supported.
+* :func:`get_timeseries_data` - Wrapper for DataSynthesizer.get_data for timeseries data types. Currently only *MeasurementTimeseriesTVPObservations* with DAY aggregation is supported for getting synthesized timeseries data.
 
 Utility Classes
 ---------------
@@ -30,7 +30,7 @@ Classes
 synthesis.DataSynthesizer Functions
 -----------------------------------
 
-* :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
+* :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observation (Instantaneous and Daily Values supported) from USGS Monitoring features and observed property variables
 * :func:`DataSynthesizer.monitoring_features`- Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
 * :func:`DataSynthesizer.observed_properties`- Search for observed properties
 * :func:`DataSynthesizer.observed_property_variables`- Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
@@ -292,6 +292,22 @@ class DataSynthesizer:
     def observed_property_variables(self, datasource_id=None):
         """
 
+        >>> from basin3d.plugins import usgs
+        >>> from basin3d import synthesis
+        >>> synthesizer = synthesis.register()
+        >>> response = synthesizer.observed_property_variables(datasource_id='USGS')
+        >>> for opv in response:
+        ...     print(opv)
+        pH
+        River Discharge
+        Water Level Elevation
+        Water Temperature
+        Dissolved Oxygen (DO)
+        Specific Conductance (SC)
+        Total Dissolved Solids (TDS)
+        ...
+
+
         Common names for observed property variables. An observed property variable defines what is being measured.
         Data source observed property variables are mapped to these synthesized observed property variables.
 
@@ -389,7 +405,11 @@ class DataSynthesizer:
     def measurement_timeseries_tvp_observations(self, query: QueryMeasurementTimeseriesTVP = None, **kwargs) -> \
             DataSourceModelIterator:
         """
-        Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables
+        Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables.
+
+        Aggregation Duration for DAY and NONE are both supported. DAY will call USGS Daily Values Service and NONE will call USGS Instantaneous Values Service.
+
+            **Search with aggregation duration DAY (Daily Values Service):**
 
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
@@ -398,6 +418,18 @@ class DataSynthesizer:
             >>> for timeseries in timeseries:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property_variable}")
             USGS-09110990 - RDC
+
+            **Search with aggregation duration NONE (Instantaneous Values Service):**
+
+            >>> from basin3d.plugins import usgs
+            >>> from basin3d import synthesis
+            >>> synthesizer = synthesis.register()
+            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=["USGS-09110990", "USGS-09111250"],observed_property_variables=['RDC','WT'],start_date='2020-04-01',end_date='2020-04-30',aggregation_duration='NONE')
+            >>> for timeseries in timeseries:
+            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property_variable}")
+            USGS-09110990 - RDC
+            USGS-09111250 - RDC
+
 
         :param query: The query information for this function
         :return: generator that yields MeasurementTimeseriesTVPObservations
@@ -421,7 +453,8 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                         **kwargs) -> SynthesizedTimeseriesData:
     """
 
-    Wrapper for *DataSynthesizer.get_data* for timeseries data types. Currently only *MeasurementTimeseriesTVPObservations* are supported.
+    Wrapper for *DataSynthesizer.get_data* for timeseries data types.
+    Currently only *MeasurementTimeseriesTVPObservations* with DAY aggregation is supported for getting synthesized timeseries data.
 
     >>> from basin3d.plugins import usgs
     >>> from basin3d import synthesis

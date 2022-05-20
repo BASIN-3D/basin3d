@@ -55,6 +55,7 @@ class TimeFrequencyEnum(str, BaseEnum):
     HOUR = "HOUR"
     MINUTE = "MINUTE"
     SECOND = "SECOND"
+    NONE = "NONE"
 
 
 class FeatureTypeEnum(str, BaseEnum):

@@ -376,7 +376,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *feature_of_interest_type:* enum (FeatureTypes), feature type of the feature of interest
     * *result_points:* list of TimeValuePair obj, observed values of the observed property being assessed
     * *time_reference_position:* enum, position of timestamp in aggregated_duration (START, MIDDLE, END)
-    * *aggregation_duration:* enum, time period represented by observation (YEAR, MONTH, DAY, HOUR, MINUTE, SECOND)
+    * *aggregation_duration:* enum, time period represented by observation (YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, NONE)
     * *unit_of_measurement:* string, units in which the observation is reported
     * *statistic:* enum, statistical property of the observation result (MEAN, MIN, MAX, TOTAL)
     * *result_quality:* enum, quality assessment of the result (VALIDATED, UNVALIDATED, SUSPECTED, REJECTED, ESTIMATED)
@@ -387,7 +387,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *observed_property_variables (required):* List of observed property variable ids
     * *start_date (required):* date YYYY-MM-DD
     * *end_date (optional):* date YYYY-MM-DD
-    * *aggregation_duration (default: DAY):* enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND)
+    * *aggregation_duration (default: DAY):* enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|NONE)
     * *statistic (optional):* List of statistic options, enum (INSTANT|MEAN|MIN|MAX|TOTAL)
     * *datasource (optional):* a single data source id prefix (e.g ?datasource=`datasource.id_prefix`)
     * *result_quality (optional):* enum (VALIDATED|UNVALIDATED|SUSPECTED|REJECTED|ESTIMATED)
@@ -428,5 +428,10 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
                 synthesized_query.observed_property_variables = [o.datasource_variable for o in
                                                                  plugin_access.get_observed_properties(
                                                                      query.observed_property_variables)]
+        # Aggregation duration will be default to DAY in QueryMeasurementTimeseriesTVP.
+        # Query will accept aggregation duration NONE and DAY only
+        synthesized_query.aggregation_duration = query.aggregation_duration
+        if synthesized_query.aggregation_duration != TimeFrequencyEnum.NONE:
+            synthesized_query.aggregation_duration = TimeFrequencyEnum.DAY
 
         return synthesized_query
