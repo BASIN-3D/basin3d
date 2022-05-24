@@ -27,7 +27,7 @@ Make sure your installation was successful:
 
 ## Documentation
 
-See latest basin3d documentation [here](https://basin-3d.github.io/basin3d/html/index.html)
+See latest basin3d documentation [here](https://basin3d.readthedocs.io/en/latest/)
 
 
 ## Contributing
