@@ -428,7 +428,5 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
                 synthesized_query.observed_property_variables = [o.datasource_variable for o in
                                                                  plugin_access.get_observed_properties(
                                                                      query.observed_property_variables)]
-        # Override Aggregation to always be DAY
-        synthesized_query.aggregation_duration = TimeFrequencyEnum.DAY
 
         return synthesized_query
