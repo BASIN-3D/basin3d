@@ -53,7 +53,7 @@ import pandas as pd
 from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import DataSource
 from basin3d.core.plugin import PluginMount
-from basin3d.core.schema.enum import PANDAS_TIME_FREQUENCY_MAP
+from basin3d.core.schema.enum import PANDAS_TIME_FREQUENCY_MAP, StatisticEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisResponse
 from basin3d.core.synthesis import DataSourceModelIterator, MeasurementTimeseriesTVPObservationAccess, \
@@ -477,7 +477,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                * **start_date**
            Optional parameters for *MeasurementTimeseriesTVPObservation*:
                * **end_date**
-               * **aggregation_duration** = resolution = DAY  (only DAY is currently supported)
+               * **aggregation_duration** = resolution in (SECOND, MINUTE, HOUR, DAY, MONTH)  Default: DAY
                * **statistic (list)**
                * **result_quality (list)**
                * **datasource**
@@ -500,12 +500,12 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
     metadata_store = {}
 
     # data start and end dates for all results
-    first_timestamp = query_info.start_time
-    last_timestamp = dt.datetime(1990, 1, 1)
+    # Note that all timestamps should have Timezone removed.
+    first_timestamp = None
+    last_timestamp = None
     has_results = False
 
     # Prepare working directory
-    working_directory: str = ""
     if output_path:
         if not os.path.exists(output_path):
             raise SynthesisException(f"Specified output directory '{output_path}' does not exist.")
@@ -544,7 +544,10 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
             if data_obj.result_quality:
                 result_quality = ';'.join(data_obj.result_quality)
 
-            synthesized_variable_name = f'{sampling_feature_id}__{observed_property_variable_id}__{statistic}'
+            synthesized_variable_name = f'{sampling_feature_id}__{observed_property_variable_id}'
+            # Only add statistic to the column name if it exists
+            if statistic and statistic in StatisticEnum.values()[1:]:
+                synthesized_variable_name += f"__{statistic}"
 
             results_start = None
             results_end = None
@@ -554,14 +557,13 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                 records = len(results)
                 results_start = results[0][0]
                 results_end = results[-1][0]
-                iso_format = '%Y-%m-%dT%H:%M:%S.%f'
                 if isinstance(results_start, str):
-                    results_start = dt.datetime.strptime(results_start, iso_format)
+                    results_start = dt.datetime.fromisoformat(results_start).replace(tzinfo=None)
                 if isinstance(results_end, str):
-                    results_end = dt.datetime.strptime(results_end, iso_format)
-                if results_start < first_timestamp:
+                    results_end = dt.datetime.fromisoformat(results_end).replace(tzinfo=None)
+                if not first_timestamp or results_start < first_timestamp:
                     first_timestamp = results_start
-                if results_end > last_timestamp:
+                if not last_timestamp or results_end > last_timestamp:
                     last_timestamp = results_end
 
             # Collect rest of variable metadata and store it
@@ -671,7 +673,9 @@ def _output_df(output_directory, output_name, query_info, metadata_store, first_
     """
     # Prep the data dataframe
     time_index = pd.date_range(first_timestamp, last_timestamp,
-                               freq=PANDAS_TIME_FREQUENCY_MAP[temporal_resolution])
+                               freq=PANDAS_TIME_FREQUENCY_MAP[temporal_resolution], tz=None)
+    # Remove the timezone
+    time_index = time_index.tz_localize(None)
     time_series = pd.Series(time_index, index=time_index)
     output_df = pd.DataFrame({'TIMESTAMP': time_series})
     # ToDo: expand to have TIMESTAMP_START and TIMESTAMP_END for resolutions HOUR, MINUTE
@@ -679,8 +683,15 @@ def _output_df(output_directory, output_name, query_info, metadata_store, first_
     for synthesized_variable_name, result_dict in _result_generator(os.path.join(output_directory, output_name),
                                                                     metadata_store):
         num_records = metadata_store[synthesized_variable_name]['records']
-        pd_series = pd.Series(result_dict, name=synthesized_variable_name)
-        output_df = output_df.join(pd_series)
+
+        # Collect timestamps and values for the varialbe series
+        # Remove timezone (offset) from tvp timestamps
+        result_timestamps = [dt.datetime.fromisoformat(k).replace(tzinfo=None) for k in list(result_dict.keys())]
+        result_values = list(result_dict.values())
+        pd_series = pd.Series(data=result_values, index=result_timestamps, name=synthesized_variable_name)
+
+        # Join the series to output dataframe
+        output_df = output_df.join(pd_series, on='TIMESTAMP', rsuffix=synthesized_variable_name)
         logger.debug(f'Added variable {synthesized_variable_name} with {num_records} records.')
 
     # generate the metadata -- only separate metadata info with data
@@ -690,6 +701,13 @@ def _output_df(output_directory, output_name, query_info, metadata_store, first_
 
     metadata_data_df = _fill_metadata_df(metadata_store, synthesized_var_list)
     metadata_nodata_df = _fill_metadata_df(metadata_store, synthesized_no_var_list)
+
+    # Only Drop NaNs if temporal resolution is < 'DAY'
+    if temporal_resolution in [TimeFrequencyEnum.MINUTE.value,
+                               TimeFrequencyEnum.HOUR.value,
+                               TimeFrequencyEnum.SECOND.value]:
+        logger.info("Removing NaNs from data")
+        output_df = output_df.dropna()
 
     if len(list(metadata_data_df.columns)) + len(list(metadata_nodata_df.columns)) - 2 != len(metadata_store):
         logger.warning('Metadata records mismatch. Please take a look')
