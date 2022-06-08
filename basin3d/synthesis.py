@@ -24,10 +24,10 @@ Classes
 synthesis.DataSynthesizer Functions
 -----------------------------------
 
+* :func:`DataSynthesizer.attribute_mappings`- Search for attribute_mappings which describe how the datasource vocabularies are mapped to BASIN-3D vocabularies, including observed properties, statistics, result_quality, etc.
 * :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observation (Instantaneous and Daily Values supported) from USGS Monitoring features and observed property variables
 * :func:`DataSynthesizer.monitoring_features`- Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
 * :func:`DataSynthesizer.observed_properties`- Search for observed properties
-* :func:`DataSynthesizer.observed_property_variables`- Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
 
 ----------------------------------
 """
@@ -118,44 +118,72 @@ class DataSynthesizer:
         """
         return list(self._datasources.values())
 
-    def observed_properties(self, datasource_id=None, variable_names=None):
-        """
-        Search for observed properties
-
-        :param datasource_id: Unique feature identifier of datasource
-        :param variable_names: Observed property variables
-        :return: a list of observed properties
-
-        """
-        return self._catalog.find_observed_properties(datasource_id, variable_names)
-
-    def observed_property_variables(self, datasource_id=None):
+    def observed_properties(self):
         """
 
         >>> from basin3d.plugins import usgs
         >>> from basin3d import synthesis
         >>> synthesizer = synthesis.register()
-        >>> response = synthesizer.observed_property_variables(datasource_id='USGS')
+        >>> response = synthesizer.observed_properties()
         >>> for opv in response:
-        ...     print(opv)
-        pH
-        River Discharge
-        Water Level Elevation
-        Water Temperature
-        Dissolved Oxygen (DO)
-        Specific Conductance (SC)
-        Total Dissolved Solids (TDS)
+        ...     print(f'{opv.basin3d_vocab} -- {opv.full_name} -- {opv.units}')
+        ACT -- Acetate (CH3COO) -- mM
+        Br -- Bromide (Br) -- mM
+        Cl -- Chloride (Cl) -- mM
+        DIN -- Dissolved Inorganic Nitrogen (Nitrate + Nitrite) -- mg/L
+        DTN -- Dissolved Total Nitrogen (DTN) -- mM
+        F -- Fluoride (F) -- mM
         ...
 
+        BASIN-3D observed properties. An observed property defines what is being measured.
+        Data source observed property vocabularies are mapped and thus synthesized to the BASIN-3D observed property vocabulary.
 
-        Common names for observed property variables. An observed property variable defines what is being measured.
-        Data source observed property variables are mapped to these synthesized observed property variables.
-
-        :param datasource_id: filter observer properity variables by data source
-        :return: a list of observed property variables
+        :return: an iterator of :class:`ObservedProperty` objects
 
         """
-        return self._catalog.find_observed_property_variables(datasource_id=datasource_id)
+        return self._catalog.find_observed_properties()
+
+    def attribute_mappings(self, datasource_id=None, attr_type=None, attr_vocab=None, from_basin3d=False):
+        """
+
+        >>> from basin3d.plugins import usgs
+        >>> from basin3d import synthesis
+        >>> synthesizer = synthesis.register()
+        >>> response = synthesizer.attribute_mappings()  # list all attribute mappings registered
+        >>> for attr_mapping in response:
+        ...     print(f'{attr_mapping.attr_type} | {attr_mapping.basin3d_vocab} -- {attr_mapping.datasource_vocab}')
+        OBSERVED_PROPERTY:SAMPLING_MEDIUM | PH:WATER -- 00400
+        OBSERVED_PROPERTY:SAMPLING_MEDIUM | RDC:WATER -- 00060
+        OBSERVED_PROPERTY:SAMPLING_MEDIUM | WLE:WATER -- 63161
+        OBSERVED_PROPERTY:SAMPLING_MEDIUM | WT:WATER -- 00010
+        OBSERVED_PROPERTY:SAMPLING_MEDIUM | DO:WATER -- 00300
+        ...
+
+        >>> response = synthesizer.attribute_mappings(datasource_id='USGS', attr_type='STATISTIC')
+        >>> for attr_mapping in response:
+        ...     print(f'{attr_mapping.attr_type} | {attr_mapping.basin3d_vocab} -- {attr_mapping.datasource_vocab}')
+        STATISTIC | MEAN -- 00003
+        STATISTIC | MIN -- 00002
+        STATISTIC | MAX -- 00001
+        STATISTIC | TOTAL -- 00006
+
+        >>> response = synthesizer.attribute_mappings(datasource_id='USGS', attr_type='RESULT_QUALITY', attr_vocab=['VALIDATED', 'ESTIMATED'], from_basin3d=True)
+        >>> for attr_mapping in response:
+        ...     print(f'{attr_mapping.attr_type} | {attr_mapping.basin3d_vocab} -- {attr_mapping.datasource_vocab}, {attr_mapping.datasource_desc}')
+        RESULT_QUALITY | ESTIMATED -- e, Value has been edited or estimated by USGS personnel and is write protected
+        RESULT_QUALITY | ESTIMATED -- E, Value was computed from estimated unit values.
+        RESULT_QUALITY | VALIDATED -- A, Approved for publication -- Processing and review completed.
+
+        Return all the :class:`AttributMapping` registered or those that match the specified fields.
+
+        :param datasource_id: str, The datasource identifier
+        :param attr_type: str, The attribute type (e.g., OBSERVED_PROPERTY, STATISTIC, etc)
+        :param attr_vocab: str, The attribute vocabulary, either the BASIN-3D vocabulary or the datasource vocabulary
+        :param from_basin3d: bool, True = the specified attr_vocab is a BASIN-3D vocabulary, False: the specified attr_vocab is from the datasource
+
+        :return: iterator of :class:`AttributeMapping` objects
+        """
+        return self._catalog.find_attribute_mappings(datasource_id=datasource_id, attr_type=attr_type, attr_vocab=attr_vocab, from_basin3d=from_basin3d)
 
     def monitoring_features(self, query: Union[QueryById, QueryMonitoringFeature] = None, **kwargs) -> Union[
             DataSourceModelIterator, SynthesisResponse]:
@@ -188,7 +216,7 @@ class DataSynthesizer:
 
         **Search for USGS points by parent (subbasin) monitoring features:**
 
-        >>> for mf in synthesizer.monitoring_features(feature_type='point',parent_features=['USGS-17040101']): # doctest: +ELLIPSIS
+        >>> for mf in synthesizer.monitoring_features(feature_type='point',parent_feature=['USGS-17040101']): # doctest: +ELLIPSIS
         ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
         USGS-13010000 [(-110.6647222, 44.1336111)]
         USGS-13010065 [(-110.6675, 44.09888889)]
@@ -215,15 +243,9 @@ class DataSynthesizer:
 
 
         :param query: (optional) The Monitoring Feature Query object
-        :param id: (optional) Unique feature identifier. This returns a single monitoring feature
-        :param feature_type: (optional) feature type
-        :param datasource: (optional) Datasource id prefix (e.g USGS)
-        :param monitoring_features: (optional) List of monitoring feature identifiers (eg. USGS-0010)
-        :param parent_features: (optional) List of parent monitoring features to search by
-
 
         :return: a single :class:`~basin3d.core.schema.query.SynthesisResponse` for a query by id
-            or a :class:`~basin3d.core.synthesis.DataSourceModelIterator` for multple.
+            or a :class:`~basin3d.core.synthesis.DataSourceModelIterator` for multple :class:`MonitoringFeature` objects.
         """
         if not query:
             if "id" in kwargs and isinstance(kwargs["id"], str):
@@ -254,9 +276,9 @@ class DataSynthesizer:
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
             >>> synthesizer = synthesis.register()
-            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=['USGS-09110990'],observed_property_variables=['RDC','WT'],start_date='2019-10-01',end_date='2019-10-30',aggregation_duration='DAY')
+            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=['USGS-09110990'],observed_property=['RDC','WT'],start_date='2019-10-01',end_date='2019-10-30',aggregation_duration='DAY')
             >>> for timeseries in timeseries:
-            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property_variable}")
+            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
 
             **Search with aggregation duration NONE (Instantaneous Values Service):**
@@ -264,15 +286,15 @@ class DataSynthesizer:
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
             >>> synthesizer = synthesis.register()
-            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=["USGS-09110990", "USGS-09111250"],observed_property_variables=['RDC','WT'],start_date='2020-04-01',end_date='2020-04-30',aggregation_duration='NONE')
+            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=["USGS-09110990", "USGS-09111250"],observed_property=['RDC','WT'],start_date='2020-04-01',end_date='2020-04-30',aggregation_duration='NONE')
             >>> for timeseries in timeseries:
-            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property_variable}")
+            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
             USGS-09111250 - RDC
 
 
         :param query: The query information for this function
-        :return: generator that yields MeasurementTimeseriesTVPObservations
+        :return: a :class:`~basin3d.core.synthesis.DataSourceModelIterator` that yields :class:`MeasurementTimeseriesTVPObservations` objects
 
         """
         if not query:
@@ -284,5 +306,3 @@ class DataSynthesizer:
         return cast(DataSourceModelIterator,
                     self._measurement_timeseries_tvp_observation_access.list(
                         query))
-
-

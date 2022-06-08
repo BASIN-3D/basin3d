@@ -20,40 +20,12 @@ from typing import Iterator, List, Optional
 from basin3d.core import monitor
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
-from basin3d.core.schema.enum import MessageLevelEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import MessageLevelEnum, AggregationDurationEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
+from basin3d.core.translate import translate_query
 
 logger = monitor.get_logger(__name__)
-
-
-def _synthesize_query_identifiers(values, id_prefix) -> List[str]:
-    """
-    Extract the ids from the specified query params
-
-    :param values:  the ids to synthesize
-    :param id_prefix:  the datasource id prefix
-    :return: The list of synthesizes identifiers
-    """
-    # Synthesize the ids (remove datasource id_prefix)
-    if isinstance(values, str):
-        values = values.split(",")
-
-    def extract_id(identifer):
-        """
-        Extract the datasource identifier from the broker identifier
-        :param identifer:
-        :return:
-        """
-        if identifer:
-            site_list = identifer.split("-")
-            identifer = identifer.replace("{}-".format(site_list[0]),
-                                          "", 1)  # The datasource id prefix needs to be removed
-        return identifer
-
-    return [extract_id(x) for x in
-            values
-            if x.startswith("{}-".format(id_prefix))]
 
 
 class MonitorMixin(object):
@@ -191,15 +163,19 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
                     if self._model_access.synthesis_model in plugin_views and \
                             hasattr(plugin_views[self._model_access.synthesis_model], "list"):
 
-                        # Now synthesize the query object
-                        synthesized_query_params: QueryBase = self._model_access.synthesize_query(
+                        # Now translate the query object
+                        translated_query_params: QueryBase = self._model_access.synthesize_query(
                             plugin_views[self._model_access.synthesis_model],
                             self._synthesis_response.query)
-                        synthesized_query_params.datasource = [plugin.get_datasource().id]
+                        translated_query_params.datasource = [plugin.get_datasource().id]
 
-                        # Get the model access iterator
-                        self._model_access_iterator = plugin_views[self._model_access.synthesis_model].list(
-                            query=synthesized_query_params)
+                        # Get the model access iterator if synthesized query is valid
+                        if translated_query_params.is_valid_translated_query:
+                            self._model_access_iterator = plugin_views[self._model_access.synthesis_model].list(
+                                query=translated_query_params)
+                        else:
+                            self.warn(f'Translated query for datasource {plugin.get_datasource().id} is not valid.')
+
                     else:
                         self.warn("Plugin view does not exist")
 
@@ -247,7 +223,6 @@ class DataSourceModelAccess(MonitorMixin):
         Synthesizes query parameters, if necessary
 
         :param query: The query information to be synthesized
-        :param request: the request to synthesize
         :param plugin_access: The plugin view to synthesize query params for
         :return: The synthesized query information
         """
@@ -317,7 +292,7 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
     * *name:* string, Feature name
     * *description:* string, Description of the feature
     * *feature_type:* sting, FeatureType: REGION, SUBREGION, BASIN, SUBBASIN, WATERSHED, SUBWATERSHED, SITE, PLOT, HORIZONTAL PATH, VERTICAL PATH, POINT
-    * *observed_property_variables:* list of observed variables made at the feature. Observed property variables are configured via the plugins.
+    * *observed_properties:* list of observed properties (variables) made at the feature. Observed properties are configured via the plugins.
     * *related_sampling_feature_complex:* list of related_sampling features. PARENT features are currently supported.
     * *shape:* string, Shape of the feature: POINT, CURVE, SURFACE, SOLID
     * *coordinates:* location of feature in absolute and/or representative datum
@@ -344,20 +319,7 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
         :param plugin_access: The plugin view to synthesize query params for
         :return: The synthesized query information
         """
-        synthesized_query = query.copy()
-
-        if query:
-            id_prefix = plugin_access.datasource.id_prefix
-            if query.monitoring_features:
-                synthesized_query.monitoring_features = _synthesize_query_identifiers(
-                    values=query.monitoring_features,
-                    id_prefix=id_prefix)
-            if query.parent_features:
-                synthesized_query.parent_features = _synthesize_query_identifiers(
-                    values=query.parent_features,
-                    id_prefix=id_prefix)
-
-        return synthesized_query
+        return translate_query(plugin_access, query)
 
 
 class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
@@ -374,23 +336,24 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *utc_offset:* float, Coordinate Universal Time offset in hours (offset in hours), e.g., +9
     * *feature_of_interest:* MonitoringFeature obj, feature on which the observation is being made
     * *feature_of_interest_type:* enum (FeatureTypes), feature type of the feature of interest
-    * *result_points:* list of TimeValuePair obj, observed values of the observed property being assessed
+    * *result:* dictionary of 2 lists: "value" contains TimeValuePair obj and "quality" the corresponding quality assessment per value, observed values and their quality for the observed property being assessed
     * *time_reference_position:* enum, position of timestamp in aggregated_duration (START, MIDDLE, END)
     * *aggregation_duration:* enum, time period represented by observation (YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, NONE)
     * *unit_of_measurement:* string, units in which the observation is reported
-    * *statistic:* enum, statistical property of the observation result (MEAN, MIN, MAX, TOTAL)
-    * *result_quality:* enum, quality assessment of the result (VALIDATED, UNVALIDATED, SUSPECTED, REJECTED, ESTIMATED)
+    * *statistic:* list, statistical properties of the observation result (MEAN, MIN, MAX, TOTAL)
+    * *result_quality:* list, quality assessment values contained in the result (VALIDATED, UNVALIDATED, SUSPECTED, REJECTED, ESTIMATED)
 
     **Filter** by the following attributes (?attribute=parameter&attribute=parameter&...):
 
-    * *monitoring_features (required):* List of monitoring_features ids
-    * *observed_property_variables (required):* List of observed property variable ids
+    * *monitoring_feature (required):* List of monitoring_features ids
+    * *observed_property (required):* List of observed property variable ids
     * *start_date (required):* date YYYY-MM-DD
     * *end_date (optional):* date YYYY-MM-DD
     * *aggregation_duration (default: DAY):* enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|NONE)
     * *statistic (optional):* List of statistic options, enum (INSTANT|MEAN|MIN|MAX|TOTAL)
     * *datasource (optional):* a single data source id prefix (e.g ?datasource=`datasource.id_prefix`)
     * *result_quality (optional):* enum (VALIDATED|UNVALIDATED|SUSPECTED|REJECTED|ESTIMATED)
+    * *sampling_medium (optional):* ADD here -- probably should be enum
 
     **Restrict fields** with query parameter ‘fields’. (e.g. ?fields=id,name)
 
@@ -403,8 +366,8 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         Synthesizes query parameters, if necessary
 
         Parameters Synthesized:
-          + monitoring_features
-          + observed_property_variables
+          + monitoring_feature
+          + observed_property
           + aggregation_duration (default: DAY)
           + statistic
           + quality_checked
@@ -414,24 +377,9 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         :return: The query parameters
         """
 
-        id_prefix = plugin_access.datasource.id_prefix
-        synthesized_query = query.copy()
+        # only allow instantaneous data (NONE) or daily data (DAY) data
+        # NOTE: query at this point is still in BASIN-3D vocab
+        if query.aggregation_duration != AggregationDurationEnum.NONE:
+            query.aggregation_duration = AggregationDurationEnum.DAY
 
-        if query:
-
-            if query.monitoring_features:
-                synthesized_query.monitoring_features = _synthesize_query_identifiers(values=query.monitoring_features,
-                                                                                      id_prefix=id_prefix)
-
-            # Synthesize ObservedPropertyVariable (from BASIN-3D to DataSource variable name)
-            if query.observed_property_variables:
-                synthesized_query.observed_property_variables = [o.datasource_variable for o in
-                                                                 plugin_access.get_observed_properties(
-                                                                     query.observed_property_variables)]
-        # Aggregation duration will be default to DAY in QueryMeasurementTimeseriesTVP.
-        # Query will accept aggregation duration NONE and DAY only
-        synthesized_query.aggregation_duration = query.aggregation_duration
-        if synthesized_query.aggregation_duration != TimeFrequencyEnum.NONE:
-            synthesized_query.aggregation_duration = TimeFrequencyEnum.DAY
-
-        return synthesized_query
+        return translate_query(plugin_access, query)

@@ -16,24 +16,24 @@ def test_measurement_timeseries_tvp_observations_usgs():
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
 
     query0 = {
-        "monitoring_features": ["USGS-09110990", "USGS-09111250"],
-        "observed_property_variables": [],
+        "monitoring_feature": ["USGS-09110990", "USGS-09111250"],
+        "observed_property": [],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": TimeFrequencyEnum.DAY,
-        "results_quality": ResultQualityEnum.VALIDATED
+        "aggregation_duration": "DAY",
+        "results_quality": "VALIDATED"
     }
 
     with pytest.raises(ValidationError):
         synthesizer.measurement_timeseries_tvp_observations(**query0)
 
     query1 = {
-        "monitoring_features": ["USGS-09110990", "USGS-09111250"],
-        "observed_property_variables": ["RDC"],
+        "monitoring_feature": ["USGS-09110990", "USGS-09111250"],
+        "observed_property": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": TimeFrequencyEnum.DAY,
-        "results_quality": ResultQualityEnum.VALIDATED
+        "aggregation_duration": "DAY",
+        "results_quality": "VALIDATED"
     }
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
 
@@ -48,23 +48,23 @@ def test_measurement_timeseries_tvp_observations_usgs():
         pytest.fail("Returned object must be iterator")
 
     query2 = {
-        "observed_property_variables": ["RDC"],
+        "observed_property": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": TimeFrequencyEnum.DAY,
-        "results_quality": ResultQualityEnum.VALIDATED
+        "aggregation_duration": "DAY",
+        "results_quality": "VALIDATED"
     }
 
     with pytest.raises(ValidationError):
         synthesizer.measurement_timeseries_tvp_observations(**query2)
 
     query3 = {
-        "monitoring_features": ["USGS-09110990", "USGS-09111250"],
-        "observed_property_variables": ["RDC"],
+        "monitoring_feature": ["USGS-09110990", "USGS-09111250"],
+        "observed_property": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
         "statistic": ["MEAN"],
-        "results_quality": ResultQualityEnum.VALIDATED
+        "results_quality": "VALIDATED"
     }
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query3)
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
@@ -78,8 +78,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         pytest.fail("Returned object must be iterator")
 
     query4 = {
-        "monitoring_features": ["USGS-09110990", "USGS-09111250"],
-        "observed_property_variables": ["RDC"],
+        "monitoring_feature": ["USGS-09110990", "USGS-09111250"],
+        "observed_property": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
         "aggregation_duration": None,
@@ -120,7 +120,7 @@ def test_usgs_monitoring_feature(query, feature_type):
 
 @pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count", [({"datasource": "USGS"}, 2889),
-                                                   ({"monitoring_features": ['USGS-02']}, 1),
+                                                   ({"monitoring_feature": ['USGS-02']}, 1),
                                                    ({"feature_type": "region"}, 21),
                                                    ({"feature_type": "subregion"}, 222),
                                                    ({"feature_type": "basin"}, 379),
@@ -132,11 +132,11 @@ def test_usgs_monitoring_feature(query, feature_type):
                                                    ({"feature_type": "vertical path"}, 0),
                                                    ({"feature_type": "horizontal path"}, 0),
                                                    ({"feature_type": "point"}, 0),
-                                                   ({"monitoring_features": ["USGS-09129600"], "feature_type": "point"}, 1),
-                                                   ({"parent_features": ['USGS-02']}, 118),
-                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 52),
-                                                   ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
-                                                   ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
+                                                   ({"monitoring_feature": ["USGS-09129600"], "feature_type": "point"}, 1),
+                                                   ({"parent_feature": ['USGS-02']}, 118),
+                                                   ({"parent_feature": ['USGS-02020004'], "feature_type": "point"}, 54),
+                                                   ({"parent_feature": ['USGS-0202'], "feature_type": "subbasin"}, 8),
+                                                   ({"parent_feature": ['USGS-020200'], "feature_type": "point"}, 0)],
                          ids=["all", "region_by_id", "region", "subregion",
                               "basin", "subbasin",
                               "watershed", "subwatershed",

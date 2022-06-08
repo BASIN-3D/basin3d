@@ -18,16 +18,23 @@ Below is the inheritance diagram for BASIN-3D generic models and supporting clas
     :backlinks: top
 
 """
+
 import datetime
 import enum
 import json
+
 from collections import namedtuple
 from dataclasses import dataclass, field
+from itertools import repeat
 from numbers import Number
-from typing import List
+from typing import List, Optional, Union
 
-from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, FeatureTypeEnum, ResultQualityEnum, TimeFrequencyEnum
+from basin3d.core import monitor
+from basin3d.core.schema.enum import FeatureTypeEnum, FEATURE_SHAPE_TYPES, MappedAttributeEnum, MAPPING_DELIMITER, NO_MAPPING_TEXT
+from basin3d.core.translate import get_datasource_mapped_attribute, translate_attributes
 from basin3d.core.types import SpatialSamplingShapes
+
+logger = monitor.get_logger(__name__)
 
 
 class JSONSerializable:
@@ -63,11 +70,11 @@ class DataSource(JSONSerializable):
     """
     Data Source definition
 
-    Attributes:
+    Fields:
         - *id:* string (inherited)
         - *name:* string
         - *id_prefix:* string, prefix that is added to all data source ids
-        - *location*
+        - *location:*
         - *credentials:*
 
     """
@@ -85,21 +92,19 @@ class DataSource(JSONSerializable):
 
 
 @dataclass
-class ObservedPropertyVariable(JSONSerializable):
+class ObservedProperty(JSONSerializable):
     """
     Defining the properties being observed (measured). See http://vocabulary.odm2.org/variablename/ for controlled vocabulary
 
-    Attributes:
-        - *basin3d_id:* string,
+    Fields:
+        - *basin3d_vocab:* string,
         - *full_name:* string,
         - *categories:* List of strings (in order of priority).
         - *units:* string
 
     See http://vocabulary.odm2.org/variabletype/ for options, although I think we should have our own list (theirs is a bit funky).
-
-
     """
-    basin3d_id: str = ''
+    basin3d_vocab: str = ''
     full_name: str = ''
     categories: list = field(default_factory=list)
     units: str = field(default='')
@@ -108,32 +113,89 @@ class ObservedPropertyVariable(JSONSerializable):
         return self.__unicode__()
 
     def __unicode__(self):
-        return self.full_name
+        return self.basin3d_vocab
 
 
 @dataclass
-class ObservedProperty(JSONSerializable):
+class AttributeMapping(JSONSerializable):
     """
-    Defining the attributes for a single/multiple Observed Properties
+    A data class for attribute mappings between datasource vocabularies and BASIN-3D vocabularies.
+    These are the associations defined in the datasource (i.e., plugin) mapping file.
 
-    Attributes:
-        - *datasource_variable:* id, e.g., Cs 137 air dose rate car survey campaigns
-        - *observed_property_variable_id:* string, e.g., Cs137MVID
-        - *sampling_medium:* enum (WATER, GAS, SOLID PHASE, OTHER, NOT APPLICABLE)
-        - *datasource:*
-        - *datasource_description:*
+    Fields:
+         - *attr_type:* Attribute Type; e.g., STATISTIC, RESULT_QUALITY, OBSERVED_PROPERTY; separate compound mappings with ':'
+         - *basin3d_vocab:* The BASIN-3D vocabulary; separate compound mappings with ':'
+         - *basin3d_desc:* The BASIN-3D vocabulary descriptions; objects or enum
+         - *datasource_vocab:* The datasource vocabulary
+         - *datasource_desc:* The datasource vocabulary description
+         - *datasource:* The datasource of the mapping
     """
-    datasource_variable: str = ''
-    observed_property_variable: ObservedPropertyVariable = field(default_factory=lambda: ObservedPropertyVariable())
-    sampling_medium: str = ''
+    attr_type: str
+    basin3d_vocab: str
+    basin3d_desc: list
+    datasource_vocab: str
+    datasource_desc: str
     datasource: DataSource = DataSource()
-    datasource_description: str = ''
 
     def __str__(self):
         return self.__unicode__()
 
     def __unicode__(self):
-        return self.datasource_variable
+        return self.datasource_vocab
+
+
+@dataclass
+class MappedAttribute(JSONSerializable):
+    """
+    A data class for an attribute that is translated (i.e., mapped) from a datasource vocabulary to BASIN-3D vocabulary.
+    Note that this model holds an AttributeMapping that maybe compound in nature; however this class specifies only one attribute types.
+    For example, if the AttributeMapping is for a compound mapping of attribute types OBSERVED_PROPERTY:SAMPLING_MEDIUM,
+    then the attr_type field would be either OBSERVED_PROPERTY or SAMPLING_MEDIUM but not both.
+
+    Fields:
+         - *attr_type:* Attribute Type; e.g., STATISTIC, RESULT_QUALITY, OBSERVED_PROPERTY, etc; single type only
+         - *attr_mapping:* AttributeMapping as described in the datasource's (i.e., plugin's mapping file).
+    """
+    attr_type: MappedAttributeEnum
+    attr_mapping: AttributeMapping
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self.get_basin3d_vocab()
+
+    def get_basin3d_vocab(self) -> Optional[str]:
+        if self.attr_mapping.basin3d_vocab == NO_MAPPING_TEXT:
+            return NO_MAPPING_TEXT
+        attrs = self.attr_mapping.attr_type.split(MAPPING_DELIMITER)
+        b3d_vocabs = self.attr_mapping.basin3d_vocab.split(MAPPING_DELIMITER)
+        try:
+            for attr, vocab in zip(attrs, b3d_vocabs):
+                if attr == self.attr_type.upper():
+                    return vocab
+        except Exception as e:
+            logger.error(f'Issue returning basin3d_vocab for MappedAttribute. THIS SHOULD NEVER HAPPEN. {e}')
+        return None
+
+    def get_basin3d_desc(self):
+        b3d_descs = self.attr_mapping.basin3d_desc
+        if not b3d_descs:
+            return None
+        attrs = self.attr_mapping.attr_type.split(MAPPING_DELIMITER)
+        try:
+            for attr, desc in zip(attrs, b3d_descs):
+                if attr == self.attr_type.upper():
+                    return desc
+        except Exception as e:
+            logger.error(f'Issue returning basin3d_desc for MappedAttribute. THIS SHOULD NEVER HAPPEN. {e}')
+        return None
+
+    def get_datasource_vocab(self) -> str:
+        return self.attr_mapping.datasource_vocab
+
+    def get_datasource_desc(self) -> str:
+        return self.attr_mapping.datasource_desc
 
 
 class Base(JSONSerializable):
@@ -195,6 +257,30 @@ class Base(JSONSerializable):
 
         self.__setattr__ = __setattr__
         self.__delattr__ = __delattr__
+
+    def _create_mapped_attributes(self, attr_type, attr_mappings):
+        """
+
+        :param attr_type:
+        :param attr_mappings:
+        :return:
+        """
+
+        def create_mapped_attribute(a_type, a_mapping):
+            return MappedAttribute(a_type, a_mapping)
+
+        if isinstance(attr_mappings, list) and attr_mappings:
+            return list(map(create_mapped_attribute, repeat(attr_type), attr_mappings))
+
+        elif attr_mappings:
+            return create_mapped_attribute(attr_type, attr_mappings)
+
+    def _translate_mapped_attributes(self, plugin_access, mapped_attrs, **kwargs):
+        translated_attrs = translate_attributes(plugin_access, mapped_attrs, **kwargs)
+        for attr in mapped_attrs:
+            if attr in translated_attrs.keys() and translated_attrs[attr]:
+                translated_attrs[attr] = self._create_mapped_attributes(attr.upper(), translated_attrs[attr])
+        return translated_attrs
 
     @property
     def datasource_ids(self):
@@ -830,21 +916,18 @@ class Feature(Base):
         self._name: str = None
         self._description: str = None
         self._feature_type: str = None
-        self._observed_property_variables: List[str] = None
+        self._observed_properties: Union[List[MappedAttribute], List[str]] = None
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
 
-        if self.observed_property_variables and isinstance(self.observed_property_variables, (tuple, list, enumerate)):
-            # synthesize measurement variables
-            synth_params = []
-            for synth_param in plugin_access.get_observed_property_variables(self.observed_property_variables):
-                synth_params.append(synth_param.basin3d_id)
-
-            self.observed_property_variables = synth_params
-
-        elif self.observed_property_variables:
-            self.observed_property_variables = [self.observed_property_variables]
+        if self.observed_properties:
+            if not isinstance(self.observed_properties, list):
+                logger.warning("observed_properties parameter not in expected list format")
+            self.observed_properties = self._create_mapped_attributes('OBSERVED_PROPERTY', get_datasource_mapped_attribute(
+                plugin_access, attr_type='OBSERVED_PROPERTY', datasource_vocab=self.observed_properties))
+        else:
+            self.observed_properties = None
 
     def __validate__(self):
         """
@@ -853,6 +936,12 @@ class Feature(Base):
 
         if self.feature_type is not None and self.feature_type not in FeatureTypeEnum.values():
             raise AttributeError("Feature attr feature_type must be FeatureTypeEnum.")
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self._id
 
     @property
     def id(self) -> str:
@@ -891,13 +980,13 @@ class Feature(Base):
         self._feature_type = value
 
     @property
-    def observed_property_variables(self) -> List[str]:
-        """List of observed property variables"""
-        return self._observed_property_variables
+    def observed_properties(self) -> Union[List[MappedAttribute], List[str]]:
+        """List of observed properties"""
+        return self._observed_properties
 
-    @observed_property_variables.setter
-    def observed_property_variables(self, value: List[str]):
-        self._observed_property_variables = value
+    @observed_properties.setter
+    def observed_properties(self, value: Union[List[MappedAttribute], List[str]]):
+        self._observed_properties = value
 
 
 class SamplingFeature(Feature):
@@ -1160,10 +1249,12 @@ class Observation(Base):
         self._type: str = None
         self._utc_offset: int = None
         self._phenomenon_time: str = None
-        self._observed_property: ObservedProperty = None
+        self._observed_property: MappedAttribute = None
         self._feature_of_interest: MonitoringFeature = None
         self._feature_of_interest_type: FeatureTypeEnum = None
-        self._result_quality: List[ResultQualityEnum] = []
+        self._result_quality: List[MappedAttribute] = []
+
+        kwargs = self._translate_attributes(plugin_access, **kwargs)
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
@@ -1180,6 +1271,11 @@ class Observation(Base):
         # Validate feature of interest type if present is class FeatureTypeEnum
         if self.feature_of_interest_type and self.feature_of_interest_type not in FeatureTypeEnum.values():
             raise AttributeError("feature_of_interest_type must be FeatureType")
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        # ToDo: see note with TimeseriesTVPObservation
+        mapped_attrs = ('observed_property', 'result_quality')
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)
 
     @property
     def id(self) -> str:
@@ -1219,12 +1315,12 @@ class Observation(Base):
         self._phenomenon_time = value
 
     @property
-    def observed_property(self) -> 'ObservedProperty':
+    def observed_property(self) -> 'MappedAttribute':
         """The property that was observed"""
         return self._observed_property
 
     @observed_property.setter
-    def observed_property(self, value: 'ObservedProperty'):
+    def observed_property(self, value: 'MappedAttribute'):
         self._observed_property = value
 
     @property
@@ -1246,12 +1342,12 @@ class Observation(Base):
         self._feature_of_interest_type = value
 
     @property
-    def result_quality(self) -> List['ResultQualityEnum']:
+    def result_quality(self) -> List['MappedAttribute']:
         """The result quality assessment. See :class:`ResultQuality`"""
         return self._result_quality
 
     @result_quality.setter
-    def result_quality(self, value: List['ResultQualityEnum']):
+    def result_quality(self, value: List['MappedAttribute']):
         self._result_quality = value
 
 
@@ -1259,28 +1355,6 @@ class TimeMetadataMixin(object):
     """
     Metadata attributes for Observations with a time
     """
-
-    #: Observations aggregated by year
-    AGGREGATION_DURATION_YEAR = TimeFrequencyEnum.YEAR
-
-    #: Observations aggregated by month
-    AGGREGATION_DURATION_MONTH = TimeFrequencyEnum.MONTH
-
-    #: Observations aggregated by day
-    AGGREGATION_DURATION_DAY = TimeFrequencyEnum.DAY
-
-    #: Observations aggregated by hour
-    AGGREGATION_DURATION_HOUR = TimeFrequencyEnum.HOUR
-
-    #: Observations aggregated by minute
-    AGGREGATION_DURATION_MINUTE = TimeFrequencyEnum.MINUTE
-
-    #: Observations aggregated by second
-    AGGREGATION_DURATION_SECOND = TimeFrequencyEnum.SECOND
-
-    #: Observations aggregated by no standard frequency, used for instantaneous values
-    AGGREGATION_DURATION_NONE = TimeFrequencyEnum.NONE
-
     #: Observation taken at the start
     TIME_REFERENCE_START = "START"
 
@@ -1291,20 +1365,20 @@ class TimeMetadataMixin(object):
     TIME_REFERENCE_END = "END"
 
     def __init__(self, *args, **kwargs):
-        self._aggregation_duration: str = None
+        self._aggregation_duration: MappedAttribute = None
         self._time_reference_position: str = None
 
         # Instantiate the serializer superclass
         super(TimeMetadataMixin, self).__init__(*args, **kwargs)
 
     @property
-    def aggregation_duration(self) -> str:
+    def aggregation_duration(self) -> 'MappedAttribute':
         """Time period represented by the observation. Follows OGC TM_PeriodDuration.
            Use constants prefixed with `AGGREGATION_DURATION` from :class:`TimeseriesMetadataMixin`"""
         return self._aggregation_duration
 
     @aggregation_duration.setter
-    def aggregation_duration(self, value: str):
+    def aggregation_duration(self, value: 'MappedAttribute'):
         self._aggregation_duration = value
 
     @property
@@ -1323,44 +1397,29 @@ class MeasurementMetadataMixin(object):
     Metadata attributes for Observations type Measurement
     """
 
-    #: Statistical Instantaneous
-    STATISTIC_INSTANTANEOUS = "INSTANT"
-
-    #: Statistical Mean
-    STATISTIC_MEAN = "MEAN"
-
-    #: Statistical Minimum
-    STATISTIC_MIN = "MIN"
-
-    #: Statistical Maximum
-    STATISTIC_MAX = "MAX"
-
-    #: Statistical Sum
-    STATISTIC_TOTAL = "TOTAL"
-
     def __init__(self, *args, **kwargs):
-        self._observed_property_variable: str = None
-        self._statistic: str = None
+        self._sampling_medium: MappedAttribute = None
+        self._statistic: MappedAttribute = None
 
         # Instantiate the serializer superclass
         super(MeasurementMetadataMixin, self).__init__(*args, **kwargs)
 
     @property
-    def observed_property_variable(self) -> str:
-        """The observed property that was measured"""
-        return self._observed_property_variable
+    def sampling_medium(self) -> 'MappedAttribute':
+        """Sampling medium in which the observed property was measured"""
+        return self._sampling_medium
 
-    @observed_property_variable.setter
-    def observed_property_variable(self, value: str):
-        self._observed_property_variable = value
+    @sampling_medium.setter
+    def sampling_medium(self, value: 'MappedAttribute'):
+        self._sampling_medium = value
 
     @property
-    def statistic(self) -> str:
+    def statistic(self) -> 'MappedAttribute':
         """The statistical property of the observation result. Use constants prefixed with `STATISTIC_` from :class:`MeasurementMetadataMixin`"""
         return self._statistic
 
     @statistic.setter
-    def statistic(self, value: str):
+    def statistic(self, value: 'MappedAttribute'):
         self._statistic = value
 
 
@@ -1368,12 +1427,20 @@ class ResultListTVP(Base):
     """
     Result Point Float
     """
-    def __init__(self, **kwargs):
+    def __init__(self, plugin_access, **kwargs):
         self._value: List['TimeValuePair'] = []
-        self._quality: List['ResultQualityEnum'] = []
+        self._result_quality: List['MappedAttribute'] = []
+
+        # translate quality
+        kwargs = self._translate_attributes(plugin_access, **kwargs)
 
         # Initialize after the attributes have been set
-        super().__init__(None, **kwargs)
+        super().__init__(plugin_access, **kwargs)
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        # ToDo: see note with TimeseriesTVPObservation
+        mapped_attrs = ('result_quality', )
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)
 
     @property
     def value(self) -> List['TimeValuePair']:
@@ -1385,13 +1452,13 @@ class ResultListTVP(Base):
         self._value = value
 
     @property
-    def quality(self) -> List['ResultQualityEnum']:
+    def result_quality(self) -> List['MappedAttribute']:
         """Result that was measured"""
-        return self._quality
+        return self._result_quality
 
-    @quality.setter
-    def quality(self, value: List['ResultQualityEnum']):
-        self._quality = value
+    @result_quality.setter
+    def result_quality(self, value: List['MappedAttribute']):
+        self._result_quality = value
 
 
 class MeasurementTimeseriesTVPResultMixin(object):
@@ -1429,12 +1496,20 @@ class ResultPointFloat(Base):
     """
     Result Point Float
     """
-    def __init__(self, **kwargs):
+    def __init__(self, plugin_access, **kwargs):
         self._value: float = None
-        self._quality: 'ResultQualityEnum' = None
+        self._result_quality: 'MappedAttribute' = None
+
+        # translate quality
+        kwargs = self._translate_attributes(plugin_access, **kwargs)
 
         # Initialize after the attributes have been set
         super().__init__(None, **kwargs)
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        # ToDo: see note with TimeseriesTVPObservation
+        mapped_attrs = ('result_quality', )
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)
 
     @property
     def value(self) -> float:
@@ -1446,13 +1521,13 @@ class ResultPointFloat(Base):
         self._value = value
 
     @property
-    def quality(self) -> 'ResultQualityEnum':
+    def result_quality(self) -> 'MappedAttribute':
         """Result that was measured"""
-        return self._quality
+        return self._result_quality
 
-    @quality.setter
-    def quality(self, value: 'ResultQualityEnum'):
-        self._quality = value
+    @result_quality.setter
+    def result_quality(self, value: 'MappedAttribute'):
+        self._result_quality = value
 
 
 class MeasurementResultMixin(object):
@@ -1498,15 +1573,16 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
     def __init__(self, plugin_access, **kwargs):
         kwargs["type"] = self.TYPE_MEASUREMENT_TVP_TIMESERIES
 
-        if "observed_property_variable" in kwargs:
-            datasource_variable_id = kwargs['observed_property_variable']
-            observed_property_variable = plugin_access.get_observed_property_variable(datasource_variable_id)
-            basin3d_variable_id = observed_property_variable.basin3d_id
-            kwargs['observed_property_variable'] = basin3d_variable_id
-            kwargs['observed_property'] = plugin_access.get_observed_property(basin3d_variable_id)
+        self._translate_attributes(plugin_access, **kwargs)
 
         # Initialize after the attributes have been set
         super(MeasurementTimeseriesTVPObservation, self).__init__(plugin_access, **kwargs)
 
     def __eq__(self, other):
         return self.id == other.id
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        # ToDo: Introspect which attributes are MappedAttributes. Cannot do this easily b/c using @property decorator.
+        # For a simple dataclass, typing.get_type_hints would work. As properties, the fget for each property can be introspected with typing.get_type_hints
+        mapped_attrs = ('observed_property', 'statistic', 'aggregation_duration', 'result_quality', 'sampling_medium')
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)

@@ -5,7 +5,7 @@ from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordina
     GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
     RepresentativeCoordinate, SpatialSamplingShapes, VerticalCoordinate, ResultListTVP
 from basin3d.core.plugin import DataSourcePluginPoint, basin3d_plugin, basin3d_plugin_access
-from basin3d.core.schema.enum import FeatureTypeEnum, TimeFrequencyEnum, ResultQualityEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 
 logger = logging.getLogger(__name__)
@@ -56,16 +56,26 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
     data: List[Any] = []
     quality: List[Any] = []
 
-    if query.monitoring_features == ['region']:
+    if query.monitoring_feature == ['region']:
         return StopIteration({"message": "FOO"})
+
+    supported_monitoring_features = [f'{num}' for num in range(1, 5)]
+
+    if not any([loc_id in supported_monitoring_features for loc_id in query.monitoring_feature]):
+        return StopIteration({"message": "No data from data source matches monitoring features specified."})
+
+    location_indices = []
+    for loc_id in query.monitoring_feature:
+        if loc_id in supported_monitoring_features:
+            location_indices.append(int(loc_id.split('-')[-1]))
 
     from datetime import datetime
     for num in range(1, 10):
         data.append((datetime(2016, 2, num), num * 0.3454))
     data = [data, data, [], data]
-    rqe1 = ResultQualityEnum.VALIDATED
-    rqe2 = ResultQualityEnum.UNVALIDATED
-    rqe3 = ResultQualityEnum.REJECTED
+    rqe1 = 'VALIDATED'
+    rqe2 = 'UNVALIDATED'
+    rqe3 = 'REJECTED'
     quality = [[rqe1, rqe1, rqe1, rqe1, rqe1, rqe1, rqe1, rqe1, rqe1],
                [rqe2, rqe2, rqe2, rqe2, rqe2, rqe2, rqe2, rqe3, rqe3],
                [],
@@ -74,17 +84,16 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
                  [rqe2, rqe3],
                  [],
                  [rqe1, rqe2, rqe3]]
-    observed_property_variables = ["Acetate", "Acetate", "Aluminum", "Aluminum"]
+    observed_property_variables = ["Acetate", "Acetate", "Aluminum", "Al"]
     units = ['nm', 'nm', 'mg/L', 'mg/L']
-    statistics = ['MEAN', 'MAX', 'MEAN', 'MAX']
+    statistics = ['mean', 'max', 'mean', 'max']
 
-    for num in range(1, 5):
+    for num in location_indices:
         observed_property_variable = observed_property_variables[num - 1]
         feature_id = f'A-{str(num - 1)}'
         if query:
-            if query.monitoring_features:
-                if str(num) not in query.monitoring_features:
-                    continue
+            if observed_property_variable not in query.observed_property:
+                continue
             if query.statistic:
                 if statistics[num - 1] not in query.statistic:
                     continue
@@ -121,7 +130,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
         yield MeasurementTimeseriesTVPObservation(
             plugin_access=self,
             id=num,
-            observed_property_variable=observed_property_variable,
+            observed_property=observed_property_variable,
             utc_offset=-8 - num,
             feature_of_interest=MonitoringFeature(
                 plugin_access=self,
@@ -146,7 +155,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
                             distance_units=VerticalCoordinate.DISTANCE_UNITS_METERS)
                     )
                 ),
-                observed_property_variables=["Ag", "Acetate", "Aluminum"],
+                observed_properties=["Ag", "Acetate", "Aluminum", "Al"],
                 related_sampling_feature_complex=[
                     RelatedSamplingFeature(plugin_access=self,
                                            related_sampling_feature="Region1",
@@ -159,7 +168,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
             result_quality=result_qualities,
             time_reference_position=None,
             statistic=statistics[num - 1],
-            result=ResultListTVP(value=result_value, quality=result_value_quality)
+            result=ResultListTVP(plugin_access=self, value=result_value, result_quality=result_value_quality)
         )
 
     return StopIteration(synthesis_messages)
@@ -230,7 +239,7 @@ def list_monitoring_features(self, query: QueryMonitoringFeature):
                     distance_units=VerticalCoordinate.DISTANCE_UNITS_METERS)
             )
         ),
-        observed_property_variables=["Ag", "Acetate"],
+        observed_properties=["Ag", "Acetate"],
         related_sampling_feature_complex=[
             RelatedSamplingFeature(plugin_access=self,
                                    related_sampling_feature="Region1",
