@@ -1,8 +1,9 @@
 import datetime
-
+import logging
 import pytest
 
 import basin3d
+from basin3d.core.catalog import CatalogException
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.synthesis import DataSourceModelIterator
 from basin3d.synthesis import register, SynthesisException
@@ -34,7 +35,6 @@ def test_register_implicit(monkeypatch):
     assert datasources[0].id_prefix == usgs.USGSDataSourcePlugin.get_id_prefix()
     assert datasources[0].id == 'USGS'
     assert datasources[0].location == 'https://waterservices.usgs.gov/nwis/'
-
 
 
 def test_register():
@@ -79,6 +79,7 @@ def test_monitoring_features_found():
                                                                   'messages': [],
                                                                   'query': {'datasource': None,
                                                                             'feature_type': None,
+                                                                            'is_valid_translated_query': None,
                                                                             'monitoring_features': None,
                                                                             'parent_features': None}}
         assert isinstance(monitoring_featurues.synthesis_response.query, QueryMonitoringFeature)
@@ -102,6 +103,7 @@ def test_monitoring_features_found():
                                                                                           'MonitoringFeature']}],
                                                                   'query': {'datasource': None,
                                                                             'feature_type': None,
+                                                                            'is_valid_translated_query': None,
                                                                             'monitoring_features': None,
                                                                             'parent_features': None}}
 
@@ -124,70 +126,61 @@ def test_measurement_timeseries_tvp_observations_count():
 
     synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(
-        monitoring_features=['test'], observed_property_variables=['test'], start_date='2016-02-01')
+        monitoring_features=['A-3'], observed_property_variables=['Al'], start_date='2016-02-01')
     if isinstance(measurement_timeseries_tvp_observations, DataSourceModelIterator):
         count = 0
         assert measurement_timeseries_tvp_observations.synthesis_response is not None
         assert measurement_timeseries_tvp_observations.synthesis_response.query is not None
         assert isinstance(measurement_timeseries_tvp_observations.synthesis_response.query,
                           QueryMeasurementTimeseriesTVP)
-        assert measurement_timeseries_tvp_observations.synthesis_response.query.monitoring_features == ['test']
-        assert measurement_timeseries_tvp_observations.synthesis_response.query.observed_property_variables == ['test']
+        assert measurement_timeseries_tvp_observations.synthesis_response.query.monitoring_features == ['A-3']
+        assert measurement_timeseries_tvp_observations.synthesis_response.query.observed_property_variables == ['Al']
         assert measurement_timeseries_tvp_observations.synthesis_response.query.start_date == datetime.date(2016, 2, 1)
 
         for mf in measurement_timeseries_tvp_observations:
             count += 1
 
-        assert count == 4
+        assert count == 1
     else:
         assert measurement_timeseries_tvp_observations is not None
 
 
 @pytest.mark.parametrize("plugins, query, expected_count",
-                         [(['basin3d.plugins.usgs.USGSDataSourcePlugin'], {}, 43),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin',
-                            'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'USGS'}, 43),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin',
-                            'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha'}, 4),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin',
-                            'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'FOO'}, 0)
+                         [(['basin3d.plugins.usgs.USGSDataSourcePlugin'], {}, 53),
+                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'USGS'}, 53),
+                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha'}, 13),
+                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha', 'attr_type': 'OBSERVED_PROPERTY'}, 6),
+                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': ['Ag']}, 1),
+                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': ['Ag'], 'from_basin3d': True}, 2),
+                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'FOO'}, -1)
                           ],
-                         ids=['USGS-only', 'USGS-plus', 'Alpha-plus', 'Bad-DataSource'])
-def test_observed_properties(plugins, query, expected_count):
-    """Test observed properties search"""
+                         ids=['USGS-only', 'USGS-plus', 'Alpha-plus', 'Alpha-OP', 'Alpha-OP-Ag-datasource', 'Alpha-OP-Ag-basin3d', 'Bad-DataSource'])
+def test_attribute_mappings(plugins, query, expected_count):
+    """Test attribute_mappings search"""
 
     synthesizer = register(plugins)
-    observed_properties = synthesizer.observed_properties(**query)
+    results = synthesizer.attribute_mappings(**query)
 
-    # TODO are there other things to test?
+    if expected_count > 0:
+        count = 0
+        for attr_mapping in results:
+            count += 1
+
+        assert count == expected_count
+
+    else:
+        with pytest.raises(CatalogException):
+            for attr_mapping in results:
+                pass
+
+
+def test_observed_properties():
+    """Test observed_properties method"""
+    synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
+    results = synthesizer.observed_properties()
+
     count = 0
-    for op in observed_properties:
-        print(op)
+    for op in results:
         count += 1
 
-    assert count == expected_count
-
-
-@pytest.mark.parametrize("plugins, query, expected_count",
-                         [(['basin3d.plugins.usgs.USGSDataSourcePlugin'], {}, 168),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin',
-                            'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'USGS'}, 43),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin',
-                            'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha'}, 4),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin',
-                            'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'FOO'}, 0)
-                          ],
-                         ids=['USGS-only', 'USGS-plus', 'Alpha-plus', 'Bad-DataSource'])
-def test_observed_property_variables(plugins, query, expected_count):
-    """ Test observed property variables """
-
-    synthesizer = register(plugins)
-    observed_properties = synthesizer.observed_property_variables(**query)
-
-    # TODO are there other things to test?
-    count = 0
-    for op in observed_properties:
-        print(op)
-        count += 1
-
-    assert count == expected_count
+    assert count == 168

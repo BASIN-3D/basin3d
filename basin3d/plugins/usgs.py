@@ -57,12 +57,12 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 
 # Get an instance of a logger
-from basin3d.core.schema.query import FeatureTypeEnum, QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, \
-    ResultQualityEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, AggregationDurationEnum
+from basin3d.core.schema.query import QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.access import get_url
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, GeographicCoordinate, \
-    MeasurementMetadataMixin, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
-    TimeMetadataMixin, TimeValuePair, TimeFrequencyEnum, ResultListTVP
+    MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
+    TimeMetadataMixin, TimeValuePair, ResultListTVP
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin
 from basin3d.core.types import SpatialSamplingShapes
 from basin3d.plugins import usgs_huc_codes
@@ -70,11 +70,6 @@ from basin3d.plugins import usgs_huc_codes
 logger = monitor.get_logger(__name__)
 
 URL_USGS_HUC = "https://water.usgs.gov/GIS/new_huc_rdb.txt"
-USGS_STATISTIC_MAP: Dict = {
-    MeasurementMetadataMixin.STATISTIC_MEAN: '00003',
-    MeasurementMetadataMixin.STATISTIC_MIN: '00002',
-    MeasurementMetadataMixin.STATISTIC_MAX: '00001'
-}
 
 
 def convert_discharge(data, parameter, units):
@@ -91,13 +86,6 @@ def convert_discharge(data, parameter, units):
         data *= 0.028316847
         units = "m^3/s"
     return data, units
-
-
-def map_statistic_code(stat_cd):
-    for k, v in USGS_STATISTIC_MAP.items():
-        if stat_cd == v:
-            return k
-    return 'NOT_SUPPORTED'  # consider making this part of the Mixin Statistic type
 
 
 def generator_usgs_measurement_timeseries_tvp_observation(view,
@@ -131,23 +119,16 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
     search_params.append(("parameterCd", ",".join([str(o) for o in query.observed_property_variables])))
 
     if query.statistic:
-        statistics: List[str] = []
         # if aggregation duration is NONE (iv) and there is a query that has a stat param, clear the statistics list
         # add warning message to user, but there are no statistic values for IV call. need synthesis param to add message
-        if query.aggregation_duration == TimeFrequencyEnum.NONE:
+        if query.aggregation_duration[0] == AggregationDurationEnum.NONE:
             synthesis_messages.append(
-                f"USGS Instantaneous Values service does not support statistics and cannot be specified when aggregation_duration = {TimeFrequencyEnum.NONE}. Specified statistic arguments will be ignored.")
+                f"USGS Instantaneous Values service does not support statistics and cannot be specified when aggregation_duration = {AggregationDurationEnum.NONE}. Specified statistic arguments will be ignored.")
             logger.info(
-                f"USGS Instantaneous Values service does not support statistics and cannot be specified when aggregation_duration = {TimeFrequencyEnum.NONE}. Specified statistic arguments will be ignored.")
+                f"USGS Instantaneous Values service does not support statistics and cannot be specified when aggregation_duration = {AggregationDurationEnum.NONE}. Specified statistic arguments will be ignored.")
         else:
-            for stat in query.statistic:
-                sythesized_stat = USGS_STATISTIC_MAP.get(stat)
-                if not sythesized_stat:
-                    synthesis_messages.append(f"USGS Daily Values service does not support statistic {stat}")
-                    logger.info(f"USGS Daily Values service does not support statistic {stat}")
-                else:
-                    statistics.append(sythesized_stat)
-            search_params.append(("statCd", ",".join(statistics)))
+            search_params.append(("statCd", ",".join([str(o) for o in query.statistic])))
+
     else:
         search_params.append(("siteStatus", "all"))
 
@@ -167,7 +148,7 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
     # Request the data points, calls IV or DV depending on aggregation duration passed in param
     # Default to DV service if aggregation duration is DAY or when nothing is specified
     # Calls IV service in aggregation duration is NONE
-    endpoint = query.aggregation_duration == TimeFrequencyEnum.NONE and "iv" or "dv"
+    endpoint = query.aggregation_duration[0] == AggregationDurationEnum.NONE and "iv" or "dv"
     response = get_url(f'{{}}{endpoint}'.format(view.datasource.location), params=search_params)
 
     if response.status_code == 200:
@@ -275,7 +256,7 @@ def _load_point_obj(datasource, json_obj, observed_property_variables, synthesis
             )],
             # geographical_group_id=huc_accounting_unit_id,
             # geographical_group_type=FeatureTypeEnum.REGION,
-            observed_property_variables=mf_opv,
+            observed_properties=mf_opv,
             coordinates=Coordinate(
                 absolute=AbsoluteCoordinate(
                     horizontal_position=GeographicCoordinate(
@@ -311,7 +292,8 @@ def _parse_sites_response(usgs_site_response):
         param, site, stat = v['parm_cd'], v['site_no'], v['stat_cd']
         observed_properties_variables.setdefault(site, [])
 
-        if param not in observed_properties_variables[site] and map_statistic_code(stat) != 'NOT_SUPPORTED':
+        # FIX: stat -- need to change to B3D vocab
+        if param not in observed_properties_variables[site] and stat != 'NOT_SUPPORTED':
             observed_properties_variables[site].append(param)
         if site not in unique_usgs_sites:
             unique_usgs_sites[site] = v
@@ -532,7 +514,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                 shape=SpatialSamplingShapes.SHAPE_SURFACE,
                 coordinates=None,
                 related_sampling_feature_complex=related_sampling_feature_complex,
-                observed_property_variables=None)
+                observed_properties=None)
         return result
 
 
@@ -552,46 +534,26 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
     --------------------- --- ------------------------------------------------------------------------------------
     Instantaneous Values  >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
     ===================== === ====================================================================================
+
+    Daily Value and Instantaneous Value Qualification Code (dv_rmk_cd)
+
+    =============  =========  ================================================================================
+    BASIN-3D Code  USGS Code  Description
+    =============  =========  ================================================================================
+    ESTIMATED      e          Value has been edited or estimated by USGS personnel and is write protected
+    NOT_SUPPORTED  &          Value was computed from affected unit values
+    ESTIMATED      E          Value was computed from estimated unit values.
+    VALIDATED      A          Approved for publication -- Processing and review completed.
+    UNVALIDATED    P          Provisional data subject to revision.
+    NOT_SUPPORTED  <          The value is known to be less than reported value and is write protected.
+    NOT_SUPPORTED  >          The value is known to be greater than reported value and is write protected.
+    NOT_SUPPORTED  1          Value is write protected without any remark code to be printed
+    NOT_SUPPORTED  2          Remark is write protected without any remark code to be printed
+    NOT_SUPPORTED  _          No remark (blank)
+    =============  =========  ================================================================================
     """
 
     synthesis_model_class = MeasurementTimeseriesTVPObservation
-
-    def map_result_quality(self, qualifiers):
-        """
-        Daily Value and Instantaneous Value Qualification Code (dv_rmk_cd)
-
-        =============  =========  ================================================================================
-        BASIN-3D Code  USGS Code  Description
-        =============  =========  ================================================================================
-        ESTIMATED      e          Value has been edited or estimated by USGS personnel and is write protected
-        NOT_SUPPORTED  &          Value was computed from affected unit values
-        ESTIMATED      E          Value was computed from estimated unit values.
-        VALIDATED      A          Approved for publication -- Processing and review completed.
-        UNVALIDATED    P          Provisional data subject to revision.
-        NOT_SUPPORTED  <          The value is known to be less than reported value and is write protected.
-        NOT_SUPPORTED  >          The value is known to be greater than reported value and is write protected.
-        NOT_SUPPORTED  1          Value is write protected without any remark code to be printed
-        NOT_SUPPORTED  2          Remark is write protected without any remark code to be printed
-        NOT_SUPPORTED  _          No remark (blank)
-        =============  =========  ================================================================================
-
-        :param qualifiers:
-        :return:
-        """
-        if "A" in qualifiers:
-            return ResultQualityEnum.VALIDATED
-        elif "P" in qualifiers:
-            return ResultQualityEnum.UNVALIDATED
-        elif "E" in qualifiers or "e" in qualifiers:
-            return ResultQualityEnum.ESTIMATED
-        else:
-            return ResultQualityEnum.NOT_SUPPORTED
-
-    def get_result_qualifiers(self, qualifiers):
-        timeseries_qualifiers = set()
-        for qualifier in qualifiers:
-            timeseries_qualifiers.add(self.map_result_quality(qualifier["qualifierCode"]))
-        return timeseries_qualifiers
 
     def list(self, query: QueryMeasurementTimeseriesTVP):
         """
@@ -657,10 +619,10 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 # ToDo: log message
                 monitoring_feature = None
 
-            # deal with statistic
-            basin3d_statistic = "NOT_SET"
-            if statistic:
-                basin3d_statistic = map_statistic_code(statistic)
+            # # deal with statistic
+            # basin3d_statistic = "NOT_SET"
+            # if statistic:
+            #     basin3d_statistic = map_statistic_code(statistic)
 
             result_TVPs = []
             result_TVP_quality = []
@@ -678,7 +640,12 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
                 for value in values["value"]:
 
-                    result_point_quality = self.map_result_quality(value['qualifiers'])
+                    if len(value['qualifiers']) > 1:
+                        #ToDo: add some error messaging.
+                        pass
+
+                    # result_point_quality = self.map_result_quality(value['qualifiers'])
+                    result_point_quality = value['qualifiers'][0]
 
                     if not query.result_quality or result_point_quality in query.result_quality:
 
@@ -723,12 +690,12 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 feature_of_interest_type=FeatureTypeEnum.POINT,
                 feature_of_interest=monitoring_feature,
                 utc_offset=int(timezone_offset.split(":")[0]),
-                result=ResultListTVP(value=result_TVPs, quality=result_TVP_quality),
-                observed_property_variable=parameter,
+                result=ResultListTVP(plugin_access=self, value=result_TVPs, quality=result_TVP_quality),
+                observed_property=parameter,
                 result_quality=list(result_quality),
-                aggregation_duration=query.aggregation_duration,
+                aggregation_duration=query.aggregation_duration[0],
                 time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,
-                statistic=basin3d_statistic
+                statistic=statistic
             )
 
             yield measurement_timeseries_tvp_observation

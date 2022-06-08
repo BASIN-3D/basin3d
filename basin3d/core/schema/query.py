@@ -20,7 +20,7 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from basin3d.core.schema.enum import FeatureTypeEnum, MessageLevelEnum, ResultQualityEnum, StatisticEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, MessageLevelEnum, ResultQualityEnum, SamplingMediumEnum, StatisticEnum, AggregationDurationEnum
 
 
 def _to_camelcase(string) -> str:
@@ -38,6 +38,8 @@ class QueryBase(BaseModel):
 
     datasource: Optional[List[str]] = Field(title="Datasource Identifiers",
                                             description="List of datasource identifiers to query by.")
+    is_valid_translated_query: Union[None, bool] = Field(default=None, title="Valid translated query",
+                                                         description="Indicates whether the translated query is valid: None = is not translated")
 
     def __init__(self, **data):
         """
@@ -60,6 +62,14 @@ class QueryBase(BaseModel):
         use_enum_values = True
         # Validate all fields when initialized
         validate_all = True
+
+    def get_mapped_fields(self) -> list:
+        """Get the query fields that have mappings. Subclasses may overwrite this base function"""
+        return []
+
+    def get_prefixed_fields(self) -> list:
+        """Get the query fields that have prefixes. Subclasses may overwrite ths base function"""
+        return []
 
 
 class QueryById(QueryBase):
@@ -95,21 +105,29 @@ class QueryMonitoringFeature(QueryBase):
                 data[field] = isinstance(data[field], str) and data[field].upper() or data[field]
         super().__init__(**data)
 
+    def get_prefixed_fields(self) -> list:
+        return ['monitoring_features', 'parent_features']
+
 
 class QueryMeasurementTimeseriesTVP(QueryBase):
     """Query :class:`basin3d.core.models.MeasurementTimeseriesTVP`"""
-    aggregation_duration: Optional[TimeFrequencyEnum] = Field(default='DAY', title="Aggregation Duration",
-                                                              description="Filter by the specified time frequency")
+    # required
     monitoring_features: List[str] = Field(min_items=1, title="Monitoring Features",
                                            description="Filter by the list of monitoring feature identifiers")
     observed_property_variables: List[str] = Field(min_items=1, title="Observed Property Variables",
                                                    description="Filter by the list of observed property variables")
     start_date: date = Field(title="Start Date", description="Filter by data taken on or after the start date")
+
+    # optional
+    aggregation_duration: AggregationDurationEnum = Field(default='DAY', title="Aggregation Duration",
+                                                    description="Filter by the specified aggregation duration or time frequency")
     end_date: Optional[date] = Field(title="End Date", description="Filter by data taken on or before the end date")
     statistic: Optional[List[StatisticEnum]] = Field(title="Statistic",
                                                      description="Return specified statistics, if they exist.")
     result_quality: Optional[List[ResultQualityEnum]] = Field(title="Result Quality",
                                                               description="Filter by specified result qualities")
+    sampling_medium: Optional[List[SamplingMediumEnum]] = Field(title="Sampling Medium",
+                                                                description="Filter results by specified sampling medium")
 
     def __init__(self, **data):
         """
@@ -120,10 +138,31 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
 
         # convert strings to lists for some fields
         for field in ["monitoring_features", "observed_property_variables", "monitoringFeatures",
-                      "observedPropertyVariables"]:
+                      "observedPropertyVariables", "statistic", "result_quality", "sampling_medium"]:
             if field in data and data[field] and isinstance(data[field], str):
                 data[field] = list([data[field]])
+
+        data = self.__validate__(**data)
+
         super().__init__(**data)
+
+    @staticmethod
+    def __validate__(**data):
+        """
+        Valiate
+        :return:
+        """
+        if 'aggregation_duration' in data and data['aggregation_duration'] is None:
+            del data['aggregation_duration']
+        return data
+
+    def get_mapped_fields(self) -> list:
+        # observed_property_variables is first b/c it is most likely to have compound mappings.
+        # ToDo: check how order may affect translation (see core/synthesis)
+        return ['observed_property_variables', 'aggregation_duration', 'statistic', 'result_quality', 'sampling_medium']
+
+    def get_prefixed_fields(self) -> list:
+        return ['monitoring_features']
 
 
 class SynthesisMessage(BaseModel):
@@ -148,6 +187,7 @@ class SynthesisMessage(BaseModel):
         use_enum_values = True
         # Validate all fields when initialized
         validate_all = True
+
 
 class SynthesisResponse(BaseModel):
     """BASIN-3D Synthesis Response """

@@ -20,8 +20,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "observed_property_variables": [],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": TimeFrequencyEnum.DAY,
-        "results_quality": ResultQualityEnum.VALIDATED
+        "aggregation_duration": "DAY",
+        "results_quality": "VALIDATED"
     }
 
     with pytest.raises(ValidationError):
@@ -32,8 +32,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "observed_property_variables": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": TimeFrequencyEnum.DAY,
-        "results_quality": ResultQualityEnum.VALIDATED
+        "aggregation_duration": "DAY",
+        "results_quality": "VALIDATED"
     }
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
 
@@ -51,8 +51,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "observed_property_variables": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": TimeFrequencyEnum.DAY,
-        "results_quality": ResultQualityEnum.VALIDATED
+        "aggregation_duration": "DAY",
+        "results_quality": "VALIDATED"
     }
 
     with pytest.raises(ValidationError):
@@ -64,7 +64,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
         "statistic": ["MEAN"],
-        "results_quality": ResultQualityEnum.VALIDATED
+        "results_quality": "VALIDATED"
     }
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query3)
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
@@ -134,7 +134,7 @@ def test_usgs_monitoring_feature(query, feature_type):
                                                    ({"feature_type": "point"}, 0),
                                                    ({"monitoring_features": ["USGS-09129600"], "feature_type": "point"}, 1),
                                                    ({"parent_features": ['USGS-02']}, 118),
-                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 52),
+                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 53),
                                                    ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
                                                    ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
                          ids=["all", "region_by_id", "region", "subregion",

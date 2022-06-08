@@ -20,6 +20,7 @@ def get_url(data, status=200):
     """
     Creates a get_url call for mocking with the specified return data
     :param data:
+    :param status:
     :return:
     """
     return type('Dummy', (object,), {
@@ -32,6 +33,7 @@ def get_url_text(text, status=200):
     """
     Creates a get_url_text call for mocking with the specified return data
     :param text:
+    :param status:
     :return:
     """
 
@@ -77,9 +79,9 @@ def test_measurement_timeseries_tvp_observations_usgs_errors(additional_query_pa
                           # all-data-filtered
                           ({"monitoring_features": ["USGS-09110990"], "observed_property_variables": ["WT"], "result_quality": [ResultQualityEnum.REJECTED]},
                            "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json",
-                           {"statistic": StatisticEnum.MEAN, "result_quality": [], "count": 1, "synthesis_msgs": ['09110000 - 00010: 4 timestamps did not match data quality query.', '09110000 had no valid data values for 00010 that match the query.']})
+                           {"count": 0, "synthesis_msgs": []})
                          ],
-                         ids=['all-good', 'some-quality-filtered-data', 'all-data-filtered'])
+                         ids=['all-good', 'some-quality-filtered-data', 'missing-mapping'])
 def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_response, expected_results, monkeypatch):
     """ Test USGS Timeseries data query"""
 
@@ -104,8 +106,9 @@ def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_r
         for timeseries in measurement_timeseries_tvp_observations:
             data = json.loads(timeseries.to_json())
             count += 1
-            assert data["statistic"] == expected_results.get("statistic")
-            assert data["result_quality"] == expected_results.get("result_quality")
+            assert data["statistic"]["attr_mapping"]["basin3d_vocab"] == expected_results.get("statistic")
+            for idx, result_quality in enumerate(data["result_quality"]):
+                assert result_quality["attr_mapping"]["basin3d_vocab"] == expected_results.get("result_quality")[idx]
         assert count == expected_results.get("count")
         if expected_results.get('synthesis_msgs'):
             expected_msgs = expected_results.get('synthesis_msgs')

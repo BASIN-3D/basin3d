@@ -19,6 +19,10 @@ from enum import Enum
 
 from basin3d.core.types import SpatialSamplingShapes
 
+MAPPING_DELIMITER = ':'
+NO_MAPPING_TEXT = 'NOT_SUPPORTED'
+
+
 class BaseEnum(Enum):
     """Base Enumeration Class that adds some helper methods"""
 
@@ -30,6 +34,17 @@ class BaseEnum(Enum):
     @classmethod
     def names(cls):
         return cls._member_names_
+
+
+class MappedAttributeEnum(str, BaseEnum):
+    """
+    Enumeration for mapped attributes
+    """
+    OBSERVED_PROPERTY = 'OBSERVED_PROPERTY'
+    AGGREGATION_DURATION = 'AGGREGATION_DURATION'
+    RESULT_QUALITY = 'RESULT_QUALITY'
+    SAMPLING_MEDIUM = 'SAMPLING_MEDIUM'
+    STATISTIC = 'STATISTIC'
 
 
 class TimeFrequencyEnum(str, BaseEnum):
@@ -45,6 +60,33 @@ class TimeFrequencyEnum(str, BaseEnum):
     MINUTE = "MINUTE"
     SECOND = "SECOND"
     NONE = "NONE"
+    NOT_SUPPORTED = NO_MAPPING_TEXT
+
+
+class AggregationDurationEnum(str, BaseEnum):
+    """
+    Aggregation Duration enums
+    """
+    #: Observations aggregated by year
+    YEAR = TimeFrequencyEnum.YEAR.value
+
+    #: Observations aggregated by month
+    MONTH = TimeFrequencyEnum.MONTH.value
+
+    #: Observations aggregated by day
+    DAY = TimeFrequencyEnum.DAY.value
+
+    #: Observations aggregated by hour
+    HOUR = TimeFrequencyEnum.HOUR.value
+
+    #: Observations aggregated by minute
+    MINUTE = TimeFrequencyEnum.MINUTE.value
+
+    #: Observations aggregated by second
+    SECOND = TimeFrequencyEnum.SECOND.value
+
+    #: Observations aggregated by no standard frequency, used for instantaneous values
+    NONE = TimeFrequencyEnum.NONE.value
 
 
 class FeatureTypeEnum(str, BaseEnum):
@@ -92,7 +134,7 @@ class ResultQualityEnum(str, BaseEnum):
     ESTIMATED = "ESTIMATED"
 
     #: The quality type is not supported
-    NOT_SUPPORTED = "NOT_SUPPORTED"
+    NOT_SUPPORTED = NO_MAPPING_TEXT
 
 
 class StatisticEnum(str, BaseEnum):
@@ -102,6 +144,19 @@ class StatisticEnum(str, BaseEnum):
     MIN = "MIN"
     MAX = "MAX"
     TOTAL = "TOTAL"
+    NOT_SUPPORTED = NO_MAPPING_TEXT
+
+
+class SamplingMediumEnum(str, BaseEnum):
+    """
+    Types of sampling mediums for Observed Properties
+    """
+    SOLID_PHASE = "SOLID_PHASE"
+    WATER = "WATER"
+    GAS = "GAS"
+    OTHER = "OTHER"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    NOT_SUPPORTED = NO_MAPPING_TEXT
 
 
 class MessageLevelEnum(str, BaseEnum):
@@ -110,3 +165,21 @@ class MessageLevelEnum(str, BaseEnum):
     WARN = "WARN"
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
+
+
+def set_mapped_attribute_enum_type(attr_type: str):
+    """
+    Return the enum type for the specified MappedAttributeEnum.
+    :param attr_type: MappedAttributeEnum
+    :return: the type's Enum
+    """
+    if attr_type == MappedAttributeEnum.AGGREGATION_DURATION:
+        return AggregationDurationEnum
+    elif attr_type == MappedAttributeEnum.RESULT_QUALITY:
+        return ResultQualityEnum
+    elif attr_type == MappedAttributeEnum.SAMPLING_MEDIUM:
+        return SamplingMediumEnum
+    elif attr_type == MappedAttributeEnum.STATISTIC:
+        return StatisticEnum
+    else:
+        return None

@@ -28,9 +28,9 @@ Get a List of Locations for a Data Source
     :noindex:
 
 
-Get a List of Variables Supported by a BASIN-3D Data Source
+Get a List of Variables Supported by a BASIN-3D
 ------------------------------------------------------------
-.. autofunction:: basin3d.synthesis.DataSynthesizer.observed_property_variables
+.. autofunction:: basin3d.synthesis.DataSynthesizer.observed_properties
     :noindex:
 
 

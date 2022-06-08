@@ -15,12 +15,13 @@
 
 
 """
-from basin3d.core import monitor
+from itertools import repeat
 from types import MethodType
 from typing import Dict
 
+from basin3d.core import monitor
 from basin3d.core.catalog import CatalogTinyDb
-from basin3d.core.models import DataSource
+from basin3d.core.models import DataSource, MappedAttribute
 from basin3d.core.schema.enum import FeatureTypeEnum
 
 logger = monitor.get_logger(__name__)
@@ -63,63 +64,74 @@ class DataSourcePluginAccess:
     def datasource(self):
         return self._datasource
 
-    def get_observed_property(self, variable_name: str):
+    def get_datasource_attribute_mapping(self, attr_type, attr_vocab):
         """
-        Convert the given name to either BASIN-3D from :class:`~basin3d.models.DataSource`
-        variable name or the other way around.
+        Get attribute mapping for the specified attribute type and datasource attribute vocab
 
-        :param variable_name:  The :class:`~basin3d.models.ObservedPropertyVariable`
-             name to convert
-        :return: An observed property variable name
-        :rtype: str
+        :param attr_type: attribute type
+        :param attr_vocab: datasource attribute vocabulary
+        :return: a `basin3d.models.AttributeMapping` object
         """
+        return self._catalog.find_attribute_mapping(self.datasource.id, attr_type, attr_vocab)
 
-        return self._catalog.find_observed_property(self.datasource.id, variable_name)
-
-    def get_observed_properties(self, variable_names):
+    def get_datasource_mapped_attribute(self, attr_type, attr_vocab):
         """
-        Convert the given name to either BASIN-3D from :class:`~basin3d.models.DataSource`
-        variable name or the other way around.
+        Get the `basin3d.models.MappedAttribute` object(s) for the specified attribute type and datasource attribute vocab(s)
 
-        :param variable_names:  The :class:`~basin3d.models.ObservedPropertyVariable`
-             name to convert
-        :return: An observerd proeprty variable name
-        :rtype: str
+        :param attr_type: attribute type
+        :param attr_vocab: datasource attribute vocabulary
+        :return: a single or list of `basin3d.models.MappedAttribute` objects
         """
 
-        return self._catalog.find_observed_properties(self.datasource.id, variable_names)
+        def create_mapped_attribute(a_type, a_mapping):
+            return MappedAttribute(a_type, a_mapping)
 
-    def get_observed_property_variable(self, variable_name, from_basin3d=False):
+        if isinstance(attr_vocab, str):
+            attr_mapping = self.get_datasource_attribute_mapping(attr_type, attr_vocab)
+            return create_mapped_attribute(attr_type, attr_mapping)
+
+        elif isinstance(attr_vocab, list):
+            mapping_attrs = list(map(self.get_datasource_attribute_mapping, repeat(attr_type), attr_vocab))
+            return list(map(create_mapped_attribute, repeat(attr_type), mapping_attrs))
+
+    def get_attribute_mappings(self, attr_type=None, attr_vocab=None, from_basin3d=False):
         """
-        Convert the given name to either BASIN-3D from :class:`~basin3d.models.DataSource`
-        variable name or the other way around.
-
-        :param variable_name:  The :class:`~basin3d.models.ObservedPropertyVariable`
-             name to convert
-        :param: from_basin3d: boolean that says whether the variable name is a
-            BASIN-3D variable. If not, then this a datasource variable name.
-        :type from_basin3d: boolean
-        :return: A variable name
-        :rtype: str
+        General purpose search for attribute mappings from datasource or BASIN-3D vocabularies.
+        Returns an iterator that yields `basin3d.models.MappedAttribute` objects that match the criteria
+        :param attr_type:
+        :param attr_vocab:
+        :param from_basin3d:
+        :return:
         """
+        return self._catalog.find_attribute_mappings(self.datasource.id, attr_type, attr_vocab, from_basin3d)
 
-        return self._catalog.find_observed_property_variable(self.datasource.id, variable_name, from_basin3d)
-
-    def get_observed_property_variables(self, variable_names=None, from_basin3d=False):
+    def get_compound_mapping_attributes(self, attr_type, is_query=True):
         """
-        Convert the given list of names to either BASIN-3D from :class:`~basin3d.models.DataSource`
-        variable name or the other way around.
+        Get other attributes if attr_type is part of compound mapping
 
-        :param variable_names:  The :class:`~basin3d.models.ObservedPropertyVariable`
-             names to convert
-        :type variable_names: iterable
-        :param: from_basin3d: boolean that says whether the variable name is a
-            BASIN-3D variable. If not, then this a datasource variable names.
-        :type from_basin3d: boolean
-        :return: list of variable names
-        :rtype: iterable
+        :param attr_type:
+        :param is_query:
+        :return:
         """
-        return self._catalog.find_observed_property_variables(self.datasource.id, variable_names, from_basin3d)
+        return self._catalog.find_compound_mapping_attributes(self.datasource.id, attr_type, is_query=is_query)
+
+    def get_compound_mapping_str(self):
+        """
+        Get any compound mapping strings for the datasource
+        :return: list, compound mapping strings
+        """
+        return self._catalog.find_compound_mappings(self.datasource.id)
+
+    def get_ds_vocab(self, attr_type, basin3d_vocab, query):
+        """
+        Convert given list of datasource vocabularies (per given attr_type) from the BASIN-3D vocabulary(ies) specified.
+
+        :param attr_type: str, attribute type
+        :param basin3d_vocab: str or list, BASIN-3D vocabularies
+        :param query: QueryBase or subclass or dict, full query
+        :return: list of datasource vocabularies
+        """
+        return self._catalog.find_datasource_vocab(self.datasource.id, attr_type, basin3d_vocab, query)
 
 
 def basin3d_plugin(cls):
