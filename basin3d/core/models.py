@@ -24,9 +24,9 @@ import json
 from collections import namedtuple
 from dataclasses import dataclass, field
 from numbers import Number
-from typing import List
+from typing import List, Union
 
-from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, FeatureTypeEnum, ResultQualityEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, FeatureTypeEnum, ResultQualityEnum, TimeFrequencyEnum, MappedAttributeEnum, StatisticEnum
 from basin3d.core.types import SpatialSamplingShapes
 
 
@@ -134,6 +134,28 @@ class ObservedProperty(JSONSerializable):
 
     def __unicode__(self):
         return self.datasource_variable
+
+
+@dataclass
+class MappedAttribute(JSONSerializable):
+    """
+    General mapping attribute model for 1:1 mappings of enums, etc
+
+    Definitions:
+        - * attr_type: STATISTIC, RESULT_QUALITY
+        - * basin3d_id: the basin3d vocabulary
+        - * datasource_attr_id: the datasource vocabulary
+    """
+    attr_type: MappedAttributeEnum
+    basin3d_id: str  # Figure out if can type: Union[TimeFrequencyEnum, StatisticEnum, ResultQualityEnum]
+    datasource_attr_id: str
+    datasource: DataSource = DataSource()
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self.datasource_attr_id
 
 
 class Base(JSONSerializable):
@@ -1323,24 +1345,9 @@ class MeasurementMetadataMixin(object):
     Metadata attributes for Observations type Measurement
     """
 
-    #: Statistical Instantaneous
-    STATISTIC_INSTANTANEOUS = "INSTANT"
-
-    #: Statistical Mean
-    STATISTIC_MEAN = "MEAN"
-
-    #: Statistical Minimum
-    STATISTIC_MIN = "MIN"
-
-    #: Statistical Maximum
-    STATISTIC_MAX = "MAX"
-
-    #: Statistical Sum
-    STATISTIC_TOTAL = "TOTAL"
-
     def __init__(self, *args, **kwargs):
         self._observed_property_variable: str = None
-        self._statistic: str = None
+        self._statistic: StatisticEnum = None
 
         # Instantiate the serializer superclass
         super(MeasurementMetadataMixin, self).__init__(*args, **kwargs)
@@ -1504,6 +1511,11 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
             basin3d_variable_id = observed_property_variable.basin3d_id
             kwargs['observed_property_variable'] = basin3d_variable_id
             kwargs['observed_property'] = plugin_access.get_observed_property(basin3d_variable_id)
+
+        if 'statistic' in kwargs and kwargs['statistic'] is not None:
+            datasource_attr_id = kwargs['statistic']
+            statistic = plugin_access.get_mapped_attribute(MappedAttributeEnum.STATISTIC, datasource_attr_id)
+            kwargs['statistic'] = statistic.basin3d_id
 
         # Initialize after the attributes have been set
         super(MeasurementTimeseriesTVPObservation, self).__init__(plugin_access, **kwargs)

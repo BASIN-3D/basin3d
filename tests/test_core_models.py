@@ -4,7 +4,7 @@ from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordina
     GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, Observation, ObservedProperty, \
     ObservedPropertyVariable, RelatedSamplingFeature, RepresentativeCoordinate, TimeValuePair, ResultListTVP, \
     VerticalCoordinate, DataSource
-from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum, StatisticEnum
 from basin3d.core.types import SamplingMedium, SpatialSamplingShapes
 
 
@@ -256,7 +256,7 @@ def test_measurement_timeseries_tvp_observation_create(plugin_access_alpha):
     assert obs01.feature_of_interest_type == FeatureTypeEnum.POINT
     assert obs01.aggregation_duration == 'daily'
     assert obs01.time_reference_position == 'start'
-    assert obs01.statistic == 'mean'
+    assert obs01.statistic == StatisticEnum.MEAN
     assert obs01.unit_of_measurement == 'm'
     assert obs01.datasource.id == 'Alpha'
     assert obs01.result.value[0] == TimeValuePair('201802030100', '5.32')

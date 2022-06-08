@@ -362,7 +362,7 @@ REJ = ResultQualityEnum.REJECTED
                             'no_observations_variable': [],
                             'quality_filter_checks': [('A-1__ACT__MEAN', 9, [VAL])]}),
                           ],
-                         ids=[ 'monitoring_features', 'statistic', 'monitoring_feature_and_statistic',
+                         ids=['monitoring_features', 'statistic', 'monitoring_feature_and_statistic',
                               'quality-VALIDATED', 'quality-UNVALIDATED', 'quality-VALIDATED+UNVALIDATED', 'quality-ESTIMATED',
                               'statistic_and_quality: MAX and VALIDATED'])
 def test_get_timeseries_data_filtering(filters, expected_results):

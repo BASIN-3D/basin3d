@@ -121,6 +121,26 @@ class DataSourcePluginAccess:
         """
         return self._catalog.find_observed_property_variables(self.datasource.id, variable_names, from_basin3d)
 
+    def get_mapped_attribute(self, attr_type, attr_id, from_basin3d=False):
+        """
+        Convert attr id of given attr_type to BASIN-3D name or vice versa.
+        :param attr_type:
+        :param attr_id:
+        :param from_basin3d:
+        :return:
+        """
+        return self._catalog.find_mapped_attribute(self.datasource.id, attr_type, attr_id, from_basin3d)
+
+    def get_mapped_attributes(self, attr_type, attr_ids, from_basin3d=False):
+        """
+        Convert given list of attr ids (per given attr_type) to BASIN-3D name or vice versa.
+        :param attr_type:
+        :param attr_ids:
+        :param from_basin3d:
+        :return:
+        """
+        return self._catalog.find_mapped_attributes(self.datasource.id, attr_type, attr_ids, from_basin3d)
+
 
 def basin3d_plugin(cls):
     """Register a BASIN-3D plugin"""

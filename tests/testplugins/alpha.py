@@ -76,7 +76,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
                  [rqe1, rqe2, rqe3]]
     observed_property_variables = ["Acetate", "Acetate", "Aluminum", "Aluminum"]
     units = ['nm', 'nm', 'mg/L', 'mg/L']
-    statistics = ['MEAN', 'MAX', 'MEAN', 'MAX']
+    statistics = ['mean', 'max', 'mean', 'max']
 
     for num in range(1, 5):
         observed_property_variable = observed_property_variables[num - 1]

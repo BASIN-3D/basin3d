@@ -20,7 +20,7 @@ from typing import Iterator, List, Optional
 from basin3d.core import monitor
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
-from basin3d.core.schema.enum import MessageLevelEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import MessageLevelEnum, TimeFrequencyEnum, MappedAttributeEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
 
@@ -434,4 +434,13 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         if synthesized_query.aggregation_duration != TimeFrequencyEnum.NONE:
             synthesized_query.aggregation_duration = TimeFrequencyEnum.DAY
 
+            # Synthesize statistic (from BASIN-3D to DataSource variable name)
+            if query.statistic:
+                synthesized_query.statistic = [o.datasource_attr_id for o in
+                                               plugin_access.get_mapped_attributes(MappedAttributeEnum.STATISTIC, query.statistic, True)]
+
+            # # Synthesize statistic (from BASIN-3D to DataSource variable name)
+            # if query.result_quality:
+            #     synthesized_query.result_quality = [o.datasource_attr_id for o in
+            #                                         plugin_access.get_mapped_attributes(MappedAttributeEnum.RESULT_QUALITY, query.result_quality, True)]
         return synthesized_query

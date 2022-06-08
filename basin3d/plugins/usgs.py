@@ -70,11 +70,11 @@ from basin3d.plugins import usgs_huc_codes
 logger = monitor.get_logger(__name__)
 
 URL_USGS_HUC = "https://water.usgs.gov/GIS/new_huc_rdb.txt"
-USGS_STATISTIC_MAP: Dict = {
-    MeasurementMetadataMixin.STATISTIC_MEAN: '00003',
-    MeasurementMetadataMixin.STATISTIC_MIN: '00002',
-    MeasurementMetadataMixin.STATISTIC_MAX: '00001'
-}
+# USGS_STATISTIC_MAP: Dict = {
+#     MeasurementMetadataMixin.STATISTIC_MEAN: '00003',
+#     MeasurementMetadataMixin.STATISTIC_MIN: '00002',
+#     MeasurementMetadataMixin.STATISTIC_MAX: '00001'
+# }
 
 
 def convert_discharge(data, parameter, units):
@@ -93,11 +93,13 @@ def convert_discharge(data, parameter, units):
     return data, units
 
 
+'''
 def map_statistic_code(stat_cd):
     for k, v in USGS_STATISTIC_MAP.items():
         if stat_cd == v:
             return k
     return 'NOT_SUPPORTED'  # consider making this part of the Mixin Statistic type
+'''
 
 
 def generator_usgs_measurement_timeseries_tvp_observation(view,
@@ -131,7 +133,6 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
     search_params.append(("parameterCd", ",".join([str(o) for o in query.observed_property_variables])))
 
     if query.statistic:
-        statistics: List[str] = []
         # if aggregation duration is NONE (iv) and there is a query that has a stat param, clear the statistics list
         # add warning message to user, but there are no statistic values for IV call. need synthesis param to add message
         if query.aggregation_duration == TimeFrequencyEnum.NONE:
@@ -140,14 +141,8 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
             logger.info(
                 f"USGS Instantaneous Values service does not support statistics and cannot be specified when aggregation_duration = {TimeFrequencyEnum.NONE}. Specified statistic arguments will be ignored.")
         else:
-            for stat in query.statistic:
-                sythesized_stat = USGS_STATISTIC_MAP.get(stat)
-                if not sythesized_stat:
-                    synthesis_messages.append(f"USGS Daily Values service does not support statistic {stat}")
-                    logger.info(f"USGS Daily Values service does not support statistic {stat}")
-                else:
-                    statistics.append(sythesized_stat)
-            search_params.append(("statCd", ",".join(statistics)))
+            search_params.append(("statCd", ",".join([str(o) for o in query.statistic])))
+
     else:
         search_params.append(("siteStatus", "all"))
 
@@ -311,7 +306,8 @@ def _parse_sites_response(usgs_site_response):
         param, site, stat = v['parm_cd'], v['site_no'], v['stat_cd']
         observed_properties_variables.setdefault(site, [])
 
-        if param not in observed_properties_variables[site] and map_statistic_code(stat) != 'NOT_SUPPORTED':
+        # FIX: stat -- need to change to B3D vocab
+        if param not in observed_properties_variables[site] and stat != 'NOT_SUPPORTED':
             observed_properties_variables[site].append(param)
         if site not in unique_usgs_sites:
             unique_usgs_sites[site] = v
@@ -657,10 +653,10 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 # ToDo: log message
                 monitoring_feature = None
 
-            # deal with statistic
-            basin3d_statistic = "NOT_SET"
-            if statistic:
-                basin3d_statistic = map_statistic_code(statistic)
+            # # deal with statistic
+            # basin3d_statistic = "NOT_SET"
+            # if statistic:
+            #     basin3d_statistic = map_statistic_code(statistic)
 
             result_TVPs = []
             result_TVP_quality = []
@@ -728,7 +724,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 result_quality=list(result_quality),
                 aggregation_duration=query.aggregation_duration,
                 time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,
-                statistic=basin3d_statistic
+                statistic=statistic
             )
 
             yield measurement_timeseries_tvp_observation

@@ -52,7 +52,8 @@ setup(name='basin3d',
       url='https://github.com/BASIN-3D/basin3d',
       packages=packages,
       data_files=['basin3d/data/basin3d_variables_hydrology.csv',
-                  'basin3d/plugins/mapping_usgs.csv'],
+                  'basin3d/plugins/usgs_variables.csv',
+                  'basin3d/plugins/usgs_statistic.csv'],
       include_package_data=True,
       install_requires=required
       )

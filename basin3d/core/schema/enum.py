@@ -43,6 +43,16 @@ class BaseEnum(Enum):
         return cls._member_names_
 
 
+class MappedAttributeEnum(str, BaseEnum):
+    """
+    Enumeration for attributes
+    """
+    TIME_FREQUENCY = 'TIME_FREQUENCY'
+    STATISTIC = 'STATISTIC'
+    RESULT_QUALITY = 'RESULT_QUALITY'
+    # ToDo: see if we can add FeatureType
+
+
 class TimeFrequencyEnum(str, BaseEnum):
     """
     Enumeration for time frequencies
@@ -56,6 +66,7 @@ class TimeFrequencyEnum(str, BaseEnum):
     MINUTE = "MINUTE"
     SECOND = "SECOND"
     NONE = "NONE"
+    NOT_SUPPORTED = 'NOT_SUPPORTED'
 
 
 class FeatureTypeEnum(str, BaseEnum):
@@ -113,6 +124,7 @@ class StatisticEnum(str, BaseEnum):
     MIN = "MIN"
     MAX = "MAX"
     TOTAL = "TOTAL"
+    NOT_SUPPORTED = 'NOT_SUPPORTED'
 
 
 class MessageLevelEnum(str, BaseEnum):
