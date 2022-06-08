@@ -48,6 +48,10 @@ API Reference
     :members:
     :undoc-members:
 
+.. automodule:: basin3d.core.translate
+    :members:
+    :undoc-members:
+
 .. automodule:: basin3d.core.types
     :members:
     :undoc-members:

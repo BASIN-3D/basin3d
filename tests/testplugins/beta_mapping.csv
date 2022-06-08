@@ -1,0 +1,3 @@
+attr_type,basin3d_vocab,datasource_vocab,datasource_desc
+STAT,MIN,min,
+STATISTIC,MAXIMUM,max

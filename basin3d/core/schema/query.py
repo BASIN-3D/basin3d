@@ -16,11 +16,11 @@
 
 """
 from datetime import date
-from typing import List, Optional, Union
+from typing import ClassVar, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from basin3d.core.schema.enum import FeatureTypeEnum, MessageLevelEnum, ResultQualityEnum, StatisticEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, MessageLevelEnum, ResultQualityEnum, SamplingMediumEnum, StatisticEnum, AggregationDurationEnum
 
 
 def _to_camelcase(string) -> str:
@@ -38,6 +38,8 @@ class QueryBase(BaseModel):
 
     datasource: Optional[List[str]] = Field(title="Datasource Identifiers",
                                             description="List of datasource identifiers to query by.")
+    is_valid_translated_query: Union[None, bool] = Field(default=None, title="Valid translated query",
+                                                         description="Indicates whether the translated query is valid: None = is not translated")
 
     def __init__(self, **data):
         """
@@ -61,6 +63,12 @@ class QueryBase(BaseModel):
         # Validate all fields when initialized
         validate_all = True
 
+    # Get the query fields that have mappings. Subclasses may overwrite this base function
+    mapped_fields: ClassVar[List[str]] = []
+
+    # Get the query fields that have prefixes. Subclasses may overwrite ths base function
+    prefixed_fields: ClassVar[List[str]] = []
+
 
 class QueryById(QueryBase):
     """Query for a single data object by identifier"""
@@ -72,10 +80,10 @@ class QueryMonitoringFeature(QueryBase):
     """Query :class:`basin3d.core.models.MonitoringFeature`"""
     feature_type: Optional[FeatureTypeEnum] = Field(title="Feature Type",
                                                     description="Filter results by the specified feature type.")
-    monitoring_features: Optional[List[str]] = Field(title="Monitoring Features",
-                                                     description="Filter by the list of monitoring feature identifiers")
-    parent_features: Optional[List[str]] = Field(title="Parent Monitoring Features",
-                                                 description="Filter by the list of parent monitoring feature identifiers")
+    monitoring_feature: Optional[List[str]] = Field(title="Monitoring Features",
+                                                    description="Filter by the list of monitoring feature identifiers")
+    parent_feature: Optional[List[str]] = Field(title="Parent Monitoring Features",
+                                                description="Filter by the list of parent monitoring feature identifiers")
 
     def __init__(self, **data):
         """
@@ -84,8 +92,8 @@ class QueryMonitoringFeature(QueryBase):
         :param data: the data
         """
 
-        # convert strings to lists for some fields
-        for field in ["monitoring_features", "parent_features", "monitoringFeatures", "parentFeatures"]:
+        # convert strings to lists for some fields; the camel case is for Pydantic validation
+        for field in ["monitoring_feature", "monitoringFeature", "parent_feature", "parentFeature"]:
             if field in data and data[field] and isinstance(data[field], str):
                 data[field] = list([data[field]])
 
@@ -95,21 +103,28 @@ class QueryMonitoringFeature(QueryBase):
                 data[field] = isinstance(data[field], str) and data[field].upper() or data[field]
         super().__init__(**data)
 
+    prefixed_fields: ClassVar[List[str]] = ['monitoring_feature', 'parent_feature']
+
 
 class QueryMeasurementTimeseriesTVP(QueryBase):
     """Query :class:`basin3d.core.models.MeasurementTimeseriesTVP`"""
-    aggregation_duration: Optional[TimeFrequencyEnum] = Field(default='DAY', title="Aggregation Duration",
-                                                              description="Filter by the specified time frequency")
-    monitoring_features: List[str] = Field(min_items=1, title="Monitoring Features",
-                                           description="Filter by the list of monitoring feature identifiers")
-    observed_property_variables: List[str] = Field(min_items=1, title="Observed Property Variables",
-                                                   description="Filter by the list of observed property variables")
+    # required
+    monitoring_feature: List[str] = Field(min_items=1, title="Monitoring Features",
+                                          description="Filter by the list of monitoring feature identifiers")
+    observed_property: List[str] = Field(min_items=1, title="Observed Property Variables",
+                                         description="Filter by the list of observed property variables")
     start_date: date = Field(title="Start Date", description="Filter by data taken on or after the start date")
+
+    # optional
+    aggregation_duration: AggregationDurationEnum = Field(default='DAY', title="Aggregation Duration",
+                                                          description="Filter by the specified aggregation duration or time frequency")
     end_date: Optional[date] = Field(title="End Date", description="Filter by data taken on or before the end date")
     statistic: Optional[List[StatisticEnum]] = Field(title="Statistic",
                                                      description="Return specified statistics, if they exist.")
     result_quality: Optional[List[ResultQualityEnum]] = Field(title="Result Quality",
                                                               description="Filter by specified result qualities")
+    sampling_medium: Optional[List[SamplingMediumEnum]] = Field(title="Sampling Medium",
+                                                                description="Filter results by specified sampling medium")
 
     def __init__(self, **data):
         """
@@ -118,12 +133,30 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
         :param data: the data
         """
 
-        # convert strings to lists for some fields
-        for field in ["monitoring_features", "observed_property_variables", "monitoringFeatures",
-                      "observedPropertyVariables"]:
+        # convert strings to lists for some fields; the camel case are for Pydantic validation (don't delete)
+        for field in ["monitoring_feature", "monitoringFeature", "observed_property", "observedProperty",
+                      "statistic", "result_quality", "sampling_medium"]:
             if field in data and data[field] and isinstance(data[field], str):
                 data[field] = list([data[field]])
+
+        data = self.__validate__(**data)
+
         super().__init__(**data)
+
+    @staticmethod
+    def __validate__(**data):
+        """
+        Valiate
+        :return:
+        """
+        if 'aggregation_duration' in data and data['aggregation_duration'] is None:
+            del data['aggregation_duration']
+        return data
+
+    # observed_property_variables is first b/c it is most likely to have compound mappings.
+    # ToDo: check how order may affect translation (see core/synthesis)
+    mapped_fields: ClassVar[List[str]] = ['observed_property', 'aggregation_duration', 'statistic', 'result_quality', 'sampling_medium']
+    prefixed_fields: ClassVar[List[str]] = ['monitoring_feature']
 
 
 class SynthesisMessage(BaseModel):
@@ -148,6 +181,7 @@ class SynthesisMessage(BaseModel):
         use_enum_values = True
         # Validate all fields when initialized
         validate_all = True
+
 
 class SynthesisResponse(BaseModel):
     """BASIN-3D Synthesis Response """

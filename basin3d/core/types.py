@@ -34,18 +34,3 @@ class SpatialSamplingShapes(object):
 
     #: The shape of a spatially extensive sampling feature which provides a complete sampling domain.
     SHAPE_POINT = "POINT"
-
-
-class SamplingMedium:
-    """
-    Types of sampling mediums for Observed Properties
-    """
-
-    SOLID_PHASE = "SOLID PHASE"
-    WATER = "WATER"
-    GAS = "GAS"
-    OTHER = "OTHER"
-    NOT_APPLICABLE = "N/A"
-    SAMPLING_MEDIUMS = [WATER, GAS, SOLID_PHASE, OTHER, NOT_APPLICABLE]
-
-
