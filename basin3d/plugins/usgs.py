@@ -6,16 +6,16 @@
 .. currentmodule:: basin3d.plugins.usgs
 
 :platform: Unix, Mac
-:synopsis: USGS Daily Values Plugin Definition and supporting views.
+:synopsis: USGS Daily Values and Instantaneous Values Plugin Definition and supporting views.
 :module author: Val Hendrix <vhendrix@lbl.gov>
 
 
-* :class:`USGSDataSourcePlugin` - This Data Source plugin maps the USGS Daily Values Data Source to the
+* :class:`USGSDataSourcePlugin` - This Data Source plugin maps the USGS Daily Values and Instantaneous Values Data Source to the
     BASIN-3D Models
 
 USGS to BASIN-3D Mapping
 ++++++++++++++++++++++++
-The table below describes how BASIN-3D synthesis models are mapped to the USGS Daily Values Source
+The table below describes how BASIN-3D synthesis models are mapped to the USGS Daily Values and Instantaneous Source
 models.
 
 =================== === ==================================================================================
@@ -23,7 +23,11 @@ USGS NWIS               BASIN-3D
 =================== === ==================================================================================
 ``nwis/dv``         >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
 ------------------- --- ----------------------------------------------------------------------------------
+``nwis/iv``         >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
+------------------- --- ----------------------------------------------------------------------------------
 ``nwis/sites``      >>  :class:`basin3d.synthesis.models.field.MonitoringFeature`
+------------------- --- ----------------------------------------------------------------------------------
+``nwis/huc``        >>  :class:`basin3d.synthesis.models.field.MonitoringFeature`
 ------------------- --- ----------------------------------------------------------------------------------
 ``new_huc_rdb.txt`` >>  :class:`basin3d.synthesis.models.field.MonitoringFeature`
                          * Region to Region
@@ -46,6 +50,7 @@ The following are the access classes that map *USGS Data Source API* to the *BAS
 ---------------------
 """
 import json
+
 from basin3d.core import monitor
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -57,7 +62,7 @@ from basin3d.core.schema.query import FeatureTypeEnum, QueryById, QueryMeasureme
 from basin3d.core.access import get_url
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, GeographicCoordinate, \
     MeasurementMetadataMixin, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
-    TimeMetadataMixin, TimeValuePair, ResultListTVP
+    TimeMetadataMixin, TimeValuePair, TimeFrequencyEnum, ResultListTVP
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin
 from basin3d.core.types import SpatialSamplingShapes
 from basin3d.plugins import usgs_huc_codes
@@ -99,12 +104,14 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
                                                           query: QueryMeasurementTimeseriesTVP,
                                                           synthesis_messages):
     """
-    Get the Data Points for USGS Daily Values
+    Get the Data Points for USGS Daily Values or Instantaneous Values
 
     =================== === ===================
     USGS NWIS               BASIN-3D
     =================== === ===================
     ``nwis/dv``          >> ``data_points/``
+    ------------------- --- -------------------
+    ``nwis/iv``          >> ``data_points/``
     =================== === ===================
 
     :param view: The request object ( Please refer to the Django documentation ).
@@ -125,14 +132,22 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
 
     if query.statistic:
         statistics: List[str] = []
-        for stat in query.statistic:
-            sythesized_stat = USGS_STATISTIC_MAP.get(stat)
-            if not sythesized_stat:
-                synthesis_messages.append(f"USGS Daily Values service does not support statistic {stat}")
-                logger.info(f"USGS Daily Values service does not support statistic {stat}")
-            else:
-                statistics.append(sythesized_stat)
-        search_params.append(("statCd", ",".join(statistics)))
+        # if aggregation duration is NONE (iv) and there is a query that has a stat param, clear the statistics list
+        # add warning message to user, but there are no statistic values for IV call. need synthesis param to add message
+        if query.aggregation_duration == TimeFrequencyEnum.NONE:
+            synthesis_messages.append(
+                f"USGS Instantaneous Values service does not support statistics and cannot be specified when aggregation_duration = {TimeFrequencyEnum.NONE}. Specified statistic arguments will be ignored.")
+            logger.info(
+                f"USGS Instantaneous Values service does not support statistics and cannot be specified when aggregation_duration = {TimeFrequencyEnum.NONE}. Specified statistic arguments will be ignored.")
+        else:
+            for stat in query.statistic:
+                sythesized_stat = USGS_STATISTIC_MAP.get(stat)
+                if not sythesized_stat:
+                    synthesis_messages.append(f"USGS Daily Values service does not support statistic {stat}")
+                    logger.info(f"USGS Daily Values service does not support statistic {stat}")
+                else:
+                    statistics.append(sythesized_stat)
+            search_params.append(("statCd", ",".join(statistics)))
     else:
         search_params.append(("siteStatus", "all"))
 
@@ -149,9 +164,11 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
     # JSON format
     search_params.append(("format", "json"))
 
-    # Request the data points
-    response = get_url('{}dv'.format(view.datasource.location),
-                       params=search_params)
+    # Request the data points, calls IV or DV depending on aggregation duration passed in param
+    # Default to DV service if aggregation duration is DAY or when nothing is specified
+    # Calls IV service in aggregation duration is NONE
+    endpoint = query.aggregation_duration == TimeFrequencyEnum.NONE and "iv" or "dv"
+    response = get_url(f'{{}}{endpoint}'.format(view.datasource.location), params=search_params)
 
     if response.status_code == 200:
         try:
@@ -202,8 +219,7 @@ def iter_rdb_to_json(rdb_text):
                 yield json_object
 
 
-def _load_point_obj(datasource, json_obj, feature_observed_properties, synthesis_messages,
-                    observed_property_variables=None):
+def _load_point_obj(datasource, json_obj, observed_property_variables, synthesis_messages):
     """
     Instantiate the object
 
@@ -224,18 +240,13 @@ def _load_point_obj(datasource, json_obj, feature_observed_properties, synthesis
     #  huc_cd          -- Hydrologic unit code
 
     :param json_obj:
-    :param feature_observed_properties: dictionary of locations and their available variables
-    :type feature_observed_properties: dict
+    :param observed_property_variables: list of locations and their available variables
+    :param synthesis_messages
     :return:
     """
 
     if 'site_no' in json_obj:
         id = json_obj['site_no']
-
-        # Get the location variables from the dictionary
-        if observed_property_variables is None:
-            if id in feature_observed_properties.keys():
-                observed_property_variables = feature_observed_properties[id]
 
         lat, lon = None, None
         try:
@@ -243,7 +254,13 @@ def _load_point_obj(datasource, json_obj, feature_observed_properties, synthesis
         except Exception as e:
             synthesis_messages.append(f"Error getting latlon: {str(e)}")
             logger.error(str(e))
-
+        if id not in observed_property_variables.keys():
+            mf_opv = "Could not find observed property variables for this monitoring feature"
+            msg = f"Could not find observed property variables for this monitoring feature: {id}"
+            synthesis_messages.append(msg)
+            logger.warning({msg})
+        else:
+            mf_opv = observed_property_variables[id]
         monitoring_feature = MonitoringFeature(
             datasource,
             id="{}".format(id),
@@ -258,7 +275,7 @@ def _load_point_obj(datasource, json_obj, feature_observed_properties, synthesis
             )],
             # geographical_group_id=huc_accounting_unit_id,
             # geographical_group_type=FeatureTypeEnum.REGION,
-            observed_property_variables=observed_property_variables,
+            observed_property_variables=mf_opv,
             coordinates=Coordinate(
                 absolute=AbsoluteCoordinate(
                     horizontal_position=GeographicCoordinate(
@@ -278,6 +295,29 @@ def _load_point_obj(datasource, json_obj, feature_observed_properties, synthesis
                        "datum": json_obj['alt_datum_cd']})]
 
         return monitoring_feature
+
+
+def _parse_sites_response(usgs_site_response):
+    """
+    Get a dictionary of location variables for the given location results and
+    get a dictionary of unique sites or subbasins
+    :param usgs_site_response: datasource JSON object of the locations
+    :return observed_properties_variables, unique_usgs_sites: a tuple of a dictionary of observed property variables for the given location results and a dictionary of unique sites or subbasins
+    """
+    observed_properties_variables = {}
+    unique_usgs_sites = {}
+
+    for v in iter_rdb_to_json(usgs_site_response.text):
+        param, site, stat = v['parm_cd'], v['site_no'], v['stat_cd']
+        observed_properties_variables.setdefault(site, [])
+
+        if param not in observed_properties_variables[site] and map_statistic_code(stat) != 'NOT_SUPPORTED':
+            observed_properties_variables[site].append(param)
+        if site not in unique_usgs_sites:
+            unique_usgs_sites[site] = v
+    logger.debug("Location DataTypes: {}".format(observed_properties_variables))
+
+    return observed_properties_variables, unique_usgs_sites
 
 
 class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
@@ -310,7 +350,8 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         """
         synthesis_messages: List[str] = []
 
-        feature_type = isinstance(query.feature_type, FeatureTypeEnum) and query.feature_type.value or query.feature_type
+        feature_type = isinstance(query.feature_type,
+                                  FeatureTypeEnum) and query.feature_type.value or query.feature_type
         if feature_type in USGSDataSourcePlugin.feature_types or feature_type is None:
 
             # Convert parent_features
@@ -330,13 +371,15 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                 huc_text = self.get_hydrological_unit_codes(synthesis_messages=synthesis_messages)
                 logger.debug(f"{self.__class__.__name__}.list url:{URL_USGS_HUC}")
 
-                for json_obj in [o for o in iter_rdb_to_json(huc_text) if not parent_features or [p for p in parent_features if o["huc"].startswith(p)]]:
+                for json_obj in [o for o in iter_rdb_to_json(huc_text) if
+                                 not parent_features or [p for p in parent_features if o["huc"].startswith(p)]]:
 
                     monitoring_feature = None
                     if (feature_type is None or feature_type == FeatureTypeEnum.REGION) and len(json_obj["huc"]) < 4:
                         monitoring_feature = self._load_huc_obj(json_obj, feature_type=FeatureTypeEnum.REGION)
 
-                    elif (feature_type is None or feature_type == FeatureTypeEnum.SUBREGION) and len(json_obj["huc"]) == 4:
+                    elif (feature_type is None or feature_type == FeatureTypeEnum.SUBREGION) and len(
+                            json_obj["huc"]) == 4:
                         monitoring_feature = self._load_huc_obj(json_obj, feature_type=FeatureTypeEnum.SUBREGION,
                                                                 related_sampling_feature=json_obj["huc"][0:2],
                                                                 related_sampling_feature_type=FeatureTypeEnum.REGION)
@@ -346,12 +389,12 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                                                                 related_sampling_feature=json_obj["huc"][0:4],
                                                                 related_sampling_feature_type=FeatureTypeEnum.SUBREGION)
 
-                    elif (feature_type is None or feature_type == FeatureTypeEnum.SUBBASIN) and len(json_obj["huc"]) == 8:
+                    elif (feature_type is None or feature_type == FeatureTypeEnum.SUBBASIN) and len(
+                            json_obj["huc"]) == 8:
                         hucs = {json_obj["huc"][0:i] for i in range(2, 8, 2)}
 
                         # Filter by regions if it is set
                         if not usgs_regions or not hucs.isdisjoint(usgs_regions):
-
                             # This is a Cataloging Unit (See https://water.usgs.gov/GIS/huc_name.html)
                             monitoring_feature = self._load_huc_obj(
                                 json_obj=json_obj, feature_type=FeatureTypeEnum.SUBBASIN,
@@ -370,33 +413,32 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                         elif not query.monitoring_features:
                             yield monitoring_feature
 
-            # points: USGS calls these sites
             else:
-                if query.monitoring_features:
+                base_url = '{}site/?{}={}&seriesCatalogOutput=true&outputDataTypeCd=iv,dv&siteStatus=all&format=rdb'
+                # Points by id: USGS calls these sites
+                if query.monitoring_features is not None:
                     usgs_sites = ",".join(query.monitoring_features)
-                    feature_observed_properties = self.get_observed_properties_variables(query.monitoring_features)
+                    url = base_url.format(self.datasource.location, 'sites', usgs_sites)
                 else:
-                    # Get the variables with data
-                    feature_observed_properties = self.get_observed_properties_variables(usgs_subbasins)
-                    usgs_sites = ",".join(feature_observed_properties.keys())
+                    # Point by subbasin: USGS calls subbasin as huc (instead of sites) to retrieve all subbasins
+                    usgs_subbasin = ",".join(usgs_subbasins)
+                    url = base_url.format(self.datasource.location, 'huc', usgs_subbasin)
 
                 # Filter by locations with data
-                url = '{}site/?sites={}'.format(self.datasource.location, usgs_sites)
                 usgs_site_response = get_url(url)
                 logger.debug(f"{self.__class__.__name__}.list url:{url}")
 
                 if usgs_site_response and usgs_site_response.status_code == 200:
-
-                    for v in iter_rdb_to_json(usgs_site_response.text):
-                        yield _load_point_obj(datasource=self, json_obj=v, synthesis_messages=synthesis_messages,
-                                              feature_observed_properties=feature_observed_properties)
-
+                    observed_properties, unique_sites = _parse_sites_response(usgs_site_response)
+                    for v in unique_sites.values():
+                        yield _load_point_obj(datasource=self, json_obj=v,
+                                              observed_property_variables=observed_properties,
+                                              synthesis_messages=synthesis_messages)
         else:
             synthesis_messages.append(f"Feature type {feature_type} not supported by {self.datasource.name}.")
             logger.warning(f"Feature type {feature_type} not supported by {self.datasource.name}.")
 
         return StopIteration(synthesis_messages)
-
 
     def get_hydrological_unit_codes(self, synthesis_messages):
         """Get the hydrological unit codes for USGS"""
@@ -493,47 +535,30 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                 observed_property_variables=None)
         return result
 
-    def get_observed_properties_variables(self, usgs_sites):
-        """
-        Get a dictionary of location variables for the given location results
-        :param usgs_sites: datasource JSON object of the locations
-        :return:
-        """
-
-        # Gather the location ids and get the parameters available
-        # Only search for the mean data statCd=00003.
-        url = '{}dv?huc={}&format=json&statCd=00003'.format(self.datasource.location, ",".join(usgs_sites))
-        response_variables = get_url(url)
-        observed_properties_variables = {}
-        if response_variables and response_variables.status_code == 200:
-            for location in response_variables.json()['value']['timeSeries']:
-                _, location_id, parameter, statistic = location['name'].split(":")
-                # We only want the mean
-                observed_properties_variables.setdefault(location_id, [])
-                observed_properties_variables[location_id].append(parameter)
-            logger.debug("Location DataTypes: {}".format(observed_properties_variables))
-        return observed_properties_variables
-
 
 class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
     """
-    https://waterservices.usgs.gov/rest/DV-Service.html
+    USGS Daily Values Service: https://waterservices.usgs.gov/rest/DV-Service.html
 
-    Access for mapping USGS water services daily value data to
+    USGS Instantaneous Values Service: https://waterservices.usgs.gov/rest/IV-Service.html
+
+    Access for mapping USGS water services daily or instantaneous value data to
     :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation` objects.
 
-    ============== === =========================================================
-    USGS NWIS          BASIN-3D
-    ============== === =========================================================
-    Daily Values    >> :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
-    ============== === =========================================================
+    ===================== === ====================================================================================
+    USGS NWIS                 BASIN-3D
+    ===================== === ====================================================================================
+    Daily Values          >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
+    --------------------- --- ------------------------------------------------------------------------------------
+    Instantaneous Values  >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
+    ===================== === ====================================================================================
     """
 
     synthesis_model_class = MeasurementTimeseriesTVPObservation
 
     def map_result_quality(self, qualifiers):
         """
-        Daily Value Qualification Code (dv_rmk_cd)
+        Daily Value and Instantaneous Value Qualification Code (dv_rmk_cd)
 
         =============  =========  ================================================================================
         BASIN-3D Code  USGS Code  Description
@@ -570,16 +595,17 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
     def list(self, query: QueryMeasurementTimeseriesTVP):
         """
-        Get the Data Points for USGS Daily Values
+        Get the Data Points for USGS Daily Values or Instantaneous Values
 
         =================== === ======================
         USGS NWIS               BASIN-3D
         =================== === ======================
         ``nwis/dv``          >> ``measurement_tvp_timeseries/``
+        ------------------- --- ----------------------
+        ``nwis/iv``          >> ``measurement_tvp_timeseries/``
         =================== === ======================
 
-        :returns: a generator object that yields :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
-            objects
+        :returns: a generator object that yields :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation` objects
         """
         synthesis_messages = []
         feature_obj_dict = {}
@@ -588,10 +614,11 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
         search_params = ",".join(query.monitoring_features)
 
-        url = '{}site/?sites={}'.format(self.datasource.location, search_params)
+        base_url = '{}site/?{}={}&seriesCatalogOutput=true&outputDataTypeCd=iv,dv&siteStatus=all&format=rdb'
+        url = base_url.format(self.datasource.location, 'sites', search_params)
 
         if len(search_params) < 3:
-            url = '{}site/?huc={}'.format(self.datasource.location, search_params)
+            url = base_url.format(self.datasource.location, 'huc', search_params)
 
         usgs_site_response = None
         try:
@@ -600,9 +627,13 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         except Exception as e:
             synthesis_messages.append("Could not connect to USGS site info: {}".format(e))
             logger.warning("Could not connect to USGS site info: {}".format(e))
+            logger.warning("url: ", url)
+            synthesis_messages.append(f"Url: {url}")
 
         if usgs_site_response:
-            for v in iter_rdb_to_json(usgs_site_response.text):
+            # Get observed property variables and unique sites from parse_site_response
+            observed_properties, sites = _parse_sites_response(usgs_site_response)
+            for v in sites.values():
                 if v["site_no"]:
                     feature_obj_dict[v["site_no"]] = v
 
@@ -618,9 +649,9 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             if feature_id in feature_obj_dict.keys():
                 monitoring_feature = _load_point_obj(
                     datasource=self,
-                    json_obj=feature_obj_dict[feature_id], feature_observed_properties=dict(),
-                    synthesis_messages=synthesis_messages,
-                    observed_property_variables="Find observed property variables at monitoring feature url")
+                    json_obj=feature_obj_dict[feature_id],
+                    observed_property_variables=observed_properties,
+                    synthesis_messages=synthesis_messages)
             else:
                 # ToDo: expand this to use the info in the data return
                 # ToDo: log message
@@ -638,7 +669,8 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
             if len(data_json["values"]) > 1:
                 # Cannot think of the case in which response should have more than one values so adding a message to track it.
-                synthesis_messages.append(f'{feature_id} has more than one timeseries returned for {parameter}. Contact plugin developer if you see this message.')
+                synthesis_messages.append(
+                    f'{feature_id} has more than one timeseries returned for {parameter}. Contact plugin developer if you see this message.')
 
             for values in data_json["values"]:
                 # The original code checked what USGS reported for the qualities present in the timeseries. Instead will build from individual point qualities below.
@@ -702,6 +734,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             yield measurement_timeseries_tvp_observation
 
         return StopIteration(synthesis_messages)
+
 
 @basin3d_plugin
 class USGSDataSourcePlugin(DataSourcePluginPoint):

@@ -40,10 +40,11 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "results_quality": ResultQualityEnum.VALIDATED
     }
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
+
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
         count = 0
         for timeseries in measurement_timeseries_tvp_observations:
-            print(timeseries.to_json())
+            timeseries.to_json()
             count += 1
 
         assert count == 2
@@ -60,6 +61,44 @@ def test_measurement_timeseries_tvp_observations_usgs():
 
     with pytest.raises(ValidationError):
         synthesizer.measurement_timeseries_tvp_observations(**query2)
+
+    query3 = {
+        "monitoring_features": ["USGS-09110990", "USGS-09111250"],
+        "observed_property_variables": ["RDC"],
+        "start_date": "2020-04-01",
+        "end_date": "2020-04-30",
+        "statistic": ["MEAN"],
+        "results_quality": ResultQualityEnum.VALIDATED
+    }
+    measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query3)
+    if isinstance(measurement_timeseries_tvp_observations, Iterator):
+        count = 0
+        for timeseries in measurement_timeseries_tvp_observations:
+            timeseries.to_json()
+            count += 1
+
+        assert count == 2
+    else:
+        pytest.fail("Returned object must be iterator")
+
+    query4 = {
+        "monitoring_features": ["USGS-09110990", "USGS-09111250"],
+        "observed_property_variables": ["RDC"],
+        "start_date": "2020-04-01",
+        "end_date": "2020-04-30",
+        "aggregation_duration": None,
+        "results_quality": ResultQualityEnum.VALIDATED
+    }
+    measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query4)
+    if isinstance(measurement_timeseries_tvp_observations, Iterator):
+        count = 0
+        for timeseries in measurement_timeseries_tvp_observations:
+            timeseries.to_json()
+            count += 1
+
+        assert count == 2
+    else:
+        pytest.fail("Returned object must be iterator")
 
 
 @pytest.mark.integration
@@ -99,7 +138,7 @@ def test_usgs_monitoring_feature(query, feature_type):
                                                    ({"feature_type": "point"}, 0),
                                                    ({"monitoring_features": ["USGS-09129600"], "feature_type": "point"}, 1),
                                                    ({"parent_features": ['USGS-02']}, 118),
-                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 49),
+                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 52),
                                                    ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
                                                    ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
                          ids=["all", "region_by_id", "region", "subregion",
@@ -199,7 +238,8 @@ def test_usgs_get_data():
     # check filtering by quality = VALIDATED (filter by MEAN)
     usgs_data = get_timeseries_data(synthesizer=synthesizer, monitoring_features=["USGS-09110000"],
                                     observed_property_variables=['RDC', 'WT'], start_date='2019-10-25',
-                                    end_date='2019-10-28', result_quality=[ResultQualityEnum.VALIDATED], statistic=['MEAN'])
+                                    end_date='2019-10-28', result_quality=[ResultQualityEnum.VALIDATED],
+                                    statistic=['MEAN'])
     usgs_df = usgs_data.data
 
     # check the dataframe
