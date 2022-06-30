@@ -1,0 +1,6 @@
+attr_type,basin3d_vocab,datasource_vocab,datasource_desc
+OP:SAMPLING_MEDIUM,ACT:WATER,Acetate,acetate
+OP:SAMPLING_MEDIUM,Ag:WATER,Ag,sliver concentration in water
+OP:SAMPLING_MEDIUM,Ag:GAS,Ag_gas,silver concentration vaporized (bogus)
+OP:SAMPLING_MEDIUM,Al:WATER,Aluminum,aluminum concentration in water
+OP:SAMPLING_MEDIUM,As:SOIL,As,arsenic in soil

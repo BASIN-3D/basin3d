@@ -417,6 +417,8 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         id_prefix = plugin_access.datasource.id_prefix
         synthesized_query = query.copy()
 
+        # HERE: function needs to know what attributes the model has.
+
         if query:
 
             if query.monitoring_features:
@@ -424,10 +426,14 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
                                                                                       id_prefix=id_prefix)
 
             # Synthesize ObservedPropertyVariable (from BASIN-3D to DataSource variable name)
+            # HERE: handle duplicate datasource variables AND handle compound mappings
             if query.observed_property_variables:
                 synthesized_query.observed_property_variables = [o.datasource_variable for o in
                                                                  plugin_access.get_observed_properties(
                                                                      query.observed_property_variables)]
+
+            # HERE: loop thru remaining query arguments -- for those that are not none
+
         # Aggregation duration will be default to DAY in QueryMeasurementTimeseriesTVP.
         # Query will accept aggregation duration NONE and DAY only
         synthesized_query.aggregation_duration = query.aggregation_duration

@@ -112,6 +112,48 @@ class ObservedPropertyVariable(JSONSerializable):
 
 
 @dataclass
+class CompoundMapping(JSONSerializable):
+    """
+    Helper model to handle compound attribute mapping
+    """
+    compound_mapping: str
+    attr_type: str
+    datasource: DataSource = DataSource()
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self.complex_mapping
+
+
+@dataclass
+class MappedAttribute(JSONSerializable):
+    """
+    General mapping attribute model for 1:1 mappings of enums, etc
+
+    Definitions:
+        - * attr_type: STATISTIC, RESULT_QUALITY, OPV; separate compound mappings with :
+        - * basin3d_vocab: the basin3d vocabulary; separate compund mappings with :
+        - * datasource_vocab: the datasource vocabulary; single value only
+        - * datasrouce_desc: datasource description of the attribute
+        - * datasource: the datasource for the mapping
+    """
+    attr_type: str
+    basin3d_vocab: str  # Figure out if can type: Union[TimeFrequencyEnum, StatisticEnum, ResultQualityEnum]
+    datasource_vocab: str
+    datasource_desc: str
+    datasource: DataSource = DataSource()
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self.datasource_vocab
+
+
+# HERE: remove
+@dataclass
 class ObservedProperty(JSONSerializable):
     """
     Defining the attributes for a single/multiple Observed Properties

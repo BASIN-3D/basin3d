@@ -22,7 +22,7 @@ from string import whitespace
 from typing import Dict, Iterator, List, Optional, Union
 
 from basin3d.core.schema.enum import MappedAttributeEnum, StatisticEnum, TimeFrequencyEnum, ResultQualityEnum
-from basin3d.core.models import DataSource, ObservedProperty, ObservedPropertyVariable, MappedAttribute
+from basin3d.core.models import DataSource, ObservedProperty, ObservedPropertyVariable, MappedAttribute, CompoundMapping
 from basin3d.core.types import SamplingMedium
 
 logger = monitor.get_logger(__name__)
@@ -68,7 +68,7 @@ class CatalogBase:
                         f'Could not retrieve plugin_id. Check that plugin is configured / registered properly.')
                     raise CatalogException
 
-                mapping_filename = f'{plugin_id.lower()}_variables.csv'
+                mapping_filename = f'{plugin_id.lower()}_mapping.csv'
                 plugin_module = getmodule(plugin)
                 if not plugin_module:
                     logger.error(f'Plugin {plugin_id} cannot be found')
@@ -83,13 +83,13 @@ class CatalogBase:
                     raise CatalogException(f'Plugin {plugin_id} does not have variable mapping file {mapping_filename}')
 
                 datasource = plugin.get_datasource()
-                self._process_plugin_variable_mapping(plugin, mapping_filename, datasource)
+                self._process_plugin_attr_mapping(plugin, mapping_filename, datasource)
 
-                for attr_type in MappedAttributeEnum.values():
-                    attr_filename = f'{plugin_id.lower()}_{attr_type.lower()}.csv'
-                    if not resources.is_resource(plugin_package, attr_filename):
-                        continue
-                    self._process_plugin_attribute_mapping(plugin, attr_type, attr_filename, datasource)
+                # for attr_type in MappedAttributeEnum.values():
+                #     attr_filename = f'{plugin_id.lower()}_{attr_type.lower()}.csv'
+                #     if not resources.is_resource(plugin_package, attr_filename):
+                #         continue
+                #     self._process_plugin_attribute_mapping(plugin, attr_type, attr_filename, datasource)
 
             logger.info(f"Initialized {self.__class__.__name__} metadata catalog ")
 
@@ -316,24 +316,15 @@ class CatalogBase:
                 self._insert(observed_property)
                 logger.debug(f"Mapped {datasource_var} to {observed_property_variable}")
 
-    def _process_plugin_attribute_mapping(self, plugin, attr_type: MappedAttributeEnum, attr_filename: str, datasource: DataSource):
+    def _process_plugin_attr_mapping(self, plugin, filename: str, datasource: DataSource):
         """
 
         :param plugin:
-        :param attr_type:
-        :param attr_filename:
+        :param filename:
         :param datasource:
         :return:
         """
-        # There has got to be a better way to do this
-        if attr_type == MappedAttributeEnum.STATISTIC:
-            AttrEnum = StatisticEnum
-        elif attr_type == MappedAttributeEnum.TIME_FREQUENCY:
-            AttrEnum = TimeFrequencyEnum
-        elif attr_type == MappedAttributeEnum.RESULT_QUALITY:
-            AttrEnum = ResultQualityEnum
-
-        fields = ['basin3d_id', 'datasource_attr_id']
+        fields = ['attr_type', 'basin3d_vocab', 'datasource_vocab', 'datasource_desc']
 
         plugin_id = plugin.get_meta().id
         plugin_module = getmodule(plugin)
@@ -343,36 +334,47 @@ class CatalogBase:
 
         plugin_package = ".".join(plugin_module.__name__.split(".")[0:-1])
 
-        with resources.open_text(plugin_package, attr_filename) as attr_file:
-            logger.debug(f"Mapping file {attr_filename} for plugin package {plugin_package}")
+        with resources.open_text(plugin_package, filename) as attr_file:
+            logger.debug(f"Mapping file {filename} for plugin package {plugin_package}")
             reader = csv.DictReader(attr_file)
 
             # For now, force a specific file format; could change later to just require specific field names
             if reader.fieldnames != fields:
                 logger.critical(
-                    f'Plugin {plugin_id}: {attr_filename} is not in correct format. Cannot create catalog.')
+                    f'Plugin {plugin_id}: {filename} is not in correct format. Cannot create catalog.')
                 raise CatalogException(
-                    f'Plugin {plugin_id}: {attr_filename} is not in correct format. Cannot create catalog.')
+                    f'Plugin {plugin_id}: {filename} is not in correct format. Cannot create catalog.')
 
             for row in reader:
-                basin3d_id = row[fields[0]]
-                datasource_attr_id = row[fields[1]]
-                if basin3d_id not in AttrEnum.values():
-                    logger.warning(f'Mapped {attr_type} {basin3d_id} is not supported. {datasource_attr_id} not mapped')
-                    continue
-                if self._get_mapped_attribute(datasource.id, attr_type, basin3d_id, datasource_attr_id) is not None:
+                attr_type = row[fields[0]]
+                basin3d_vocab = row[fields[1]]
+                datasource_vocab = row[fields[2]]
+                datasource_desc = row[fields[3]]
+
+                # ToDo: add some validation if Cat does not have it in her reader
+                if self._get_mapped_attribute(datasource.id, attr_type, basin3d_vocab, datasource_vocab) is not None:
                     logger.warning(
                         f'Plugin {plugin_id}: Duplicate BASIN-3D attr detected. Cannot handle duplicate mappings yet. '
-                        f'Skipping datasource attribute {datasource_attr_id}.')
+                        f'Skipping datasource attribute {datasource_vocab}.')
 
                 mapped_attr = MappedAttribute(
                     attr_type=attr_type,
-                    basin3d_id=basin3d_id,
-                    datasource_attr_id=datasource_attr_id,
+                    basin3d_vocab=basin3d_vocab,
+                    datasource_vocab=datasource_vocab,
+                    datasource_desc=datasource_desc,
                     datasource=datasource)
 
                 self._insert(mapped_attr)
-                logger.debug(f"Mapped {attr_type} {datasource_attr_id} to {basin3d_id}")
+                logger.debug(f"{datasource.id}: Mapped {attr_type} {datasource_vocab} to {basin3d_vocab}")
+
+                if ':' in attr_type:
+                    attrs = attr_type.split(':')
+                    for attr in attrs:
+                        compound_mapping = CompoundMapping(
+                            compound_mapping=attr_type,
+                            attr_type=attr,
+                            datasource=datasource)
+                        self._insert(compound_mapping)
 
 
 class CatalogTinyDb(CatalogBase):
@@ -381,9 +383,10 @@ class CatalogTinyDb(CatalogBase):
         super().__init__(variable_filename)
 
         self.in_memory_db = None
-        self._observed_properties: Dict[str, ObservedProperty] = {}
+        # self._observed_properties: Dict[str, ObservedProperty] = {}
         self._observed_property_variables: Dict[str, ObservedPropertyVariable] = {}
         self._mapped_attributes: Dict[str, MappedAttribute] = {}
+        self._compound_mapping: Dict[str, CompoundMapping] = {}
 
     def is_initialized(self) -> bool:
         """Has the catalog been initialized?"""
@@ -398,16 +401,16 @@ class CatalogTinyDb(CatalogBase):
         """
         return self._observed_property_variables.get(basin3d_id, None)
 
-    def _get_observed_property(self, datasource_id, basin3d_id, datasource_variable_id) -> Optional[ObservedProperty]:
-        """
-        Access a single observed property
-
-        :param datasource_id:  datasource identifier
-        :param basin3d_id:  BASIN-3D variable identifier
-        :param datasource_variable_id: datasource variable identifier
-        :return:
-        """
-        return self._observed_properties.get(f"{datasource_id}-{basin3d_id}-{datasource_variable_id}", None)
+    # def _get_observed_property(self, datasource_id, basin3d_id, datasource_variable_id) -> Optional[ObservedProperty]:
+    #     """
+    #     Access a single observed property
+    #
+    #     :param datasource_id:  datasource identifier
+    #     :param basin3d_id:  BASIN-3D variable identifier
+    #     :param datasource_variable_id: datasource variable identifier
+    #     :return:
+    #     """
+    #     return self._observed_properties.get(f"{datasource_id}-{basin3d_id}-{datasource_variable_id}", None)
 
     def _get_mapped_attribute(self, datasource_id, attr_type, basin3d_id, datasource_attr_id) -> Optional[MappedAttribute]:
         """
@@ -421,55 +424,55 @@ class CatalogTinyDb(CatalogBase):
         """
         return self._mapped_attributes.get(f'{datasource_id}-{attr_type}-{basin3d_id}-{datasource_attr_id}', None)
 
-    def find_observed_property(self, datasource_id, variable_name) -> Optional[ObservedProperty]:
-        """
-        Get the measurement to the specified variable_name
-
-        :param variable_name: the variable name to get the :class:`~basin3d.models.ObservedProperty` for
-        :return: :class:`~basin3d.models.ObservedProperty`
-        """
-        if self.in_memory_db_op is None:
-            raise CatalogException("Variable Store has not been initialized")
-
-        from tinydb import Query
-        query = Query()
-        results = self.in_memory_db_op.search((query.basin3d_id == variable_name) & (query.datasource_id == datasource_id))
-
-        if len(results) > 0:
-            return self._get_observed_property(**results[0])
-        return None
-
-    def find_observed_properties(self, datasource_id=None, variable_names: List[str] = None) -> Iterator[ObservedProperty]:
-        """
-        Get the observed properties to the specified variable_names and datasource
-
-        :param variable_names: the variable names to get the :class:`~basin3d.models.ObservedProperty` for
-        :type variable_names: list
-        :param datasource_id: The datasource to filter by
-
-        :return: :class:`~basin3d.models.ObservedProperty`
-        """
-        if self.in_memory_db_op is None:
-            raise CatalogException("Variable Store has not been initialized")
-
-        from tinydb import Query
-        query = Query()
-        is_in = lambda x: x in variable_names
-        if not datasource_id:
-            if variable_names:
-                results = self.in_memory_db_op.search(
-                    (query.basin3d_id.any(variable_names)))
-            else:
-                results = self.in_memory_db_op.all()
-        else:
-            if variable_names:
-                results = self.in_memory_db_op.search(
-                    (query.basin3d_id.test(is_in)) & (query.datasource_id == datasource_id))
-            else:
-                results = self.in_memory_db_op.search(query.datasource_id == datasource_id)
-
-        for r in results:
-            yield self._get_observed_property(**r)
+    # def find_observed_property(self, datasource_id, variable_name) -> Optional[ObservedProperty]:
+    #     """
+    #     Get the measurement to the specified variable_name
+    #
+    #     :param variable_name: the variable name to get the :class:`~basin3d.models.ObservedProperty` for
+    #     :return: :class:`~basin3d.models.ObservedProperty`
+    #     """
+    #     if self.in_memory_db_op is None:
+    #         raise CatalogException("Variable Store has not been initialized")
+    #
+    #     from tinydb import Query
+    #     query = Query()
+    #     results = self.in_memory_db_op.search((query.basin3d_id == variable_name) & (query.datasource_id == datasource_id))
+    #
+    #     if len(results) > 0:
+    #         return self._get_observed_property(**results[0])
+    #     return None
+    #
+    # def find_observed_properties(self, datasource_id=None, variable_names: List[str] = None) -> Iterator[ObservedProperty]:
+    #     """
+    #     Get the observed properties to the specified variable_names and datasource
+    #
+    #     :param variable_names: the variable names to get the :class:`~basin3d.models.ObservedProperty` for
+    #     :type variable_names: list
+    #     :param datasource_id: The datasource to filter by
+    #
+    #     :return: :class:`~basin3d.models.ObservedProperty`
+    #     """
+    #     if self.in_memory_db_op is None:
+    #         raise CatalogException("Variable Store has not been initialized")
+    #
+    #     from tinydb import Query
+    #     query = Query()
+    #     is_in = lambda x: x in variable_names
+    #     if not datasource_id:
+    #         if variable_names:
+    #             results = self.in_memory_db_op.search(
+    #                 (query.basin3d_id.any(variable_names)))
+    #         else:
+    #             results = self.in_memory_db_op.all()
+    #     else:
+    #         if variable_names:
+    #             results = self.in_memory_db_op.search(
+    #                 (query.basin3d_id.test(is_in)) & (query.datasource_id == datasource_id))
+    #         else:
+    #             results = self.in_memory_db_op.search(query.datasource_id == datasource_id)
+    #
+    #     for r in results:
+    #         yield self._get_observed_property(**r)
 
     def find_observed_property_variable(self, datasource_id, variable_name, from_basin3d=False) -> Optional[
             ObservedPropertyVariable]:
@@ -646,11 +649,12 @@ class CatalogTinyDb(CatalogBase):
 
         :return:
         """
+        # Note: op are held in dictionary in this TinyDB
         from tinydb import TinyDB
         from tinydb.storages import MemoryStorage
         self.in_memory_db = TinyDB(storage=MemoryStorage)
-        self.in_memory_db_op = self.in_memory_db.table('op')
-        self.in_memory_db_op.truncate()
+        self.in_memory_db_cm = self.in_memory_db.table('compound_mappings')
+        self.in_memory_db_cm.truncate()
         self.in_memory_db_attr = self.in_memory_db.table('attr')
         self.in_memory_db_attr.truncate()
 
@@ -661,18 +665,27 @@ class CatalogTinyDb(CatalogBase):
         if self.in_memory_db is not None:
             if isinstance(record, ObservedPropertyVariable):
                 self._observed_property_variables[record.basin3d_id] = record
-            elif isinstance(record, ObservedProperty):
-                self._observed_properties[
-                    f"{record.datasource.id}-{record.observed_property_variable.basin3d_id}-{record.datasource_variable}"] = record
-                self.in_memory_db_op.insert({'datasource_id': record.datasource.id,
-                                             'datasource_variable_id': record.datasource_variable,
-                                             'basin3d_id': record.observed_property_variable.basin3d_id, })
+            # elif isinstance(record, ObservedProperty):
+            #     self._observed_properties[
+            #         f"{record.datasource.id}-{record.observed_property_variable.basin3d_id}-{record.datasource_variable}"] = record
+            #     self.in_memory_db_op.insert({'datasource_id': record.datasource.id,
+            #                                  'datasource_variable_id': record.datasource_variable,
+            #                                  'basin3d_id': record.observed_property_variable.basin3d_id, })
             elif isinstance(record, MappedAttribute):
-                logger.debug(f'{record.datasource.id}-{record.attr_type}-{record.basin3d_id}-{record.datasource_attr_id}')
-                self._mapped_attributes[f'{record.datasource.id}-{record.attr_type}-{record.basin3d_id}-{record.datasource_attr_id}'] = record
+                key = f'{record.datasource.id}-{record.attr_type}-{record.basin3d_vocab}-{record.datasource_vocab}-{record.datasource_desc}'
+                logger.debug(key)
+                self._mapped_attributes[key] = record
                 self.in_memory_db_attr.insert({'datasource_id': record.datasource.id,
                                                'attr_type': record.attr_type,
-                                               'datasource_attr_id': record.datasource_attr_id,
-                                               'basin3d_id': record.basin3d_id, })
+                                               'basin3d_vocab': record.basin3d_vocab,
+                                               'datasource_vocab': record.datasource_vocab,
+                                               'datasource_desc': record.datasource_desc, })
+            elif isinstance(record, CompoundMapping):
+                key = f'{record.datasource.id}-{record.compound_mapping}-{record.attr_type}'
+                logger.debug(key)
+                self._compound_mapping[key] = record
+                self.in_memory_db_cm.insert({'datasource_id': record.datasource.id,
+                                             'compound_mapping': record.compound_mapping,
+                                             'attr_type': record.attr_type, })
         else:
             raise CatalogException(f'Could not insert record.  Catalog not initialize')
