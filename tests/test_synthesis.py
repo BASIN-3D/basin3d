@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.synthesis import DataSourceModelIterator
-from basin3d.core.types import SamplingMedium
+# from basin3d.core.types import SamplingMedium
 from basin3d.synthesis import TimeseriesOutputType, get_timeseries_data, register, PandasTimeseriesData, \
     HDFTimeseriesData
 

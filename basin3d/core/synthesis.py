@@ -417,7 +417,13 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         id_prefix = plugin_access.datasource.id_prefix
         synthesized_query = query.copy()
 
-        # HERE: function needs to know what attributes the model has.
+        # Get the attributes to be synthesized
+        attributes = [a for a in query.list_attribute_names() if a not in
+                      ('datasource', 'monitoring_features', 'observed_property_variables', 'start_date')
+                      and getattr(query, a)]
+        # start with the observed property variables as these are the most likely to have compound mappings
+        #   for not assume order does not matter for other attributes -- however it might...
+        attributes.insert(0, 'observed_property_variables')
 
         if query:
 
@@ -425,14 +431,30 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
                 synthesized_query.monitoring_features = _synthesize_query_identifiers(values=query.monitoring_features,
                                                                                       id_prefix=id_prefix)
 
-            # Synthesize ObservedPropertyVariable (from BASIN-3D to DataSource variable name)
-            # HERE: handle duplicate datasource variables AND handle compound mappings
-            if query.observed_property_variables:
-                synthesized_query.observed_property_variables = [o.datasource_variable for o in
-                                                                 plugin_access.get_observed_properties(
-                                                                     query.observed_property_variables)]
+            # # Synthesize ObservedPropertyVariable (from BASIN-3D to DataSource variable name)
+            # if query.observed_property_variables:
+            #     synthesized_query.observed_property_variables = [o.datasource_variable for o in
+            #                                                      plugin_access.get_observed_properties(
+            #                                                          query.observed_property_variables)]
 
-            # HERE: loop thru remaining query arguments -- for those that are not none
+            for attr in attributes:
+                if getattr(synthesized_query, attr):
+                    compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper())
+                    # for any compound attrs -- clear out the values in the synthesized query
+                    for compound_attr in compound_attrs:
+                        setattr(synthesized_query, compound_attr.lower(), None)
+                    b3d_vocab = getattr(synthesized_query, attr)
+                    if isinstance(b3d_vocab, str):
+                        ds_vocab = plugin_access.get_ds_vocab(attr.upper(), b3d_vocab, query)
+                        if ds_vocab and ds_vocab == 'NOT_SUPPORTED':
+                            # ToDo: add messaging
+                            ds_vocab = None
+                    else:
+                        ds_vocab = []
+                        for b3d_vocab in getattr(synthesized_query, attr):
+                            # handle multiple values returned
+                            ds_vocab.extend(plugin_access.get_ds_vocab(attr.upper(), b3d_vocab, query))
+                    setattr(synthesized_query, attr, ds_vocab)
 
         # Aggregation duration will be default to DAY in QueryMeasurementTimeseriesTVP.
         # Query will accept aggregation duration NONE and DAY only
@@ -441,9 +463,9 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
             synthesized_query.aggregation_duration = TimeFrequencyEnum.DAY
 
             # Synthesize statistic (from BASIN-3D to DataSource variable name)
-            if query.statistic:
-                synthesized_query.statistic = [o.datasource_attr_id for o in
-                                               plugin_access.get_mapped_attributes(MappedAttributeEnum.STATISTIC, query.statistic, True)]
+            # if query.statistic:
+            #     synthesized_query.statistic = [o.datasource_attr_id for o in
+            #                                    plugin_access.get_mapped_attributes(MappedAttributeEnum.STATISTIC, query.statistic, True)]
 
             # # Synthesize statistic (from BASIN-3D to DataSource variable name)
             # if query.result_quality:

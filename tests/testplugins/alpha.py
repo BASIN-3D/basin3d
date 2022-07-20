@@ -63,9 +63,9 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
     for num in range(1, 10):
         data.append((datetime(2016, 2, num), num * 0.3454))
     data = [data, data, [], data]
-    rqe1 = ResultQualityEnum.VALIDATED
-    rqe2 = ResultQualityEnum.UNVALIDATED
-    rqe3 = ResultQualityEnum.REJECTED
+    rqe1 = 'VALIDATED'
+    rqe2 = 'UNVALIDATED'
+    rqe3 = 'REJECTED'
     quality = [[rqe1, rqe1, rqe1, rqe1, rqe1, rqe1, rqe1, rqe1, rqe1],
                [rqe2, rqe2, rqe2, rqe2, rqe2, rqe2, rqe2, rqe3, rqe3],
                [],
@@ -121,7 +121,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
         yield MeasurementTimeseriesTVPObservation(
             plugin_access=self,
             id=num,
-            observed_property_variable=observed_property_variable,
+            observed_property=observed_property_variable,
             utc_offset=-8 - num,
             feature_of_interest=MonitoringFeature(
                 plugin_access=self,
@@ -159,7 +159,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
             result_quality=result_qualities,
             time_reference_position=None,
             statistic=statistics[num - 1],
-            result=ResultListTVP(value=result_value, quality=result_value_quality)
+            result=ResultListTVP(plugin_access=self, value=result_value, quality=result_value_quality)
         )
 
     return StopIteration(synthesis_messages)

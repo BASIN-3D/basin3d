@@ -127,6 +127,19 @@ class StatisticEnum(str, BaseEnum):
     NOT_SUPPORTED = 'NOT_SUPPORTED'
 
 
+class SamplingMediumEnum(str, BaseEnum):
+    """
+    Types of sampling mediums for Observed Properties
+    """
+    SOLID_PHASE = "SOLID_PHASE"
+    WATER = "WATER"
+    GAS = "GAS"
+    OTHER = "OTHER"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    NOT_SUPPORTED = 'NOT_SUPPORTED'
+    # SAMPLING_MEDIUMS = [WATER, GAS, SOLID_PHASE, OTHER, NOT_APPLICABLE]
+
+
 class MessageLevelEnum(str, BaseEnum):
     """Enumeration of Message Levels"""
 

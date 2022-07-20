@@ -112,31 +112,15 @@ class ObservedPropertyVariable(JSONSerializable):
 
 
 @dataclass
-class CompoundMapping(JSONSerializable):
-    """
-    Helper model to handle compound attribute mapping
-    """
-    compound_mapping: str
-    attr_type: str
-    datasource: DataSource = DataSource()
-
-    def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return self.complex_mapping
-
-
-@dataclass
 class MappedAttribute(JSONSerializable):
     """
     General mapping attribute model for 1:1 mappings of enums, etc
 
     Definitions:
         - * attr_type: STATISTIC, RESULT_QUALITY, OPV; separate compound mappings with :
-        - * basin3d_vocab: the basin3d vocabulary; separate compund mappings with :
+        - * basin3d_vocab: the basin3d vocabulary; separate compound mappings with :
         - * datasource_vocab: the datasource vocabulary; single value only
-        - * datasrouce_desc: datasource description of the attribute
+        - * datasource_desc: datasource description of the attribute
         - * datasource: the datasource for the mapping
     """
     attr_type: str
@@ -153,52 +137,30 @@ class MappedAttribute(JSONSerializable):
 
 
 # HERE: remove
-@dataclass
-class ObservedProperty(JSONSerializable):
-    """
-    Defining the attributes for a single/multiple Observed Properties
-
-    Attributes:
-        - *datasource_variable:* id, e.g., Cs 137 air dose rate car survey campaigns
-        - *observed_property_variable_id:* string, e.g., Cs137MVID
-        - *sampling_medium:* enum (WATER, GAS, SOLID PHASE, OTHER, NOT APPLICABLE)
-        - *datasource:*
-        - *datasource_description:*
-    """
-    datasource_variable: str = ''
-    observed_property_variable: ObservedPropertyVariable = ObservedPropertyVariable()
-    sampling_medium: str = ''
-    datasource: DataSource = DataSource()
-    datasource_description: str = ''
-
-    def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return self.datasource_variable
-
-
-@dataclass
-class MappedAttribute(JSONSerializable):
-    """
-    General mapping attribute model for 1:1 mappings of enums, etc
-
-    Definitions:
-        - * attr_type: STATISTIC, RESULT_QUALITY
-        - * basin3d_id: the basin3d vocabulary
-        - * datasource_attr_id: the datasource vocabulary
-    """
-    attr_type: MappedAttributeEnum
-    basin3d_id: str  # Figure out if can type: Union[TimeFrequencyEnum, StatisticEnum, ResultQualityEnum]
-    datasource_attr_id: str
-    datasource: DataSource = DataSource()
-
-    def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return self.datasource_attr_id
-
+# @dataclass
+# class ObservedProperty(JSONSerializable):
+#     """
+#     Defining the attributes for a single/multiple Observed Properties
+#
+#     Attributes:
+#         - *datasource_variable:* id, e.g., Cs 137 air dose rate car survey campaigns
+#         - *observed_property_variable_id:* string, e.g., Cs137MVID
+#         - *sampling_medium:* enum (WATER, GAS, SOLID PHASE, OTHER, NOT APPLICABLE)
+#         - *datasource:*
+#         - *datasource_description:*
+#     """
+#     datasource_variable: str = ''
+#     observed_property_variable: ObservedPropertyVariable = ObservedPropertyVariable()
+#     sampling_medium: str = ''
+#     datasource: DataSource = DataSource()
+#     datasource_description: str = ''
+#
+#     def __str__(self):
+#         return self.__unicode__()
+#
+#     def __unicode__(self):
+#         return self.datasource_variable
+#
 
 class Base(JSONSerializable):
     """
@@ -901,12 +863,16 @@ class Feature(Base):
 
         if self.observed_property_variables and isinstance(self.observed_property_variables, (tuple, list, enumerate)):
             # synthesize measurement variables
-            synth_params = []
-            for synth_param in plugin_access.get_observed_property_variables(self.observed_property_variables):
-                synth_params.append(synth_param.basin3d_id)
+            synth_params = set()
+            for ds_vocab in self.observed_property_variables:
+                basin3d_vocab = plugin_access.get_basin3d_vocab('OBSERVED_PROPERTY', ds_vocab)
+                synth_params.add(basin3d_vocab)
+            # for synth_param in plugin_access.get_observed_property_variables(self.observed_property_variables):
+            #     synth_params.append(synth_param.basin3d_id)
 
-            self.observed_property_variables = synth_params
+            self.observed_property_variables = list(synth_params)
 
+        # ToDo: do we really want this?
         elif self.observed_property_variables:
             self.observed_property_variables = [self.observed_property_variables]
 
@@ -1224,7 +1190,7 @@ class Observation(Base):
         self._type: str = None
         self._utc_offset: int = None
         self._phenomenon_time: str = None
-        self._observed_property: ObservedProperty = None
+        self._observed_property: ObservedPropertyVariable = None
         self._feature_of_interest: MonitoringFeature = None
         self._feature_of_interest_type: FeatureTypeEnum = None
         self._result_quality: List[ResultQualityEnum] = []
@@ -1283,12 +1249,12 @@ class Observation(Base):
         self._phenomenon_time = value
 
     @property
-    def observed_property(self) -> 'ObservedProperty':
+    def observed_property(self) -> 'ObservedPropertyVariable':
         """The property that was observed"""
         return self._observed_property
 
     @observed_property.setter
-    def observed_property(self, value: 'ObservedProperty'):
+    def observed_property(self, value: 'ObservedPropertyVariable'):
         self._observed_property = value
 
     @property
@@ -1388,20 +1354,31 @@ class MeasurementMetadataMixin(object):
     """
 
     def __init__(self, *args, **kwargs):
-        self._observed_property_variable: str = None
+        # self._observed_property_variable: str = None
+        # ToDo: consider enums
+        self._sampling_medium: str = None
         self._statistic: StatisticEnum = None
 
         # Instantiate the serializer superclass
         super(MeasurementMetadataMixin, self).__init__(*args, **kwargs)
 
-    @property
-    def observed_property_variable(self) -> str:
-        """The observed property that was measured"""
-        return self._observed_property_variable
+    # @property
+    # def observed_property_variable(self) -> str:
+    #     """The observed property that was measured"""
+    #     return self._observed_property_variable
+    #
+    # @observed_property_variable.setter
+    # def observed_property_variable(self, value: str):
+    #     self._observed_property_variable = value
 
-    @observed_property_variable.setter
-    def observed_property_variable(self, value: str):
-        self._observed_property_variable = value
+    @property
+    def sampling_medium(self) -> str:
+        """Sampling medium in which the observed property was measured"""
+        return self._sampling_medium
+
+    @sampling_medium.setter
+    def sampling_medium(self, value: str):
+        self._sampling_medium = value
 
     @property
     def statistic(self) -> str:
@@ -1417,12 +1394,15 @@ class ResultListTVP(Base):
     """
     Result Point Float
     """
-    def __init__(self, **kwargs):
+    def __init__(self, plugin_access, **kwargs):
         self._value: List['TimeValuePair'] = []
         self._quality: List['ResultQualityEnum'] = []
 
+        if 'quality' in kwargs and kwargs['quality']:
+            kwargs['quality'] = plugin_access.get_basin3d_vocab(attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'], include_not_supported=True)
+
         # Initialize after the attributes have been set
-        super().__init__(None, **kwargs)
+        super().__init__(plugin_access, **kwargs)
 
     @property
     def value(self) -> List['TimeValuePair']:
@@ -1547,17 +1527,29 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
     def __init__(self, plugin_access, **kwargs):
         kwargs["type"] = self.TYPE_MEASUREMENT_TVP_TIMESERIES
 
-        if "observed_property_variable" in kwargs:
-            datasource_variable_id = kwargs['observed_property_variable']
-            observed_property_variable = plugin_access.get_observed_property_variable(datasource_variable_id)
-            basin3d_variable_id = observed_property_variable.basin3d_id
-            kwargs['observed_property_variable'] = basin3d_variable_id
-            kwargs['observed_property'] = plugin_access.get_observed_property(basin3d_variable_id)
+        # it seems problematic to list these out specifically
+        kwargs_orig = kwargs.copy()
+        for attr in ('observed_property', 'statistic', 'aggregation_duration', 'result_quality', 'sampling_medium'):
+            if attr in kwargs_orig:
+                datasource_vocab = kwargs[attr]
+                basin3d_vocab = plugin_access.get_basin3d_vocab(attr_type=attr, datasource_vocab=datasource_vocab)
+                # self[attr] = basin3d_vocab
+                kwargs[attr] = basin3d_vocab
 
-        if 'statistic' in kwargs and kwargs['statistic'] is not None:
-            datasource_attr_id = kwargs['statistic']
-            statistic = plugin_access.get_mapped_attribute(MappedAttributeEnum.STATISTIC, datasource_attr_id)
-            kwargs['statistic'] = statistic.basin3d_id
+                # If the attr is part of a compound mapping and the compound attr is not part of the kwargs, set it.
+                cm_attrs = plugin_access.get_compound_mapping_attributes(attr)
+                if cm_attrs:
+                    for cm_attr in cm_attrs:
+                        if cm_attr.lower() not in kwargs:
+                            cm_basin3d_vocab = plugin_access.get_basin3d_vocab(attr_type=cm_attr, datasource_vocab=datasource_vocab)
+                            kwargs[cm_attr.lower()] = cm_basin3d_vocab
+
+        # kwargs['observed_property'] = plugin_access.get_observed_property(basin3d_variable_id)
+
+        # if 'statistic' in kwargs and kwargs['statistic'] is not None:
+        #     datasource_attr_id = kwargs['statistic']
+        #     statistic = plugin_access.get_basin3d_vocab(MappedAttributeEnum.STATISTIC, datasource_attr_id)
+        #     kwargs['statistic'] = statistic.basin3d_id
 
         # Initialize after the attributes have been set
         super(MeasurementTimeseriesTVPObservation, self).__init__(plugin_access, **kwargs)

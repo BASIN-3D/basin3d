@@ -1,11 +1,11 @@
 import pytest
 
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, DepthCoordinate, \
-    GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, Observation, ObservedProperty, \
+    GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, Observation, \
     ObservedPropertyVariable, RelatedSamplingFeature, RepresentativeCoordinate, TimeValuePair, ResultListTVP, \
     VerticalCoordinate, DataSource
 from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum, StatisticEnum
-from basin3d.core.types import SamplingMedium, SpatialSamplingShapes
+from basin3d.core.types import SpatialSamplingShapes
 
 
 @pytest.fixture
@@ -17,11 +17,11 @@ def observed_property_var():
                                     categories=['Hydrology', 'Subsurface'], units='m3/m/s')
 
 
-@pytest.fixture
-def observed_property(datasource, observed_property_var):
-    return ObservedProperty(datasource_variable='water_flux', observed_property_variable=observed_property_var,
-                            sampling_medium=SamplingMedium.WATER, datasource=datasource,
-                            datasource_description='a test variable')
+# @pytest.fixture
+# def observed_property(datasource, observed_property_var):
+#     return ObservedProperty(datasource_variable='water_flux', observed_property_variable=observed_property_var,
+#                             sampling_medium=SamplingMedium.WATER, datasource=datasource,
+#                             datasource_description='a test variable')
 
 
 def test_data_source_model(datasource):
@@ -36,7 +36,7 @@ def test_data_source_model(datasource):
 def test_observed_property_create(observed_property, observed_property_var, datasource):
     """ Was the object created correctly? """
 
-    assert observed_property.sampling_medium == SamplingMedium.WATER
+    assert observed_property.sampling_medium == 'WATER'
     assert observed_property.datasource_variable == 'water_flux'
     assert observed_property.observed_property_variable == observed_property_var
     assert observed_property.datasource == datasource
@@ -240,17 +240,17 @@ def test_measurement_timeseries_tvp_observation_create(plugin_access_alpha):
     assert obs01.id == 'A-timeseries01'
     assert obs01.utc_offset == '9'
     assert obs01.phenomenon_time == '20180201'
-    assert obs01.observed_property == ObservedProperty(
-        datasource_variable='Acetate',
-        observed_property_variable=ObservedPropertyVariable(
-            basin3d_id='ACT', full_name='Acetate (CH3COO)',
-            categories=['Biogeochemistry', 'Anions'], units='mM'),
-        sampling_medium=SamplingMedium.WATER,
-        datasource=DataSource(
-            id='Alpha', name='Alpha', id_prefix='A',
-            location='https://asource.foo/', credentials={}),
-        datasource_description='')
-    assert obs01.observed_property_variable == 'ACT'
+    # assert obs01.observed_property == ObservedProperty(
+    #     datasource_variable='Acetate',
+    #     observed_property_variable=ObservedPropertyVariable(
+    #         basin3d_id='ACT', full_name='Acetate (CH3COO)',
+    #         categories=['Biogeochemistry', 'Anions'], units='mM'),
+    #     sampling_medium=SamplingMedium.WATER,
+    #     datasource=DataSource(
+    #         id='Alpha', name='Alpha', id_prefix='A',
+    #         location='https://asource.foo/', credentials={}),
+    #     datasource_description='')
+    assert obs01.observed_property == 'ACT'
     assert obs01.result_quality == [ResultQualityEnum.VALIDATED]
     assert obs01.feature_of_interest == 'Point011'
     assert obs01.feature_of_interest_type == FeatureTypeEnum.POINT

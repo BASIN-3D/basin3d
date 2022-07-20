@@ -36,16 +36,16 @@ class SpatialSamplingShapes(object):
     SHAPE_POINT = "POINT"
 
 
-class SamplingMedium:
-    """
-    Types of sampling mediums for Observed Properties
-    """
-
-    SOLID_PHASE = "SOLID PHASE"
-    WATER = "WATER"
-    GAS = "GAS"
-    OTHER = "OTHER"
-    NOT_APPLICABLE = "N/A"
-    SAMPLING_MEDIUMS = [WATER, GAS, SOLID_PHASE, OTHER, NOT_APPLICABLE]
+# class SamplingMedium:
+#     """
+#     Types of sampling mediums for Observed Properties
+#     """
+#
+#     SOLID_PHASE = "SOLID PHASE"
+#     WATER = "WATER"
+#     GAS = "GAS"
+#     OTHER = "OTHER"
+#     NOT_APPLICABLE = "N/A"
+#     SAMPLING_MEDIUMS = [WATER, GAS, SOLID_PHASE, OTHER, NOT_APPLICABLE]
 
 

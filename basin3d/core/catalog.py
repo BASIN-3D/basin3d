@@ -16,14 +16,16 @@
 """
 import csv
 from basin3d.core import monitor
+from dataclasses import dataclass
+from itertools import product
 from importlib import resources
 from inspect import getmodule
 from string import whitespace
 from typing import Dict, Iterator, List, Optional, Union
 
 from basin3d.core.schema.enum import MappedAttributeEnum, StatisticEnum, TimeFrequencyEnum, ResultQualityEnum
-from basin3d.core.models import DataSource, ObservedProperty, ObservedPropertyVariable, MappedAttribute, CompoundMapping
-from basin3d.core.types import SamplingMedium
+from basin3d.core.models import DataSource, MappedAttribute, ObservedPropertyVariable  # ObservedProperty
+# from basin3d.core.schema.enum import SamplingMedium
 
 logger = monitor.get_logger(__name__)
 
@@ -32,11 +34,56 @@ class CatalogException(Exception):
     pass
 
 
+def _verify_attr_type(attr_type: str) -> str:
+    """
+
+    :param attr_type:
+    :return:
+    """
+
+    attr_type = attr_type.upper()
+
+    # if attr_type == 'OBSERVED_PROPERTY' or attr_type == 'OBSERVED_PROPERTY_VARIABLE' or attr_type == 'OBSERVED_PROPERTY_VARIABLES':
+        # attr_type = 'OP'
+
+    return attr_type
+
+
+def _verify_query_var(attr_type: str, is_query=True) -> str:
+    """
+
+    :param attr_type:
+    :return:
+    """
+    # if attr_type == 'OP':
+        # attr_type = 'OBSERVED_PROPERTY_VARIABLE'
+
+        # if is_query:
+            # attr_type = f'{attr_type}S'
+
+    return attr_type.lower()
+
+
 class CatalogBase:
 
     def __init__(self, variable_filename: str = 'basin3d_variables_hydrology.csv'):
         self.variable_dir = 'basin3d.data'
         self.variable_filename = variable_filename
+
+    @dataclass
+    class CompoundMapping:
+        """
+        Helper model to handle compound attribute mapping
+        """
+        attr_type: str  # e.g. OPV
+        compound_mapping: str  # e.g. OPV:SAMPLING_MEDIUM
+        datasource: DataSource = DataSource()
+
+        def __str__(self):
+            return self.__unicode__()
+
+        def __unicode__(self):
+            return self.compound_mapping
 
     def initialize(self, plugin_list: list):
         """
@@ -116,16 +163,16 @@ class CatalogBase:
         """
         raise NotImplementedError
 
-    def _get_observed_property(self, datasource_id, basin3d_id, datasource_variable_id) -> Optional[ObservedProperty]:
-        """
-        Access a single observed property
-
-        :param datasource_id:  datasource identifier
-        :param basin3d_id:  BASIN-3D variable identifier
-        :param datasource_variable_id: datasource variable identifier
-        :return:
-        """
-        raise NotImplementedError
+    # def _get_observed_property(self, datasource_id, basin3d_id, datasource_variable_id) -> Optional[ObservedProperty]:
+    #     """
+    #     Access a single observed property
+    #
+    #     :param datasource_id:  datasource identifier
+    #     :param basin3d_id:  BASIN-3D variable identifier
+    #     :param datasource_variable_id: datasource variable identifier
+    #     :return:
+    #     """
+    #     raise NotImplementedError
 
     def _get_mapped_attribute(self, datasource_id, attr_type, basin3d_id, datasource_attr_id) -> Optional[MappedAttribute]:
         """
@@ -143,26 +190,26 @@ class CatalogBase:
         """Has the catalog been initialized?"""
         raise NotImplementedError
 
-    def find_observed_property(self, datasource_id, variable_name) -> Optional[ObservedProperty]:
-        """
-        Get the measurement to the specified variable_name
-
-        :param datasource_id: the datasource identifier
-        :param variable_name: the variable name to get the :class:`~basin3d.models.ObservedProperty` for
-        :return: :class:`~basin3d.models.ObservedProperty`
-        """
-        raise NotImplementedError
-
-    def find_observed_properties(self, datasource_id=None, variable_names=None) -> Iterator[ObservedProperty]:
-        """
-        Get the measurement to the specified variable_name
-
-        :param datasource_id:  the datasource identifier
-        :param variable_names: the variable names to get the :class:`~basin3d.models.ObservedProperty` for
-        :type variable_names: list
-        :return: :class:`~basin3d.models.ObservedProperty`
-        """
-        raise NotImplementedError
+    # def find_observed_property(self, datasource_id, variable_name) -> Optional[ObservedProperty]:
+    #     """
+    #     Get the measurement to the specified variable_name
+    #
+    #     :param datasource_id: the datasource identifier
+    #     :param variable_name: the variable name to get the :class:`~basin3d.models.ObservedProperty` for
+    #     :return: :class:`~basin3d.models.ObservedProperty`
+    #     """
+    #     raise NotImplementedError
+    #
+    # def find_observed_properties(self, datasource_id=None, variable_names=None) -> Iterator[ObservedProperty]:
+    #     """
+    #     Get the measurement to the specified variable_name
+    #
+    #     :param datasource_id:  the datasource identifier
+    #     :param variable_names: the variable names to get the :class:`~basin3d.models.ObservedProperty` for
+    #     :type variable_names: list
+    #     :return: :class:`~basin3d.models.ObservedProperty`
+    #     """
+    #     raise NotImplementedError
 
     def find_observed_property_variable(self, datasource_id, variable_name, from_basin3d=False) -> Optional[
             ObservedPropertyVariable]:
@@ -258,63 +305,64 @@ class CatalogBase:
 
                 self._insert(observed_property_variable)
 
-    def _process_plugin_variable_mapping(self, plugin, map_filename: str, datasource: DataSource):
-        """
-
-        :param plugin:
-        :param map_filename:
-        :param datasource:
-        :return:
-        """
-        fields = ['basin3d_id', 'datasource_variable', 'sampling_medium', 'description']
-
-        plugin_id = plugin.get_meta().id
-        plugin_module = getmodule(plugin)
-        if not plugin_module:
-            logger.error(f'Plugin {plugin_id} cannot be found')
-            raise CatalogException(f'Plugin {plugin_id} cannot be found')
-
-        plugin_package = ".".join(plugin_module.__name__.split(".")[0:-1])
-
-        with resources.open_text(plugin_package, map_filename) as map_file:
-            logger.debug(f"Mapping file {map_filename} for plugin package {plugin_package}")
-            reader = csv.DictReader(map_file)
-
-            # For now, force a specific file format; could change later to just require specific field names
-            if reader.fieldnames != fields:
-                logger.critical(
-                    f'Plugin {plugin_id}: {map_filename} is not in correct format. Cannot create catalog.')
-                raise CatalogException(
-                    f'Plugin {plugin_id}: {map_filename} is not in correct format. Cannot create catalog.')
-
-            for row in reader:
-                basin3d_id = row[fields[0]]
-                datasource_var = row[fields[1]]
-                sampling_medium = row[fields[2]]
-                description = row[fields[3]]
-                observed_property_variable = self._get_observed_property_variable(basin3d_id)
-                if observed_property_variable is None:
-                    logger.warning(
-                        f'Plugin {plugin_id}: Datasource variable {datasource_var} not in BASIN-3D variables.')
-                    continue
-                if self._get_observed_property(datasource.id, basin3d_id, datasource_var) is not None:
-                    logger.warning(
-                        f'Plugin {plugin_id}: Duplicate BASIN-3D variable detected. Cannot handle duplicate mappings yet. '
-                        f'Skipping datasource_variable {datasource_var}.')
-                    continue
-                if not sampling_medium in SamplingMedium.SAMPLING_MEDIUMS:
-                    logger.warning(
-                        f'Plugin {plugin_id}: Datasource sampling medium {sampling_medium} is not BASIN-3D sampling medium type.')
-                    continue
-
-                observed_property = ObservedProperty(
-                    datasource_variable=datasource_var,
-                    observed_property_variable=observed_property_variable,
-                    sampling_medium=sampling_medium, datasource=datasource,
-                    datasource_description=description)
-
-                self._insert(observed_property)
-                logger.debug(f"Mapped {datasource_var} to {observed_property_variable}")
+    # ToDo: REMOVE
+    # def _process_plugin_variable_mapping(self, plugin, map_filename: str, datasource: DataSource):
+    #     """
+    #
+    #     :param plugin:
+    #     :param map_filename:
+    #     :param datasource:
+    #     :return:
+    #     """
+    #     fields = ['basin3d_id', 'datasource_variable', 'sampling_medium', 'description']
+    #
+    #     plugin_id = plugin.get_meta().id
+    #     plugin_module = getmodule(plugin)
+    #     if not plugin_module:
+    #         logger.error(f'Plugin {plugin_id} cannot be found')
+    #         raise CatalogException(f'Plugin {plugin_id} cannot be found')
+    #
+    #     plugin_package = ".".join(plugin_module.__name__.split(".")[0:-1])
+    #
+    #     with resources.open_text(plugin_package, map_filename) as map_file:
+    #         logger.debug(f"Mapping file {map_filename} for plugin package {plugin_package}")
+    #         reader = csv.DictReader(map_file)
+    #
+    #         # For now, force a specific file format; could change later to just require specific field names
+    #         if reader.fieldnames != fields:
+    #             logger.critical(
+    #                 f'Plugin {plugin_id}: {map_filename} is not in correct format. Cannot create catalog.')
+    #             raise CatalogException(
+    #                 f'Plugin {plugin_id}: {map_filename} is not in correct format. Cannot create catalog.')
+    #
+    #         for row in reader:
+    #             basin3d_id = row[fields[0]]
+    #             datasource_var = row[fields[1]]
+    #             sampling_medium = row[fields[2]]
+    #             description = row[fields[3]]
+    #             observed_property_variable = self._get_observed_property_variable(basin3d_id)
+    #             if observed_property_variable is None:
+    #                 logger.warning(
+    #                     f'Plugin {plugin_id}: Datasource variable {datasource_var} not in BASIN-3D variables.')
+    #                 continue
+    #             if self._get_observed_property(datasource.id, basin3d_id, datasource_var) is not None:
+    #                 logger.warning(
+    #                     f'Plugin {plugin_id}: Duplicate BASIN-3D variable detected. Cannot handle duplicate mappings yet. '
+    #                     f'Skipping datasource_variable {datasource_var}.')
+    #                 continue
+    #             if not sampling_medium in SamplingMedium.SAMPLING_MEDIUMS:
+    #                 logger.warning(
+    #                     f'Plugin {plugin_id}: Datasource sampling medium {sampling_medium} is not BASIN-3D sampling medium type.')
+    #                 continue
+    #
+    #             observed_property = ObservedProperty(
+    #                 datasource_variable=datasource_var,
+    #                 observed_property_variable=observed_property_variable,
+    #                 sampling_medium=sampling_medium, datasource=datasource,
+    #                 datasource_description=description)
+    #
+    #             self._insert(observed_property)
+    #             logger.debug(f"Mapped {datasource_var} to {observed_property_variable}")
 
     def _process_plugin_attr_mapping(self, plugin, filename: str, datasource: DataSource):
         """
@@ -345,6 +393,7 @@ class CatalogBase:
                 raise CatalogException(
                     f'Plugin {plugin_id}: {filename} is not in correct format. Cannot create catalog.')
 
+            compound_mappings = set()
             for row in reader:
                 attr_type = row[fields[0]]
                 basin3d_vocab = row[fields[1]]
@@ -368,13 +417,16 @@ class CatalogBase:
                 logger.debug(f"{datasource.id}: Mapped {attr_type} {datasource_vocab} to {basin3d_vocab}")
 
                 if ':' in attr_type:
-                    attrs = attr_type.split(':')
-                    for attr in attrs:
-                        compound_mapping = CompoundMapping(
-                            compound_mapping=attr_type,
-                            attr_type=attr,
-                            datasource=datasource)
-                        self._insert(compound_mapping)
+                    compound_mappings.add(attr_type)
+
+        for compound_mapping in compound_mappings:
+            attrs = compound_mapping.split(':')
+            for attr in attrs:
+                cm = CatalogBase.CompoundMapping(
+                    compound_mapping=compound_mapping,
+                    attr_type=attr,
+                    datasource=datasource)
+                self._insert(cm)
 
 
 class CatalogTinyDb(CatalogBase):
@@ -386,7 +438,7 @@ class CatalogTinyDb(CatalogBase):
         # self._observed_properties: Dict[str, ObservedProperty] = {}
         self._observed_property_variables: Dict[str, ObservedPropertyVariable] = {}
         self._mapped_attributes: Dict[str, MappedAttribute] = {}
-        self._compound_mapping: Dict[str, CompoundMapping] = {}
+        self._compound_mapping: Dict[str, CatalogBase.CompoundMapping] = {}
 
     def is_initialized(self) -> bool:
         """Has the catalog been initialized?"""
@@ -412,7 +464,7 @@ class CatalogTinyDb(CatalogBase):
     #     """
     #     return self._observed_properties.get(f"{datasource_id}-{basin3d_id}-{datasource_variable_id}", None)
 
-    def _get_mapped_attribute(self, datasource_id, attr_type, basin3d_id, datasource_attr_id) -> Optional[MappedAttribute]:
+    def _get_mapped_attribute(self, datasource_id, attr_type, basin3d_vocab, datasource_vocab) -> Optional[MappedAttribute]:
         """
         Access a single mapped attribute
 
@@ -422,7 +474,17 @@ class CatalogTinyDb(CatalogBase):
         :param datasource_attr_id:
         :return:
         """
-        return self._mapped_attributes.get(f'{datasource_id}-{attr_type}-{basin3d_id}-{datasource_attr_id}', None)
+        return self._mapped_attributes.get(f'{datasource_id}-{attr_type}-{basin3d_vocab}-{datasource_vocab}', None)
+
+    def _get_compound_mapping(self, datasource_id, attr_type, compound_mapping) -> Optional[CatalogBase.CompoundMapping]:
+        """
+
+        :param datasource_id:
+        :param attr_type:
+        :param compound_mapping:
+        :return:
+        """
+        return self._compound_mapping.get(f'{datasource_id}-{attr_type}-{compound_mapping}', None)
 
     # def find_observed_property(self, datasource_id, variable_name) -> Optional[ObservedProperty]:
     #     """
@@ -488,19 +550,21 @@ class CatalogTinyDb(CatalogBase):
         :return: A variable name
         :rtype: str
         """
-        if self.in_memory_db_op is None:
+        if self.in_memory_db_attr is None:
             raise CatalogException("Variable Store has not been initialized")
 
         from tinydb import Query
         query = Query()
         if from_basin3d:
-            results = self.in_memory_db_op.search(
-                (query.basin3d_id == variable_name) & (query.datasource_id == datasource_id))
+            results = self.in_memory_db_attr.search(
+                (query.attr_type == 'OBSERVED_PROPERTY') & (query.basin3d_vocab.matches(variable_name)) & (query.datasource_id == datasource_id))
         else:
             # Convert from DataSource variable name to BASIN-3D
-            results = self.in_memory_db_op.search(
-                (query.datasource_variable_id == variable_name) & (query.datasource_id == datasource_id))
+            results = self.in_memory_db_attr.search(
+                (query.attr_type == 'OBSERVED_PROPERTY') & (query.datasource_vocab == variable_name) & (query.datasource_id == datasource_id))
         basin3d_variable_id = results[0]['basin3d_id']
+
+        # ToDo: exptend for multiple variable return
         return self._get_observed_property_variable(basin3d_variable_id)
 
     def find_observed_property_variables(self, datasource_id=None, variable_names=None, from_basin3d=False) -> Iterator[
@@ -586,15 +650,15 @@ class CatalogTinyDb(CatalogBase):
             return self._get_mapped_attribute(**results[0])
         return None
 
-    def find_mapped_attributes(self, datasource_id, attr_type, attr_ids, from_basin3d=False) -> Iterator[MappedAttribute]:
+    def find_mapped_attributes(self, datasource_id, attr_type, attr_vocab, from_basin3d=False) -> Iterator[MappedAttribute]:
         """
         Convert the given list of attributes to either BASIN-3D from :class:`~basin3d.models.DataSource`
         attribute id or the other way around.
 
         :param: datasource_id: the datasource
         :param: attr_type: the attribute type
-        :param: attr_ids:  The :class:`~basin3d.models.MappedAttribute` names to convert
-        :type: attr_ids: iterable
+        :param: attr_vocab:  The :class:`~basin3d.models.MappedAttribute` names to convert
+        :type: attr_vocab: iterable
         :param: from_basin3d: boolean that says whether the variable name is a
             BASIN-3D variable. If not, then this a datasource variable names.
         :type from_basin3d: boolean
@@ -608,10 +672,10 @@ class CatalogTinyDb(CatalogBase):
         from tinydb import Query
         query = Query()
 
-        is_in = lambda x: x in attr_ids
+        is_in = lambda x: x in attr_vocab
 
         # none for all 3 query parameters --> get all mapped variables back for all registered plugins
-        if not datasource_id and not attr_ids and not attr_type:
+        if not datasource_id and not attr_vocab and not attr_type:
             # return all observe_property_variables possible
             for mapped_attr in self._mapped_attributes.values():
                 yield mapped_attr
@@ -621,27 +685,219 @@ class CatalogTinyDb(CatalogBase):
                 raise CatalogException(
                     "find_mapped_attributes: 'datasource' should be specified with 'attr_type' and/or 'attr_ids")
 
-            if not attr_type and not attr_ids:
+            if not attr_type and not attr_vocab:
                 # This returns all possible attributes for a data source
                 results = self.in_memory_db_attr.search(query.datasource_id == datasource_id)
 
-            elif not attr_ids:
+            elif not attr_vocab:
                 # Returns all attributes for a data source and attribute type
-                results = self.in_memory_db_attr.search((query.datasource_id == datasource_id) & (query.attr_type == attr_type))
+                results = self.in_memory_db_attr.search((query.datasource_id == datasource_id) & (query.attr_type.fragment(attr_type)))
 
             elif from_basin3d:
                 # Convert from BASIN-3D to DataSource variable name
                 results = self.in_memory_db_attr.search(
-                    (query.basin3d_id.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type == attr_type))
+                    (query.basin3d_id.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.fragment(attr_type)))
 
             else:
                 # Convert from DataSource variable name to BASIN-3D
                 results = self.in_memory_db_attr.search(
-                    (query.datasource_variable_id.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type == attr_type))
+                    (query.datasource_variable_id.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.fragment(attr_type)))
 
             # Yield the results
             for r in results:
                 yield self._get_mapped_attribute(**r)
+
+    def extract_single_basin3d_vocab(self, attr_type, query_result) -> str:
+        """
+
+        :param attr_type:
+        :param query_result:
+        :return:
+        """
+        r = query_result.copy()
+        r.pop('datasource_desc')
+        mapped_attr = self._get_mapped_attribute(**r)
+        b3d_vocab = mapped_attr.basin3d_vocab
+
+        if ':' in mapped_attr.attr_type:
+            attrs = mapped_attr.attr_type.split(':')
+            b3d_vocabs = b3d_vocab.split(':')
+            for idx, attr in enumerate(attrs):
+                if attr == attr_type:
+                    b3d_vocab = b3d_vocabs[idx]
+        return b3d_vocab
+
+    def find_basin3d_vocab(self, datasource_id, attr_type, datasource_vocab) -> Optional[str]:
+        """
+
+        :param datasource_id:
+        :param attr_type:
+        :param datasource_vocab:
+        :return:
+        """
+
+        if self.in_memory_db_attr is None:
+            raise CatalogException("Compound mapping database has not been initialized")
+
+        from tinydb import Query
+        query = Query()
+
+        attr_type = _verify_attr_type(attr_type)
+
+        results = self.in_memory_db_attr.search(
+            (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)) & (query.datasource_vocab == datasource_vocab))
+
+        if results:
+            if len(results) > 1:
+                # add some error messaging -- should not be the case if mapping files are verified
+                pass
+            else:
+                return self.extract_single_basin3d_vocab(attr_type, results[0])
+
+        # OPV should probably be handled differently but not here
+        return 'NOT_SUPPORTED'
+
+    def find_basin3d_vocabs(self, datasource_id, attr_type, datasource_vocab, include_not_supported=False) -> Optional[List[str]]:
+        """
+
+        :param datasource_id:
+        :param attr_type:
+        :param datasource_vocab:
+        :return:
+        """
+        basin3d_vocabs = []
+        for ds_vocab in datasource_vocab:
+            b3d_vocab = self.find_basin3d_vocab(datasource_id, attr_type, ds_vocab)
+            if not include_not_supported and b3d_vocab == 'NOT_SUPPORTED':
+                continue
+            basin3d_vocabs.append(b3d_vocab)
+
+        return basin3d_vocabs
+
+    def find_datasource_vocab(self, datasource_id, attr_type, basin3d_vocab, b3d_query) -> list:
+        """
+
+        :param datasource_id:
+        :param attr_type:
+        :param basin3d_vocab:
+        :param b3d_query:
+        :return:
+        """
+        if self.in_memory_db_attr is None:
+            raise CatalogException("Compound mapping database has not been initialized")
+
+        from tinydb import Query
+        query = Query()
+
+        # is the attr_type part of a compound mapping?
+        attr_type = _verify_attr_type(attr_type)
+        compound_mapping = self.find_compound_mapping(datasource_id, attr_type)
+
+        # b3d_vocab_query = query.basin3d_vocab.fragment(basin3d_vocab)
+        b3d_vocab_combo_str = [basin3d_vocab]
+
+        # if so, find all the relevant value combos given the query
+        if compound_mapping:
+            compound_mapping_attrs = compound_mapping.compound_mapping  # e.g. OPV
+            b3d_vocab_filter_lists = []  # list to hold lists of specified filters, one for each attr
+
+            # loop thru each of the compound mapping attributes
+            for attr in compound_mapping_attrs.split(':'):
+                # by default: match any number of characters excepting a new line for the attribute
+                filter_values = ['.*']
+                # if the attr is the attr_type, set the filter to the specified vocab
+                if attr == attr_type:
+                    filter_values = [basin3d_vocab]
+                # if the other attribute is specified in the query
+                elif _verify_query_var(attr) in b3d_query.list_attribute_names():
+                    # get the filter values
+                    attr_value = getattr(b3d_query, _verify_query_var(attr_type))
+                    if not attr_value:
+                        filter_values = attr_value
+                        # if the values are a str, change it to a list
+                        if isinstance(attr_value, str):
+                            filter_values = filter_values.split(',')
+                # append the filter list to the main list
+                b3d_vocab_filter_lists.append(filter_values)
+
+            # create a list of sets contain the combinations of filter options for each attr
+            b3d_vocab_combo_sets = list(product(*b3d_vocab_filter_lists))
+
+            # change each set into a str for search
+            b3d_vocab_combo_str = [':'.join(v) for v in b3d_vocab_combo_sets]
+            # is_match = lambda x: x in b3d_vocab_combo_str
+
+            # because there can be wildcards, use match in the query
+            # b3d_vocab_query = query.basin3d_vocab.test(is_match)
+
+            # change the attr_type to the compound mapping str
+            attr_type = compound_mapping_attrs
+
+        ds_vocab = set()
+        for basin3d_vocab_str in b3d_vocab_combo_str:
+            query_results = self.in_memory_db_attr.search(
+                (query.datasource_id == datasource_id) & (query.attr_type == attr_type) & (query.basin3d_vocab.matches(basin3d_vocab_str)))
+            if query_results:
+                for qr in query_results:
+                    qr_copy = qr.copy()
+                    qr_copy.pop('datasource_desc')
+                    mapped_attr = self._get_mapped_attribute(**qr_copy)
+                    if mapped_attr is not None:
+                        ds_vocab.add(mapped_attr.datasource_vocab)
+
+        # ds_vocab = []
+        # for r in results:
+        #     ds_vocab.append(self._get_mapped_attribute(*r))
+
+        return list(ds_vocab)
+
+    def find_compound_mapping(self, datasource_id, attr_type):
+        """
+        Get the compound mapping for the specified attr_type
+        :param datasource_id:
+        :param attr_type:
+        :return:
+        """
+        if self.in_memory_db_cm is None:
+            raise CatalogException("Compound mapping database has not been initialized")
+
+        from tinydb import Query
+        query = Query()
+
+        attr_type = _verify_attr_type(attr_type)
+
+        results = self.in_memory_db_cm.search((query.datasource_id == datasource_id) & (query.attr_type == attr_type))
+
+        if results:
+            return self._get_compound_mapping(**results[0])
+
+        return None
+
+    def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False) -> list:
+        """
+        Return the attributes if attr_type is part of a compound mapping
+        :param datasource_id:
+        :param attr_type:
+        :param include_specified_type: bool
+        :return:
+        """
+        if self.in_memory_db_cm is None:
+            raise CatalogException("Compound mapping database has not been initialized")
+
+        from tinydb import Query
+        query = Query()
+
+        attr_type = _verify_attr_type(attr_type)
+        results = self.in_memory_db_cm.search((query.datasource_id == datasource_id) & (query.compound_mapping.matches(attr_type)))
+
+        attr_types = []
+        for r in results:
+            compound_attr_type = self._get_compound_mapping(**r).attr_type
+            if not include_specified_type and compound_attr_type == attr_type:
+                continue
+            attr_types.append(compound_attr_type)
+
+        return attr_types
 
     def _init_catalog(self):
         """
@@ -653,10 +909,10 @@ class CatalogTinyDb(CatalogBase):
         from tinydb import TinyDB
         from tinydb.storages import MemoryStorage
         self.in_memory_db = TinyDB(storage=MemoryStorage)
-        self.in_memory_db_cm = self.in_memory_db.table('compound_mappings')
-        self.in_memory_db_cm.truncate()
         self.in_memory_db_attr = self.in_memory_db.table('attr')
         self.in_memory_db_attr.truncate()
+        self.in_memory_db_cm = self.in_memory_db.table('compound_mappings')
+        self.in_memory_db_cm.truncate()
 
     def _insert(self, record):
         """
@@ -672,7 +928,7 @@ class CatalogTinyDb(CatalogBase):
             #                                  'datasource_variable_id': record.datasource_variable,
             #                                  'basin3d_id': record.observed_property_variable.basin3d_id, })
             elif isinstance(record, MappedAttribute):
-                key = f'{record.datasource.id}-{record.attr_type}-{record.basin3d_vocab}-{record.datasource_vocab}-{record.datasource_desc}'
+                key = f'{record.datasource.id}-{record.attr_type}-{record.basin3d_vocab}-{record.datasource_vocab}'
                 logger.debug(key)
                 self._mapped_attributes[key] = record
                 self.in_memory_db_attr.insert({'datasource_id': record.datasource.id,
@@ -680,12 +936,12 @@ class CatalogTinyDb(CatalogBase):
                                                'basin3d_vocab': record.basin3d_vocab,
                                                'datasource_vocab': record.datasource_vocab,
                                                'datasource_desc': record.datasource_desc, })
-            elif isinstance(record, CompoundMapping):
-                key = f'{record.datasource.id}-{record.compound_mapping}-{record.attr_type}'
+            elif isinstance(record, CatalogBase.CompoundMapping):
+                key = f'{record.datasource.id}-{record.attr_type}-{record.compound_mapping}'
                 logger.debug(key)
                 self._compound_mapping[key] = record
                 self.in_memory_db_cm.insert({'datasource_id': record.datasource.id,
-                                             'compound_mapping': record.compound_mapping,
-                                             'attr_type': record.attr_type, })
+                                             'attr_type': record.attr_type,
+                                             'compound_mapping': record.compound_mapping, })
         else:
             raise CatalogException(f'Could not insert record.  Catalog not initialize')

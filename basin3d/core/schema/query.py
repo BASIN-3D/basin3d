@@ -20,7 +20,7 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from basin3d.core.schema.enum import FeatureTypeEnum, MessageLevelEnum, ResultQualityEnum, StatisticEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, MessageLevelEnum, ResultQualityEnum, SamplingMediumEnum, StatisticEnum, TimeFrequencyEnum
 
 
 def _to_camelcase(string) -> str:
@@ -61,6 +61,10 @@ class QueryBase(BaseModel):
         # Validate all fields when initialized
         validate_all = True
 
+    def list_attribute_names(self):
+        # ToDo: probably don't want to use the protected class. Could use vars()?
+        return [a.name for a in self.__fields__.values()]
+
 
 class QueryById(QueryBase):
     """Query for a single data object by identifier"""
@@ -98,18 +102,23 @@ class QueryMonitoringFeature(QueryBase):
 
 class QueryMeasurementTimeseriesTVP(QueryBase):
     """Query :class:`basin3d.core.models.MeasurementTimeseriesTVP`"""
-    aggregation_duration: Optional[TimeFrequencyEnum] = Field(default='DAY', title="Aggregation Duration",
-                                                              description="Filter by the specified time frequency")
+    # required
     monitoring_features: List[str] = Field(min_items=1, title="Monitoring Features",
                                            description="Filter by the list of monitoring feature identifiers")
     observed_property_variables: List[str] = Field(min_items=1, title="Observed Property Variables",
                                                    description="Filter by the list of observed property variables")
     start_date: date = Field(title="Start Date", description="Filter by data taken on or after the start date")
+
+    # optional
+    aggregation_duration: Optional[TimeFrequencyEnum] = Field(default='DAY', title="Aggregation Duration",
+                                                              description="Filter by the specified time frequency")
     end_date: Optional[date] = Field(title="End Date", description="Filter by data taken on or before the end date")
     statistic: Optional[List[StatisticEnum]] = Field(title="Statistic",
                                                      description="Return specified statistics, if they exist.")
     result_quality: Optional[List[ResultQualityEnum]] = Field(title="Result Quality",
                                                               description="Filter by specified result qualities")
+    sampling_medium: Optional[List[SamplingMediumEnum]] = Field(title="Sampling Medium",
+                                                                description="Filter results by specified sampling medium")
 
     def __init__(self, **data):
         """
