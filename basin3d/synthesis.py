@@ -53,7 +53,7 @@ import pandas as pd
 from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import DataSource
 from basin3d.core.plugin import PluginMount
-from basin3d.core.schema.enum import PANDAS_TIME_FREQUENCY_MAP, StatisticEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import NO_MAPPING_TEXT, PANDAS_TIME_FREQUENCY_MAP, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisResponse
 from basin3d.core.synthesis import DataSourceModelIterator, MeasurementTimeseriesTVPObservationAccess, \
@@ -426,7 +426,7 @@ class DataSynthesizer:
             >>> synthesizer = synthesis.register()
             >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=["USGS-09110990", "USGS-09111250"],observed_property_variables=['RDC','WT'],start_date='2020-04-01',end_date='2020-04-30',aggregation_duration='NONE')
             >>> for timeseries in timeseries:
-            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property_variable}")
+            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property}")
             USGS-09110990 - RDC
             USGS-09111250 - RDC
 
@@ -563,23 +563,23 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
             # Collect stats
             feature_of_interest = data_obj.feature_of_interest  # In future will need feature of interest as a separate obj
             sampling_feature_id = feature_of_interest.id
-            observed_property_variable_id = data_obj.observed_property_variable
-            aggregation_duration = data_obj.aggregation_duration
+            observed_property = data_obj.observed_property
+            # aggregation_duration = data_obj.aggregation_duration
             # Double check that returned aggregation_duration matches resolution. They should be the same.
-            statistic = data_obj.statistic
             # Double check that returned statistic matches any statistic specified.
-            if query.statistic and statistic not in query.statistic:
-                logger.warning(
-                    f'Results statistic {statistic} not in the specified query statistic(s): '
-                    f'{query.statistic}.')
+            # if query.statistic and statistic not in query.statistic:
+            #     logger.warning(
+            #         f'Results statistic {statistic} not in the specified query statistic(s): '
+            #         f'{query.statistic}.')
             # convert result_quality from a list to str if there are quality values
             result_quality = None
             if data_obj.result_quality:
-                result_quality = ';'.join(data_obj.result_quality)
+                result_quality = ';'.join(data_obj.result_quality.get_basin3d_vocab())
 
-            synthesized_variable_name = f'{sampling_feature_id}__{observed_property_variable_id}'
+            synthesized_variable_name = f'{sampling_feature_id}__{observed_property}'
             # Only add statistic to the column name if it exists
-            if statistic and statistic in StatisticEnum.values()[1:]:
+            statistic = data_obj.statistic.get_basin3d_vocab()
+            if statistic:
                 synthesized_variable_name += f"__{statistic}"
 
             results_start = None
@@ -601,22 +601,21 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
 
             # Collect rest of variable metadata and store it
             # ToDo: other metadata files
-            observed_property = data_obj.observed_property
             metadata_store[synthesized_variable_name] = {
                 'data_start': results_start,
                 'data_end': results_end,
                 'records': records,
                 'units': data_obj.unit_of_measurement,
-                'basin_3d_variable': observed_property_variable_id,
-                'basin_3d_variable_full_name': observed_property.observed_property_variable.full_name,
+                'basin_3d_variable': observed_property.get_basin3d_vocab(),
+                'basin_3d_variable_full_name': observed_property.get_datasource_desc(),
                 'statistic': statistic,
-                'temporal_aggregation': aggregation_duration,
+                'temporal_aggregation': data_obj.aggregation_duration.get_basin3d_vocab(),
                 'quality': result_quality,
-                'sampling_medium': observed_property.sampling_medium,
+                'sampling_medium': data_obj.sampling_medium.get_basin3d_vocab(),
                 'sampling_feature_id': sampling_feature_id,
                 'sampling_feature_name': feature_of_interest.name,
                 'datasource': data_obj.datasource.name,
-                'datasource_variable': observed_property.datasource_variable}
+                'datasource_variable': observed_property.get_datasource_vocab()}
 
             # not every observation type / sampling feature type will have simple lat long so set up with toggle
             #    we may need to modify this for broader applicaiton with BASIN-3D

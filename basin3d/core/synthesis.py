@@ -15,12 +15,12 @@
 
 """
 import logging
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Union
 
 from basin3d.core import monitor
-from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
+from basin3d.core.models import Base, MappedAttribute, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
-from basin3d.core.schema.enum import MessageLevelEnum, TimeFrequencyEnum, MappedAttributeEnum
+from basin3d.core.schema.enum import NO_MAPPING_TEXT, MessageLevelEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
 
@@ -197,9 +197,10 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
                             self._synthesis_response.query)
                         synthesized_query_params.datasource = [plugin.get_datasource().id]
 
-                        # Get the model access iterator
-                        self._model_access_iterator = plugin_views[self._model_access.synthesis_model].list(
-                            query=synthesized_query_params)
+                        # Get the model access iterator if synthesized query is valid
+                        if self._model_access.is_valid_synthesized_query(self._synthesis_response.query, synthesized_query_params):
+                            self._model_access_iterator = plugin_views[self._model_access.synthesis_model].list(
+                                query=synthesized_query_params)
                     else:
                         self.warn("Plugin view does not exist")
 
@@ -241,13 +242,21 @@ class DataSourceModelAccess(MonitorMixin):
     def synthesis_model(self):
         raise NotImplementedError
 
+    def is_valid_synthesized_query(self, query, synthesized_query_params: QueryBase) -> bool:
+        """
+
+        :param query:
+        :param synthesized_query_params:
+        :return:
+        """
+        raise NotImplementedError
+
     def synthesize_query(self, plugin_access: DataSourcePluginAccess,
                          query: QueryBase) -> QueryBase:
         """
         Synthesizes query parameters, if necessary
 
         :param query: The query information to be synthesized
-        :param request: the request to synthesize
         :param plugin_access: The plugin view to synthesize query params for
         :return: The synthesized query information
         """
@@ -334,6 +343,15 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
     """
     synthesis_model = MonitoringFeature
 
+    def is_valid_synthesized_query(self, query: QueryMonitoringFeature, synthesized_query_params: QueryBase) -> bool:
+        """
+
+        :param query:
+        :param synthesized_query_params:
+        :return:
+        """
+        return True
+
     def synthesize_query(self, plugin_access: DataSourcePluginAccess, query: QueryMonitoringFeature) -> QueryBase:  # type: ignore[override]
         """
         Synthesizes query parameters, if necessary
@@ -391,12 +409,51 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *statistic (optional):* List of statistic options, enum (INSTANT|MEAN|MIN|MAX|TOTAL)
     * *datasource (optional):* a single data source id prefix (e.g ?datasource=`datasource.id_prefix`)
     * *result_quality (optional):* enum (VALIDATED|UNVALIDATED|SUSPECTED|REJECTED|ESTIMATED)
+    * *sampling_medium (optional):* ADD here -- probably should be enum
 
     **Restrict fields** with query parameter ‘fields’. (e.g. ?fields=id,name)
 
 
     """
     synthesis_model = MeasurementTimeseriesTVPObservation
+
+    @staticmethod
+    def _get_attrs_with_mappings(query: Union[QueryMeasurementTimeseriesTVP, QueryBase]) -> list:
+        """
+
+        :param query:
+        :return:
+        """
+        opv = 'observed_property_variables'
+        attrs_to_ignore = ('datasource', 'monitoring_features', opv, 'start_date', 'end_date')
+        # Get the attributes to be synthesized
+        attrs = [a for a in query.list_attribute_names() if a not in attrs_to_ignore and getattr(query, a)]
+        # put observed property variables back in the first position as is is the most likely to have compound mappings
+        #   for now, assume order does not matter for other attributes -- however it might...
+        attrs.insert(0, opv)
+        return attrs
+
+    def is_valid_synthesized_query(self, query: MeasurementTimeseriesTVPObservation, synthesized_query: QueryBase) -> bool:
+        """
+
+        :param query:
+        :param synthesized_query:
+        :return:
+        """
+        query_attrs = self._get_attrs_with_mappings(query)
+        syn_attrs = self._get_attrs_with_mappings(synthesized_query)
+
+        is_valid_synthesized_query = True
+
+        for attr in query_attrs:
+            if attr not in syn_attrs:
+                # ToDo: add messaging
+                is_valid_synthesized_query = False
+            elif not getattr(synthesized_query, attr):
+                # ToDo: add messaging
+                is_valid_synthesized_query = False
+
+        return is_valid_synthesized_query
 
     def synthesize_query(self, plugin_access: DataSourcePluginAccess, query: QueryMeasurementTimeseriesTVP) -> QueryBase:  # type: ignore[override]
         """
@@ -417,14 +474,6 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         id_prefix = plugin_access.datasource.id_prefix
         synthesized_query = query.copy()
 
-        # Get the attributes to be synthesized
-        attributes = [a for a in query.list_attribute_names() if a not in
-                      ('datasource', 'monitoring_features', 'observed_property_variables', 'start_date')
-                      and getattr(query, a)]
-        # start with the observed property variables as these are the most likely to have compound mappings
-        #   for not assume order does not matter for other attributes -- however it might...
-        attributes.insert(0, 'observed_property_variables')
-
         if query:
 
             if query.monitoring_features:
@@ -436,7 +485,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
             #     synthesized_query.observed_property_variables = [o.datasource_variable for o in
             #                                                      plugin_access.get_observed_properties(
             #                                                          query.observed_property_variables)]
-
+            attributes = self._get_attrs_with_mappings(query)
             for attr in attributes:
                 if getattr(synthesized_query, attr):
                     compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper())
@@ -446,14 +495,15 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
                     b3d_vocab = getattr(synthesized_query, attr)
                     if isinstance(b3d_vocab, str):
                         ds_vocab = plugin_access.get_ds_vocab(attr.upper(), b3d_vocab, query)
-                        if ds_vocab and ds_vocab == 'NOT_SUPPORTED':
-                            # ToDo: add messaging
-                            ds_vocab = None
+                        # if ds_vocab and ds_vocab == 'NOT_SUPPORTED':
+                        #     # ToDo: add messaging
+                        #     # ds_vocab = None
+                        #     pass
                     else:
                         ds_vocab = []
-                        for b3d_vocab in getattr(synthesized_query, attr):
+                        for b3d_value in b3d_vocab:
                             # handle multiple values returned
-                            ds_vocab.extend(plugin_access.get_ds_vocab(attr.upper(), b3d_vocab, query))
+                            ds_vocab.extend(plugin_access.get_ds_vocab(attr.upper(), b3d_value, query))
                     setattr(synthesized_query, attr, ds_vocab)
 
         # Aggregation duration will be default to DAY in QueryMeasurementTimeseriesTVP.

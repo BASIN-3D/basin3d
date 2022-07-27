@@ -129,7 +129,7 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
 
         # convert strings to lists for some fields
         for field in ["monitoring_features", "observed_property_variables", "monitoringFeatures",
-                      "observedPropertyVariables"]:
+                      "observedPropertyVariables", "statistic", "result_quality", "sampling_medium"]:
             if field in data and data[field] and isinstance(data[field], str):
                 data[field] = list([data[field]])
         super().__init__(**data)

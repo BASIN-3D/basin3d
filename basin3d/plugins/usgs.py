@@ -552,42 +552,42 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
     synthesis_model_class = MeasurementTimeseriesTVPObservation
 
-    def map_result_quality(self, qualifiers):
-        """
-        Daily Value and Instantaneous Value Qualification Code (dv_rmk_cd)
-
-        =============  =========  ================================================================================
-        BASIN-3D Code  USGS Code  Description
-        =============  =========  ================================================================================
-        ESTIMATED      e          Value has been edited or estimated by USGS personnel and is write protected
-        NOT_SUPPORTED  &          Value was computed from affected unit values
-        ESTIMATED      E          Value was computed from estimated unit values.
-        VALIDATED      A          Approved for publication -- Processing and review completed.
-        UNVALIDATED    P          Provisional data subject to revision.
-        NOT_SUPPORTED  <          The value is known to be less than reported value and is write protected.
-        NOT_SUPPORTED  >          The value is known to be greater than reported value and is write protected.
-        NOT_SUPPORTED  1          Value is write protected without any remark code to be printed
-        NOT_SUPPORTED  2          Remark is write protected without any remark code to be printed
-        NOT_SUPPORTED  _          No remark (blank)
-        =============  =========  ================================================================================
-
-        :param qualifiers:
-        :return:
-        """
-        if "A" in qualifiers:
-            return ResultQualityEnum.VALIDATED
-        elif "P" in qualifiers:
-            return ResultQualityEnum.UNVALIDATED
-        elif "E" in qualifiers or "e" in qualifiers:
-            return ResultQualityEnum.ESTIMATED
-        else:
-            return ResultQualityEnum.NOT_SUPPORTED
-
-    def get_result_qualifiers(self, qualifiers):
-        timeseries_qualifiers = set()
-        for qualifier in qualifiers:
-            timeseries_qualifiers.add(self.map_result_quality(qualifier["qualifierCode"]))
-        return timeseries_qualifiers
+    # def map_result_quality(self, qualifiers):
+    #     """
+    #     Daily Value and Instantaneous Value Qualification Code (dv_rmk_cd)
+    #
+    #     =============  =========  ================================================================================
+    #     BASIN-3D Code  USGS Code  Description
+    #     =============  =========  ================================================================================
+    #     ESTIMATED      e          Value has been edited or estimated by USGS personnel and is write protected
+    #     NOT_SUPPORTED  &          Value was computed from affected unit values
+    #     ESTIMATED      E          Value was computed from estimated unit values.
+    #     VALIDATED      A          Approved for publication -- Processing and review completed.
+    #     UNVALIDATED    P          Provisional data subject to revision.
+    #     NOT_SUPPORTED  <          The value is known to be less than reported value and is write protected.
+    #     NOT_SUPPORTED  >          The value is known to be greater than reported value and is write protected.
+    #     NOT_SUPPORTED  1          Value is write protected without any remark code to be printed
+    #     NOT_SUPPORTED  2          Remark is write protected without any remark code to be printed
+    #     NOT_SUPPORTED  _          No remark (blank)
+    #     =============  =========  ================================================================================
+    #
+    #     :param qualifiers:
+    #     :return:
+    #     """
+    #     if "A" in qualifiers:
+    #         return ResultQualityEnum.VALIDATED
+    #     elif "P" in qualifiers:
+    #         return ResultQualityEnum.UNVALIDATED
+    #     elif "E" in qualifiers or "e" in qualifiers:
+    #         return ResultQualityEnum.ESTIMATED
+    #     else:
+    #         return ResultQualityEnum.NOT_SUPPORTED
+    #
+    # def get_result_qualifiers(self, qualifiers):
+    #     timeseries_qualifiers = set()
+    #     for qualifier in qualifiers:
+    #         timeseries_qualifiers.add(self.map_result_quality(qualifier["qualifierCode"]))
+    #     return timeseries_qualifiers
 
     def list(self, query: QueryMeasurementTimeseriesTVP):
         """
@@ -674,7 +674,12 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
                 for value in values["value"]:
 
-                    result_point_quality = self.map_result_quality(value['qualifiers'])
+                    if len(value['qualifiers']) > 1:
+                        #ToDo: add some error messaging.
+                        pass
+
+                    # result_point_quality = self.map_result_quality(value['qualifiers'])
+                    result_point_quality = value['qualifiers'][0]
 
                     if not query.result_quality or result_point_quality in query.result_quality:
 
@@ -719,8 +724,8 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 feature_of_interest_type=FeatureTypeEnum.POINT,
                 feature_of_interest=monitoring_feature,
                 utc_offset=int(timezone_offset.split(":")[0]),
-                result=ResultListTVP(value=result_TVPs, quality=result_TVP_quality),
-                observed_property_variable=parameter,
+                result=ResultListTVP(plugin_access=self, value=result_TVPs, quality=result_TVP_quality),
+                observed_property=parameter,
                 result_quality=list(result_quality),
                 aggregation_duration=query.aggregation_duration,
                 time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,

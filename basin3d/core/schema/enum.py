@@ -19,6 +19,9 @@ from enum import Enum
 
 from basin3d.core.types import SpatialSamplingShapes
 
+MAPPING_DELIMITER = ':'
+NO_MAPPING_TEXT = 'NOT_SUPPORTED'
+
 # From https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#timeseries-offset-aliases
 PANDAS_TIME_FREQUENCY_MAP = {
     'YEAR': 'A',
@@ -66,7 +69,7 @@ class TimeFrequencyEnum(str, BaseEnum):
     MINUTE = "MINUTE"
     SECOND = "SECOND"
     NONE = "NONE"
-    NOT_SUPPORTED = 'NOT_SUPPORTED'
+    NOT_SUPPORTED = NO_MAPPING_TEXT
 
 
 class FeatureTypeEnum(str, BaseEnum):
@@ -114,7 +117,7 @@ class ResultQualityEnum(str, BaseEnum):
     ESTIMATED = "ESTIMATED"
 
     #: The quality type is not supported
-    NOT_SUPPORTED = "NOT_SUPPORTED"
+    NOT_SUPPORTED = NO_MAPPING_TEXT
 
 
 class StatisticEnum(str, BaseEnum):
@@ -124,7 +127,7 @@ class StatisticEnum(str, BaseEnum):
     MIN = "MIN"
     MAX = "MAX"
     TOTAL = "TOTAL"
-    NOT_SUPPORTED = 'NOT_SUPPORTED'
+    NOT_SUPPORTED = NO_MAPPING_TEXT
 
 
 class SamplingMediumEnum(str, BaseEnum):
@@ -136,7 +139,7 @@ class SamplingMediumEnum(str, BaseEnum):
     GAS = "GAS"
     OTHER = "OTHER"
     NOT_APPLICABLE = "NOT_APPLICABLE"
-    NOT_SUPPORTED = 'NOT_SUPPORTED'
+    NOT_SUPPORTED = NO_MAPPING_TEXT
     # SAMPLING_MEDIUMS = [WATER, GAS, SOLID_PHASE, OTHER, NOT_APPLICABLE]
 
 

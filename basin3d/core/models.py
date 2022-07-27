@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from numbers import Number
 from typing import List, Union
 
-from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, FeatureTypeEnum, ResultQualityEnum, TimeFrequencyEnum, MappedAttributeEnum, StatisticEnum
+from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, MAPPING_DELIMITER, FeatureTypeEnum, ResultQualityEnum, TimeFrequencyEnum, StatisticEnum
 from basin3d.core.types import SpatialSamplingShapes
 
 
@@ -112,7 +112,7 @@ class ObservedPropertyVariable(JSONSerializable):
 
 
 @dataclass
-class MappedAttribute(JSONSerializable):
+class AttributeMapping(JSONSerializable):
     """
     General mapping attribute model for 1:1 mappings of enums, etc
 
@@ -134,6 +134,34 @@ class MappedAttribute(JSONSerializable):
 
     def __unicode__(self):
         return self.datasource_vocab
+
+
+@dataclass
+class MappedAttribute(JSONSerializable):
+    """
+
+    """
+    attr_type: str
+    attr_mapping: AttributeMapping
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self.get_basin3d_vocab()
+
+    def get_basin3d_vocab(self) -> str:
+        attrs = self.attr_mapping.attr_type.split(MAPPING_DELIMITER)
+        b3d_vocabs = self.attr_mapping.basin3d_vocab.split(MAPPING_DELIMITER)
+        for idx, attr in enumerate(attrs):
+            if attr == self.attr_type.upper():
+                return b3d_vocabs[idx]
+
+    def get_datasource_vocab(self) -> str:
+        return self.attr_mapping.datasource_vocab
+
+    def get_datasource_desc(self) -> str:
+        return self.attr_mapping.datasource_desc
 
 
 # HERE: remove
@@ -1399,7 +1427,7 @@ class ResultListTVP(Base):
         self._quality: List['ResultQualityEnum'] = []
 
         if 'quality' in kwargs and kwargs['quality']:
-            kwargs['quality'] = plugin_access.get_basin3d_vocab(attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'], include_not_supported=True)
+            kwargs['quality'] = plugin_access.get_mapped_attribute(attr_type='RESULT_QUALITY', attr_vocab=kwargs['quality'])
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
@@ -1532,17 +1560,17 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
         for attr in ('observed_property', 'statistic', 'aggregation_duration', 'result_quality', 'sampling_medium'):
             if attr in kwargs_orig:
                 datasource_vocab = kwargs[attr]
-                basin3d_vocab = plugin_access.get_basin3d_vocab(attr_type=attr, datasource_vocab=datasource_vocab)
+                attr_mapping = plugin_access.get_mapped_attribute(attr_type=attr.upper(), attr_vocab=datasource_vocab)
                 # self[attr] = basin3d_vocab
-                kwargs[attr] = basin3d_vocab
+                kwargs[attr] = attr_mapping
 
                 # If the attr is part of a compound mapping and the compound attr is not part of the kwargs, set it.
                 cm_attrs = plugin_access.get_compound_mapping_attributes(attr)
                 if cm_attrs:
                     for cm_attr in cm_attrs:
                         if cm_attr.lower() not in kwargs:
-                            cm_basin3d_vocab = plugin_access.get_basin3d_vocab(attr_type=cm_attr, datasource_vocab=datasource_vocab)
-                            kwargs[cm_attr.lower()] = cm_basin3d_vocab
+                            cm_attr_mapping = plugin_access.get_mapped_attribute(attr_type=cm_attr.upper(), attr_vocab=datasource_vocab)
+                            kwargs[cm_attr.lower()] = cm_attr_mapping
 
         # kwargs['observed_property'] = plugin_access.get_observed_property(basin3d_variable_id)
 
