@@ -9,6 +9,7 @@ exclude_lines =
    uvicorn
    pass
    ImportError
+   self.log
 omit =
    */asgi.py
    */formparser.py

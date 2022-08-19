@@ -34,11 +34,6 @@ Get a List of Variables Supported by a BASIN-3D Data Source
     :noindex:
 
 
-Get Time Series Data
-----------------------
-.. autofunction:: basin3d.synthesis.get_timeseries_data
-    :noindex:
-
 Logging
 -------
 Use :func:`basin3d.monitor.configure` to configure python logging.

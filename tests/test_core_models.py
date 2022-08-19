@@ -3,7 +3,7 @@ import pytest
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, DepthCoordinate, \
     GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, Observation, ObservedProperty, \
     ObservedPropertyVariable, RelatedSamplingFeature, RepresentativeCoordinate, TimeValuePair, ResultListTVP, \
-    VerticalCoordinate, DataSource
+    VerticalCoordinate, DataSource, Person
 from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum
 from basin3d.core.types import SamplingMedium, SpatialSamplingShapes
 
@@ -23,6 +23,18 @@ def observed_property(datasource, observed_property_var):
                             sampling_medium=SamplingMedium.WATER, datasource=datasource,
                             datasource_description='a test variable')
 
+
+def test_person():
+    """Test the Person model"""
+    person = Person(first_name="Bart", last_name="Simpson",
+                    email="bart@thesimpsons.com", institution="The Simpsons",
+                    role="Grand Pooba")
+
+    assert person.first_name == "Bart"
+    assert person.last_name == "Simpson"
+    assert person.email == "bart@thesimpsons.com"
+    assert person.institution == "The Simpsons"
+    assert person.role == "Grand Pooba"
 
 def test_data_source_model(datasource):
     """Test DataSource model"""

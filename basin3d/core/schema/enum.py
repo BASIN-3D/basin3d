@@ -19,17 +19,6 @@ from enum import Enum
 
 from basin3d.core.types import SpatialSamplingShapes
 
-# From https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#timeseries-offset-aliases
-PANDAS_TIME_FREQUENCY_MAP = {
-    'YEAR': 'A',
-    'MONTH': 'M',
-    'DAY': 'D',
-    'HOUR': 'H',
-    'MINUTE': 'T',
-    'SECOND': 'S'
-}
-
-
 class BaseEnum(Enum):
     """Base Enumeration Class that adds some helper methods"""
 
