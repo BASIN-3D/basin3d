@@ -48,11 +48,15 @@ setup(name='basin3d',
       description='BASIN-3D Core Framework',
       long_description=README,
       author='Val Hendrix, Danielle Svehla Christianson, Charuleka Varadharajan, Catherine Wong',
-      author_email='vchendrix@lbl.gov, dschristianson@lbl.gov, cvaradharajan@lbl.gov, catwong@lbl.gov' ,
+      author_email='vchendrix@lbl.gov, dschristianson@lbl.gov, cvaradharajan@lbl.gov, catwong@lbl.gov',
       url='https://github.com/BASIN-3D/basin3d',
       packages=packages,
       data_files=['basin3d/data/basin3d_variables_hydrology.csv',
                   'basin3d/plugins/mapping_usgs.csv'],
       include_package_data=True,
-      install_requires=required
+      install_requires=required,
+      extras_require={
+          'dev': ['pytest', 'pytest-flake8', 'pytest-mypy', 'pytest-cov',
+                  'types-PyYAML', 'types-chardet', 'types-cryptography', 'types-requests'],
+      },
       )

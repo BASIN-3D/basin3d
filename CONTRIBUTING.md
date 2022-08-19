@@ -24,7 +24,7 @@ are in `tests/`.
   
 Create an Anaconda environment
 
-    $ conda create -y -n basin3d python=3.7
+    $ conda create -y -n basin3d python=<version>
 	
 Activate the new environment and prepare it for development
 
@@ -33,8 +33,7 @@ Activate the new environment and prepare it for development
 
 Install basin3d and its dependencies
 
-	$ pip install $(cat requirements.txt) pytest flake8 pytest-flake8 pytest-mypy pytest-cov types-PyYAML types-chardet types-cryptography types-requests 
-	$ python setup.py develop
+	$ pip install -e ".[dev]"
 	
 Run the tests (mypy and flake8 tests executed by default)
 

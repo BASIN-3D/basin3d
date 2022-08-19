@@ -22,7 +22,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install mypy flake8 pytest pytest-flake8 pytest-mypy pytest-cov types-PyYAML types-chardet types-cryptography types-requests $(cat docs/requirements.txt)
+        pip install  -e ".[dev]"
+        pip install  $(cat docs/requirements.txt)
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         # Output dependency versions
         pip freeze
