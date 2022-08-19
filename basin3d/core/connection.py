@@ -149,7 +149,7 @@ class HTTPConnectionOAuth2(HTTPConnectionDataSource):
 
         # If there are credentials then make the api call
         if self.credentials:
-            self.credentials = yaml.load(self.credentials)
+            self.credentials = yaml.load(self.credentials, Loader=yaml.FullLoader)
             if self._validate_credentials():
                 return self.credentials["client_id"], self.credentials["client_secret"]
 
@@ -319,7 +319,7 @@ class HTTPConnectionTokenAuth(HTTPConnectionDataSource):
         :return:
         """
         credentials = self.datasource.credentials  # Access the credentials
-        self.credentials = yaml.load(credentials)
+        self.credentials = yaml.load(credentials, Loader=yaml.FullLoader)
         # If there are credentials then get the monitoring features
         if self._validate_credentials(self.credentials):
             return self.credentials

@@ -1,4 +1,5 @@
 import logging
+from unittest.mock import Mock
 
 import pytest
 from tinydb import TinyDB
@@ -55,6 +56,14 @@ def catalog(monkeypatch):
 # Tests
 # ********* ORDER of tests matters!! see comments
 # ********* The catalog is only first created in the test_create_catalog function below.
+
+
+@pytest.mark.parametrize("plugins", [(["foo"]), [Mock()]])
+def test_catalog_error(plugins):
+    """Test Catalog Error"""
+    from basin3d.core.catalog import CatalogTinyDb, CatalogException
+    catalog = CatalogTinyDb()
+    pytest.raises(CatalogException, catalog.initialize, plugins)
 
 
 # Test with different variable files.

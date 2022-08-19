@@ -4,7 +4,6 @@ import pytest
 from pydantic import ValidationError
 
 from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum
-from basin3d.core.schema.query import SynthesisResponse
 from basin3d.synthesis import register
 
 
