@@ -315,7 +315,10 @@ class DataSynthesizer:
         :return: a list of observed property variables
 
         """
-        return self._catalog.find_observed_property_variables(datasource_id=datasource_id)
+        datasource = None
+        if datasource_id:
+            datasource = self._datasources[datasource_id]
+        return self._catalog.find_observed_property_variables(datasource=datasource)
 
     def monitoring_features(self, query: Union[QueryById, QueryMonitoringFeature] = None, **kwargs) -> Union[
             DataSourceModelIterator, SynthesisResponse]:
@@ -574,7 +577,10 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
             # convert result_quality from a list to str if there are quality values
             result_quality = None
             if data_obj.result_quality:
-                result_quality = ';'.join(data_obj.result_quality.get_basin3d_vocab())
+                result_quality_list = []
+                for r_qual in data_obj.result_quality:
+                    result_quality_list.append(r_qual.get_basin3d_vocab())
+                result_quality = ';'.join(result_quality_list)
 
             synthesized_variable_name = f'{sampling_feature_id}__{observed_property}'
             # Only add statistic to the column name if it exists

@@ -38,6 +38,8 @@ class QueryBase(BaseModel):
 
     datasource: Optional[List[str]] = Field(title="Datasource Identifiers",
                                             description="List of datasource identifiers to query by.")
+    is_valid_translated_query: Union[None, bool] = Field(default=None, title="Valid translated query",
+                                                         description="Indicates whether the translated query is valid: None = is not translated")
 
     def __init__(self, **data):
         """
@@ -61,9 +63,15 @@ class QueryBase(BaseModel):
         # Validate all fields when initialized
         validate_all = True
 
-    def list_attribute_names(self):
-        # ToDo: probably don't want to use the protected class. Could use vars()?
-        return [a.name for a in self.__fields__.values()]
+    # def list_attribute_names(self):
+    #     # ToDo: probably don't want to use the protected class. Could use vars()?
+    #     return [a.name for a in self.__fields__.values()]
+
+    def get_mapped_fields(self) -> list:
+        return []
+
+    def get_prefixed_fields(self) -> list:
+        return []
 
 
 class QueryById(QueryBase):
@@ -98,6 +106,9 @@ class QueryMonitoringFeature(QueryBase):
             if field in data and data[field]:
                 data[field] = isinstance(data[field], str) and data[field].upper() or data[field]
         super().__init__(**data)
+
+    def get_prefixed_fields(self) -> list:
+        return ['monitoring_features', 'parent_features']
 
 
 class QueryMeasurementTimeseriesTVP(QueryBase):
@@ -134,6 +145,14 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
                 data[field] = list([data[field]])
         super().__init__(**data)
 
+    def get_mapped_fields(self) -> list:
+        # observed_property_variables is first b/c it is most likely to have compound mappings.
+        # ToDo: check how order may affect translation (see core/synthesis)
+        return ['observed_property_variables', 'aggregation_duration', 'statistic', 'result_quality', 'sampling_medium']
+
+    def get_prefixed_fields(self) -> list:
+        return ['monitoring_features']
+
 
 class SynthesisMessage(BaseModel):
     """BASIN-3D Synthesis Message """
@@ -157,6 +176,7 @@ class SynthesisMessage(BaseModel):
         use_enum_values = True
         # Validate all fields when initialized
         validate_all = True
+
 
 class SynthesisResponse(BaseModel):
     """BASIN-3D Synthesis Response """

@@ -135,7 +135,7 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
     if query.statistic:
         # if aggregation duration is NONE (iv) and there is a query that has a stat param, clear the statistics list
         # add warning message to user, but there are no statistic values for IV call. need synthesis param to add message
-        if query.aggregation_duration == TimeFrequencyEnum.NONE:
+        if query.aggregation_duration[0] == TimeFrequencyEnum.NONE:
             synthesis_messages.append(
                 f"USGS Instantaneous Values service does not support statistics and cannot be specified when aggregation_duration = {TimeFrequencyEnum.NONE}. Specified statistic arguments will be ignored.")
             logger.info(
@@ -162,7 +162,7 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
     # Request the data points, calls IV or DV depending on aggregation duration passed in param
     # Default to DV service if aggregation duration is DAY or when nothing is specified
     # Calls IV service in aggregation duration is NONE
-    endpoint = query.aggregation_duration == TimeFrequencyEnum.NONE and "iv" or "dv"
+    endpoint = query.aggregation_duration[0] == TimeFrequencyEnum.NONE and "iv" or "dv"
     response = get_url(f'{{}}{endpoint}'.format(view.datasource.location), params=search_params)
 
     if response.status_code == 200:

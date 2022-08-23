@@ -89,6 +89,7 @@ class DataSourcePluginAccess:
     #
     #     return self._catalog.find_observed_properties(self.datasource.id, variable_names)
 
+    # ToDo: REMOVE
     def get_observed_property_variable(self, variable_name):
         """
         Convert the given name to either BASIN-3D from :class:`~basin3d.models.DataSource`
@@ -104,6 +105,7 @@ class DataSourcePluginAccess:
 
         return self._catalog.find_observed_property_variable(self.datasource, variable_name)
 
+    # ToDo: REMOVE
     def get_observed_property_variables(self, variable_names=None):
         """
         Convert the given list of names to either BASIN-3D from :class:`~basin3d.models.DataSource`
@@ -166,12 +168,13 @@ class DataSourcePluginAccess:
         """
         return self._catalog.find_datasource_vocab(self.datasource.id, attr_type, basin3d_vocab, query)
 
+    # used by models (Feature) to return list of observed_property_variables
     def get_basin3d_vocab(self, attr_type, datasource_vocab, include_not_supported=False):
         """
 
         :param attr_type:
         :param datasource_vocab:
-        :param include_not_supported:
+        :param include_not_supported: bool, True to include NOT_SUPPORTED values
         :return:
         """
         if isinstance(datasource_vocab, str):

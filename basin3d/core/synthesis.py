@@ -115,6 +115,103 @@ class MonitorMixin(object):
         return self.log(message, MessageLevelEnum.CRITICAL, where)
 
 
+class TranslatorMixin(object):
+    """
+    Adds translator functionality to data source access
+    """
+
+    def translate_query(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+        """
+
+        :param plugin_access:
+        :param query:
+        :return:
+        """
+        translated_query = query.copy()
+        self.translate_mapped_query_attrs(plugin_access, translated_query)
+        self.translate_prefixed_query_attrs(plugin_access, translated_query)
+        translated_query.is_valid_translated_query = self.is_translated_query_valid(query, translated_query)
+        self.clean_query(translated_query)
+        return translated_query
+
+    def translate_mapped_query_attrs(self, plugin_access, query) -> QueryBase:
+        """
+        Translation functionality
+        """
+        for attr in query.get_mapped_fields():
+            # if the attribute is specified, proceed to translate it
+            # NOTE: looking in synthesized_query which is mutable so the if statement may change throughout the loop
+            if getattr(query, attr):
+                # look up whether the attr is part of a compound mapping
+                compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper())
+                # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
+                # ToDo: consider how order affects this -- might want to default to the first attr_type in a compound mapping.
+                #   Ex: OBSERVED_PROPERTY:SAMPLING_MEDIUM datasource_vocab will be put in the observed_property field. Effectively making the order of the coumpound mapping important.
+                for compound_attr in compound_attrs:
+                    setattr(query, compound_attr.lower(), None)
+
+                b3d_vocab = getattr(query, attr)
+
+                if isinstance(b3d_vocab, str):
+                    ds_vocab = plugin_access.get_ds_vocab(attr.upper(), b3d_vocab, query)
+                else:
+                    ds_vocab = []
+                    for b3d_value in b3d_vocab:
+                        # handle multiple values returned
+                        ds_vocab.extend(plugin_access.get_ds_vocab(attr.upper(), b3d_value, query))
+                setattr(query, attr, ds_vocab)
+
+        # NOTE: always returns list b/c multiple mappings are possible.
+        return query
+
+    def translate_prefixed_query_attrs(self, plugin_access, query) -> QueryBase:
+        """
+
+        :param plugin_access:
+        :param query:
+        :return:
+        """
+        for attr in query.get_prefixed_fields():
+            attr_value = getattr(query, attr)
+            if attr_value:
+                setattr(query, attr, _synthesize_query_identifiers(values=attr_value, id_prefix=plugin_access.datasource.id_prefix))
+
+        return query
+
+    def is_translated_query_valid(self, query, translated_query) -> Optional[bool]:
+        # loop thru kwargs
+        for attr in query.get_mapped_fields():
+            attr_value = getattr(translated_query, attr)
+            if attr_value and isinstance(attr_value, list):
+                # if list and all of list == NOT_SUPPORTED, False
+                if all([x == NO_MAPPING_TEXT for x in attr_value]):
+                    # ToDo: messaging
+                    return False
+            elif attr_value and isinstance(attr_value, str):
+                # if single NOT_SUPPORTED, False
+                if attr_value == NO_MAPPING_TEXT:
+                    # ToDo: messaging
+                    return False
+            elif attr_value:
+                # ToDo: messaging invalid attr format
+                return None
+        return True
+
+    def clean_query(self, translated_query) -> QueryBase:
+        """
+        Remove any NOT_SUPPORTED translations
+        :param translated_query:
+        :return:
+        """
+        for attr in translated_query.get_mapped_fields():
+            attr_value = getattr(translated_query, attr)
+            if attr_value and isinstance(attr_value, list):
+                setattr(translated_query, attr, [val for val in attr_value if val != NO_MAPPING_TEXT])
+            elif attr_value and attr_value == NO_MAPPING_TEXT:
+                setattr(translated_query, attr, None)
+        return translated_query
+
+
 class DataSourceModelIterator(MonitorMixin, Iterator):
     """
     BASIN-3D Data Source Model generator
@@ -192,15 +289,18 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
                             hasattr(plugin_views[self._model_access.synthesis_model], "list"):
 
                         # Now synthesize the query object
-                        synthesized_query_params: QueryBase = self._model_access.synthesize_query(
+                        translated_query_params: QueryBase = self._model_access.synthesize_query(
                             plugin_views[self._model_access.synthesis_model],
                             self._synthesis_response.query)
-                        synthesized_query_params.datasource = [plugin.get_datasource().id]
+                        translated_query_params.datasource = [plugin.get_datasource().id]
 
                         # Get the model access iterator if synthesized query is valid
-                        if self._model_access.is_valid_synthesized_query(self._synthesis_response.query, synthesized_query_params):
+                        if translated_query_params.is_valid_translated_query:
                             self._model_access_iterator = plugin_views[self._model_access.synthesis_model].list(
-                                query=synthesized_query_params)
+                                query=translated_query_params)
+                        else:
+                            self.warn("Translated query is not valid.")
+
                     else:
                         self.warn("Plugin view does not exist")
 
@@ -225,7 +325,7 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
             self._synthesis_response.messages.append(synthesis_message)
 
 
-class DataSourceModelAccess(MonitorMixin):
+class DataSourceModelAccess(MonitorMixin, TranslatorMixin):
     """
     Base class for DataSource model access.
     """
@@ -240,15 +340,6 @@ class DataSourceModelAccess(MonitorMixin):
 
     @property
     def synthesis_model(self):
-        raise NotImplementedError
-
-    def is_valid_synthesized_query(self, query, synthesized_query_params: QueryBase) -> bool:
-        """
-
-        :param query:
-        :param synthesized_query_params:
-        :return:
-        """
         raise NotImplementedError
 
     def synthesize_query(self, plugin_access: DataSourcePluginAccess,
@@ -343,15 +434,6 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
     """
     synthesis_model = MonitoringFeature
 
-    def is_valid_synthesized_query(self, query: QueryMonitoringFeature, synthesized_query_params: QueryBase) -> bool:
-        """
-
-        :param query:
-        :param synthesized_query_params:
-        :return:
-        """
-        return True
-
     def synthesize_query(self, plugin_access: DataSourcePluginAccess, query: QueryMonitoringFeature) -> QueryBase:  # type: ignore[override]
         """
         Synthesizes query parameters, if necessary
@@ -362,20 +444,12 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
         :param plugin_access: The plugin view to synthesize query params for
         :return: The synthesized query information
         """
-        synthesized_query = query.copy()
+        translated_query = query.copy()
 
         if query:
-            id_prefix = plugin_access.datasource.id_prefix
-            if query.monitoring_features:
-                synthesized_query.monitoring_features = _synthesize_query_identifiers(
-                    values=query.monitoring_features,
-                    id_prefix=id_prefix)
-            if query.parent_features:
-                synthesized_query.parent_features = _synthesize_query_identifiers(
-                    values=query.parent_features,
-                    id_prefix=id_prefix)
+            translated_query = self.translate_query(plugin_access, query)
 
-        return synthesized_query
+        return translated_query
 
 
 class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
@@ -417,44 +491,6 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     """
     synthesis_model = MeasurementTimeseriesTVPObservation
 
-    @staticmethod
-    def _get_attrs_with_mappings(query: Union[QueryMeasurementTimeseriesTVP, QueryBase]) -> list:
-        """
-
-        :param query:
-        :return:
-        """
-        opv = 'observed_property_variables'
-        attrs_to_ignore = ('datasource', 'monitoring_features', opv, 'start_date', 'end_date')
-        # Get the attributes to be synthesized
-        attrs = [a for a in query.list_attribute_names() if a not in attrs_to_ignore and getattr(query, a)]
-        # put observed property variables back in the first position as is is the most likely to have compound mappings
-        #   for now, assume order does not matter for other attributes -- however it might...
-        attrs.insert(0, opv)
-        return attrs
-
-    def is_valid_synthesized_query(self, query: MeasurementTimeseriesTVPObservation, synthesized_query: QueryBase) -> bool:
-        """
-
-        :param query:
-        :param synthesized_query:
-        :return:
-        """
-        query_attrs = self._get_attrs_with_mappings(query)
-        syn_attrs = self._get_attrs_with_mappings(synthesized_query)
-
-        is_valid_synthesized_query = True
-
-        for attr in query_attrs:
-            if attr not in syn_attrs:
-                # ToDo: add messaging
-                is_valid_synthesized_query = False
-            elif not getattr(synthesized_query, attr):
-                # ToDo: add messaging
-                is_valid_synthesized_query = False
-
-        return is_valid_synthesized_query
-
     def synthesize_query(self, plugin_access: DataSourcePluginAccess, query: QueryMeasurementTimeseriesTVP) -> QueryBase:  # type: ignore[override]
         """
         Synthesizes query parameters, if necessary
@@ -471,54 +507,14 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         :return: The query parameters
         """
 
-        id_prefix = plugin_access.datasource.id_prefix
-        synthesized_query = query.copy()
+        translated_query = query.copy()
 
         if query:
+            # Aggregation duration will be default to DAY in QueryMeasurementTimeseriesTVP.
+            # Query will accept aggregation duration NONE and DAY only
+            if translated_query.aggregation_duration != TimeFrequencyEnum.NONE:
+                translated_query.aggregation_duration = TimeFrequencyEnum.DAY
 
-            if query.monitoring_features:
-                synthesized_query.monitoring_features = _synthesize_query_identifiers(values=query.monitoring_features,
-                                                                                      id_prefix=id_prefix)
+            translated_query = self.translate_query(plugin_access, query)
 
-            # # Synthesize ObservedPropertyVariable (from BASIN-3D to DataSource variable name)
-            # if query.observed_property_variables:
-            #     synthesized_query.observed_property_variables = [o.datasource_variable for o in
-            #                                                      plugin_access.get_observed_properties(
-            #                                                          query.observed_property_variables)]
-            attributes = self._get_attrs_with_mappings(query)
-            for attr in attributes:
-                if getattr(synthesized_query, attr):
-                    compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper())
-                    # for any compound attrs -- clear out the values in the synthesized query
-                    for compound_attr in compound_attrs:
-                        setattr(synthesized_query, compound_attr.lower(), None)
-                    b3d_vocab = getattr(synthesized_query, attr)
-                    if isinstance(b3d_vocab, str):
-                        ds_vocab = plugin_access.get_ds_vocab(attr.upper(), b3d_vocab, query)
-                        # if ds_vocab and ds_vocab == 'NOT_SUPPORTED':
-                        #     # ToDo: add messaging
-                        #     # ds_vocab = None
-                        #     pass
-                    else:
-                        ds_vocab = []
-                        for b3d_value in b3d_vocab:
-                            # handle multiple values returned
-                            ds_vocab.extend(plugin_access.get_ds_vocab(attr.upper(), b3d_value, query))
-                    setattr(synthesized_query, attr, ds_vocab)
-
-        # Aggregation duration will be default to DAY in QueryMeasurementTimeseriesTVP.
-        # Query will accept aggregation duration NONE and DAY only
-        synthesized_query.aggregation_duration = query.aggregation_duration
-        if synthesized_query.aggregation_duration != TimeFrequencyEnum.NONE:
-            synthesized_query.aggregation_duration = TimeFrequencyEnum.DAY
-
-            # Synthesize statistic (from BASIN-3D to DataSource variable name)
-            # if query.statistic:
-            #     synthesized_query.statistic = [o.datasource_attr_id for o in
-            #                                    plugin_access.get_mapped_attributes(MappedAttributeEnum.STATISTIC, query.statistic, True)]
-
-            # # Synthesize statistic (from BASIN-3D to DataSource variable name)
-            # if query.result_quality:
-            #     synthesized_query.result_quality = [o.datasource_attr_id for o in
-            #                                         plugin_access.get_mapped_attributes(MappedAttributeEnum.RESULT_QUALITY, query.result_quality, True)]
-        return synthesized_query
+        return translated_query

@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from pydantic import ValidationError
 
-from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import ResultQualityEnum, SamplingMediumEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.synthesis import DataSourceModelIterator
 # from basin3d.core.types import SamplingMedium
@@ -56,6 +56,7 @@ def test_monitoring_features_found():
                                                                   'messages': [],
                                                                   'query': {'datasource': None,
                                                                             'feature_type': None,
+                                                                            'is_valid_translated_query': None,
                                                                             'monitoring_features': None,
                                                                             'parent_features': None}}
         assert isinstance(monitoring_featurues.synthesis_response.query, QueryMonitoringFeature)
@@ -79,6 +80,7 @@ def test_monitoring_features_found():
                                                                                           'MonitoringFeature']}],
                                                                   'query': {'datasource': None,
                                                                             'feature_type': None,
+                                                                            'is_valid_translated_query': None,
                                                                             'monitoring_features': None,
                                                                             'parent_features': None}}
 
@@ -120,6 +122,7 @@ def test_measurement_timeseries_tvp_observations_count():
         assert measurement_timeseries_tvp_observations is not None
 
 
+# ToDo: Replace with mapped attributes from which variables can be extracted
 # @pytest.mark.parametrize("plugins, query, expected_count",
 #                          [(['basin3d.plugins.usgs.USGSDataSourcePlugin'], {}, 43),
 #                           (['basin3d.plugins.usgs.USGSDataSourcePlugin',
@@ -143,31 +146,31 @@ def test_measurement_timeseries_tvp_observations_count():
 #         count += 1
 #
 #     assert count == expected_count
-
-
-@pytest.mark.parametrize("plugins, query, expected_count",
-                         [(['basin3d.plugins.usgs.USGSDataSourcePlugin'], {}, 168),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin',
-                            'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'USGS'}, 43),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin',
-                            'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha'}, 4),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin',
-                            'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'FOO'}, 0)
-                          ],
-                         ids=['USGS-only', 'USGS-plus', 'Alpha-plus', 'Bad-DataSource'])
-def test_observed_property_variables(plugins, query, expected_count):
-    """ Test observed property variables """
-
-    synthesizer = register(plugins)
-    observed_properties = synthesizer.observed_property_variables(**query)
-
-    # TODO are there other things to test?
-    count = 0
-    for op in observed_properties:
-        print(op)
-        count += 1
-
-    assert count == expected_count
+#
+#
+# @pytest.mark.parametrize("plugins, query, expected_count",
+#                          [(['basin3d.plugins.usgs.USGSDataSourcePlugin'], {}, 168),
+#                           (['basin3d.plugins.usgs.USGSDataSourcePlugin',
+#                             'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'USGS'}, 43),
+#                           (['basin3d.plugins.usgs.USGSDataSourcePlugin',
+#                             'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha'}, 4),
+#                           (['basin3d.plugins.usgs.USGSDataSourcePlugin',
+#                             'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'FOO'}, 0)
+#                           ],
+#                          ids=['USGS-only', 'USGS-plus', 'Alpha-plus', 'Bad-DataSource'])
+# def test_observed_property_variables(plugins, query, expected_count):
+#     """ Test observed property variables """
+#
+#     synthesizer = register(plugins)
+#     observed_properties = synthesizer.observed_property_variables(**query)
+#
+#     # TODO are there other things to test?
+#     count = 0
+#     for op in observed_properties:
+#         print(op)
+#         count += 1
+#
+#     assert count == expected_count
 
 
 def test_get_timeseries_data_errors():
@@ -273,7 +276,7 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['statistic'] == 'MEAN'
         assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
         assert var_metadata['quality'] == ResultQualityEnum.VALIDATED
-        assert var_metadata['sampling_medium'] == SamplingMedium.WATER
+        assert var_metadata['sampling_medium'] == SamplingMediumEnum.WATER
         assert var_metadata['sampling_feature_id'] == 'A-1'
         assert var_metadata['datasource'] == 'Alpha'
         assert var_metadata['datasource_variable'] == 'Acetate'

@@ -912,6 +912,12 @@ class Feature(Base):
         if self.feature_type is not None and self.feature_type not in FeatureTypeEnum.values():
             raise AttributeError("Feature attr feature_type must be FeatureTypeEnum.")
 
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self._id
+
     @property
     def id(self) -> str:
         """Unique identifier for the feature"""
@@ -1555,9 +1561,13 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
     def __init__(self, plugin_access, **kwargs):
         kwargs["type"] = self.TYPE_MEASUREMENT_TVP_TIMESERIES
 
-        # it seems problematic to list these out specifically
+        # copy the kwargs be able to loop thru the original while modifying the actual for compound mappings
         kwargs_orig = kwargs.copy()
+
+        # it seems problematic to list these out specifically;
+        # maybe they could be indicated as mapped values in their mixins and collated in the __init__??
         for attr in ('observed_property', 'statistic', 'aggregation_duration', 'result_quality', 'sampling_medium'):
+            # ToDo: ?? add handling for direct assignment of MappedAttribute -- maybe better place is in the plugin get_mapped_attribute method
             if attr in kwargs_orig:
                 datasource_vocab = kwargs[attr]
                 attr_mapping = plugin_access.get_mapped_attribute(attr_type=attr.upper(), attr_vocab=datasource_vocab)

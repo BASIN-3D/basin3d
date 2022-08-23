@@ -75,8 +75,8 @@ class CatalogBase:
         """
         Helper model to handle compound attribute mapping
         """
-        attr_type: str  # e.g. OPV
-        compound_mapping: str  # e.g. OPV:SAMPLING_MEDIUM
+        attr_type: str  # e.g. OBSERVED_PROPERTY
+        compound_mapping: str  # e.g. OBSERVED_PROPERTY:SAMPLING_MEDIUM
         datasource: DataSource = DataSource()
 
         def __str__(self):
@@ -536,6 +536,7 @@ class CatalogTinyDb(CatalogBase):
     #     for r in results:
     #         yield self._get_observed_property(**r)
 
+    # ToDo: DELETE
     def find_observed_property_variable(self, datasource, variable_name) -> Optional[
             ObservedPropertyVariable]:
         """
@@ -572,6 +573,7 @@ class CatalogTinyDb(CatalogBase):
         # ToDo: add some messaging
         return None
 
+    # ToDo: DELETE
     def find_observed_property_variables(self, datasource=None, variable_names=None, from_basin3d=False) -> Iterator[
             ObservedPropertyVariable]:
         """
@@ -633,6 +635,7 @@ class CatalogTinyDb(CatalogBase):
         #     for r in results:
         #         yield self._get_observed_property_variable(r['basin3d_id'])
 
+    # USING via plugins
     def find_attribute_mapping(self, datasource, attr_type, attr_vocab, from_basin3d=False) -> Optional[AttributeMapping]:
         """
         Convert the given attribute to either BASIN-3D from :class:`~basin3d.models.DataSource`
@@ -664,12 +667,13 @@ class CatalogTinyDb(CatalogBase):
             basin3d_vocab = NO_MAPPING_TEXT
             datasource_vocab = attr_vocab
         if len(results) > 0:
-            # ToDo: expand for multiple mappings (case of from basin3d) OR add error messaging -- not in use at present from basin3d
+            # ToDo: ?? expand for multiple mappings (case of from basin3d) OR add error messaging -- from_basin3d is not currently in use
             return self._get_attribute_mapping(**results[0])
 
         return AttributeMapping(attr_type=attr_type, basin3d_vocab=basin3d_vocab, datasource_vocab=datasource_vocab,
                                 datasource_desc='no mapping was found', datasource=datasource)
 
+    # probably will replace find_observed_properties.
     def find_attribute_mappings(self, datasource, attr_type, attr_vocab, from_basin3d=False) -> Iterator[AttributeMapping]:
         """
         Convert the given list of attributes to either BASIN-3D from :class:`~basin3d.models.DataSource`
@@ -690,15 +694,16 @@ class CatalogTinyDb(CatalogBase):
         from tinydb import Query
         query = Query()
 
-        is_in = lambda x: x in attr_vocab
+        if attr_vocab:
+            is_in = lambda x: x in attr_vocab
 
         # none for all 3 query parameters --> get all mapped variables back for all registered plugins
-        if not datasource.id and not attr_vocab and not attr_type:
+        if not datasource and not attr_vocab and not attr_type:
             # return all observe_property_variables possible
             for attr_mapping in self._attribute_mappings.values():
                 yield attr_mapping
         else:
-            if not datasource.id:
+            if not datasource:
                 # It wouldn't make sense to return specific attributes without a data source filter
                 raise CatalogException(
                     "find_attribute_mappings: 'datasource' should be specified with 'attr_type' and/or 'attr_ids")
@@ -725,6 +730,7 @@ class CatalogTinyDb(CatalogBase):
             for r in results:
                 yield self._get_attribute_mapping(**r)
 
+    # USING: helper method for find_basin3d_vocab below
     def extract_single_basin3d_vocab(self, attr_type, query_result) -> str:
         """
 
@@ -745,6 +751,7 @@ class CatalogTinyDb(CatalogBase):
                     b3d_vocab = b3d_vocabs[idx]
         return b3d_vocab
 
+    # USING via function below
     def find_basin3d_vocab(self, datasource_id, attr_type, datasource_vocab) -> Optional[str]:
         """
 
@@ -775,6 +782,7 @@ class CatalogTinyDb(CatalogBase):
         # OPV should probably be handled differently but not here
         return 'NOT_SUPPORTED'
 
+    # USING via plugins -- only for models Feature to get observed_property_variables
     def find_basin3d_vocabs(self, datasource_id, attr_type, datasource_vocab, include_not_supported=False) -> Optional[List[str]]:
         """
 
@@ -792,6 +800,7 @@ class CatalogTinyDb(CatalogBase):
 
         return basin3d_vocabs
 
+    # USING via plugins
     def find_datasource_vocab(self, datasource_id, attr_type, basin3d_vocab, b3d_query) -> list:
         """
 
@@ -809,7 +818,7 @@ class CatalogTinyDb(CatalogBase):
 
         # is the attr_type part of a compound mapping?
         attr_type = _verify_attr_type(attr_type)
-        compound_mapping = self.find_compound_mapping(datasource_id, attr_type)
+        compound_mapping = self._find_compound_mapping(datasource_id, attr_type)
 
         # b3d_vocab_query = query.basin3d_vocab.fragment(basin3d_vocab)
         b3d_vocab_combo_str = [basin3d_vocab]
@@ -827,7 +836,7 @@ class CatalogTinyDb(CatalogBase):
                 if attr == attr_type:
                     filter_values = [basin3d_vocab]
                 # if the other attribute is specified in the query
-                elif _verify_query_var(attr, is_query=True) in b3d_query.list_attribute_names():
+                elif _verify_query_var(attr, is_query=True) in b3d_query.get_mapped_fields():
                     # get the filter values
                     attr_value = getattr(b3d_query, _verify_query_var(attr_type, is_query=True))
                     if not attr_value:
@@ -869,7 +878,7 @@ class CatalogTinyDb(CatalogBase):
 
         return list(ds_vocab)
 
-    def find_compound_mapping(self, datasource_id, attr_type):
+    def _find_compound_mapping(self, datasource_id, attr_type):
         """
         Get the compound mapping for the specified attr_type
         :param datasource_id:
@@ -891,6 +900,7 @@ class CatalogTinyDb(CatalogBase):
 
         return None
 
+    # USING via plugins
     def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False) -> list:
         """
         Return the attributes if attr_type is part of a compound mapping
