@@ -59,6 +59,16 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
     if query.monitoring_features == ['region']:
         return StopIteration({"message": "FOO"})
 
+    supported_monitoring_features = [f'A-{num}' for num in range(1, 5)]
+
+    if not any([loc_id in supported_monitoring_features for loc_id in query.monitoring_features]):
+        return StopIteration({"message": "No data from data source matches monitoring features specified."})
+
+    location_indices = []
+    for loc_id in query.monitoring_features:
+        if loc_id in supported_monitoring_features:
+            location_indices.append(int(loc_id.split('-')[-1]))
+
     from datetime import datetime
     for num in range(1, 10):
         data.append((datetime(2016, 2, num), num * 0.3454))
@@ -78,13 +88,10 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
     units = ['nm', 'nm', 'mg/L', 'mg/L']
     statistics = ['mean', 'max', 'mean', 'max']
 
-    for num in range(1, 5):
+    for num in location_indices:
         observed_property_variable = observed_property_variables[num - 1]
         feature_id = f'A-{str(num - 1)}'
         if query:
-            if query.monitoring_features:
-                if str(num) not in query.monitoring_features:
-                    continue
             if query.statistic:
                 if statistics[num - 1] not in query.statistic:
                     continue

@@ -130,8 +130,12 @@ class TranslatorMixin(object):
         translated_query = query.copy()
         self.translate_mapped_query_attrs(plugin_access, translated_query)
         self.translate_prefixed_query_attrs(plugin_access, translated_query)
-        translated_query.is_valid_translated_query = self.is_translated_query_valid(query, translated_query)
-        self.clean_query(translated_query)
+        is_valid_translated_query = self.is_translated_query_valid(query, translated_query)
+
+        if is_valid_translated_query:
+            translated_query.is_valid_translated_query = is_valid_translated_query
+            self.clean_query(translated_query)
+
         return translated_query
 
     def translate_mapped_query_attrs(self, plugin_access, query) -> QueryBase:
@@ -206,7 +210,9 @@ class TranslatorMixin(object):
         for attr in translated_query.get_mapped_fields():
             attr_value = getattr(translated_query, attr)
             if attr_value and isinstance(attr_value, list):
-                setattr(translated_query, attr, [val for val in attr_value if val != NO_MAPPING_TEXT])
+                clean_list = [val for val in attr_value if val != NO_MAPPING_TEXT]
+                unique_list = list(set(clean_list))
+                setattr(translated_query, attr, unique_list)
             elif attr_value and attr_value == NO_MAPPING_TEXT:
                 setattr(translated_query, attr, None)
         return translated_query

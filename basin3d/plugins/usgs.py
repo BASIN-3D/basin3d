@@ -727,7 +727,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 result=ResultListTVP(plugin_access=self, value=result_TVPs, quality=result_TVP_quality),
                 observed_property=parameter,
                 result_quality=list(result_quality),
-                aggregation_duration=query.aggregation_duration,
+                aggregation_duration=query.aggregation_duration[0],
                 time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,
                 statistic=statistic
             )

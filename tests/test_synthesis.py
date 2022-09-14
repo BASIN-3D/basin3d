@@ -272,7 +272,8 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['records'] == 9
         assert var_metadata['units'] == 'nm'
         assert var_metadata['basin_3d_variable'] == 'ACT'
-        assert var_metadata['basin_3d_variable_full_name'] == 'Acetate (CH3COO)'
+        # Fix basin3d_variable_full_name
+        assert var_metadata['basin_3d_variable_full_name'] == 'to be added'
         assert var_metadata['statistic'] == 'MEAN'
         assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
         assert var_metadata['quality'] == ResultQualityEnum.VALIDATED
@@ -299,11 +300,11 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['records'] == 0
         assert var_metadata['units'] == 'mg/L'
         assert var_metadata['basin_3d_variable'] == 'Al'
-        assert var_metadata['basin_3d_variable_full_name'] == 'Aluminum (Al)'
+        assert var_metadata['basin_3d_variable_full_name'] == 'to be added'
         assert var_metadata['statistic'] == 'MEAN'
         assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
         assert var_metadata['quality'] is None
-        assert var_metadata['sampling_medium'] == SamplingMedium.WATER
+        assert var_metadata['sampling_medium'] == SamplingMediumEnum.WATER
         assert var_metadata['sampling_feature_id'] == 'A-3'
         assert var_metadata['datasource'] == 'Alpha'
         assert var_metadata['datasource_variable'] == 'Aluminum'

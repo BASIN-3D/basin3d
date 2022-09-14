@@ -613,7 +613,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                 'records': records,
                 'units': data_obj.unit_of_measurement,
                 'basin_3d_variable': observed_property.get_basin3d_vocab(),
-                'basin_3d_variable_full_name': observed_property.get_datasource_desc(),
+                'basin_3d_variable_full_name': "to be added",
                 'statistic': statistic,
                 'temporal_aggregation': data_obj.aggregation_duration.get_basin3d_vocab(),
                 'quality': result_quality,

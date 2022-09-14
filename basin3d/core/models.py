@@ -18,16 +18,21 @@ Below is the inheritance diagram for BASIN-3D generic models and supporting clas
     :backlinks: top
 
 """
+
 import datetime
 import enum
 import json
+
 from collections import namedtuple
 from dataclasses import dataclass, field
 from numbers import Number
 from typing import List, Union
 
+from basin3d.core import monitor
 from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, MAPPING_DELIMITER, FeatureTypeEnum, ResultQualityEnum, TimeFrequencyEnum, StatisticEnum
 from basin3d.core.types import SpatialSamplingShapes
+
+logger = monitor.get_logger(__name__)
 
 
 class JSONSerializable:
@@ -884,25 +889,32 @@ class Feature(Base):
         self._name: str = None
         self._description: str = None
         self._feature_type: str = None
-        self._observed_property_variables: List[str] = None
+        self._observed_properties: Union[List[MappedAttribute], List[str]] = None
+        # self._mapped_attributes = List[MappedAttribute] = None
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
 
-        if self.observed_property_variables and isinstance(self.observed_property_variables, (tuple, list, enumerate)):
-            # synthesize measurement variables
-            synth_params = set()
-            for ds_vocab in self.observed_property_variables:
-                basin3d_vocab = plugin_access.get_basin3d_vocab('OBSERVED_PROPERTY', ds_vocab)
-                synth_params.add(basin3d_vocab)
-            # for synth_param in plugin_access.get_observed_property_variables(self.observed_property_variables):
-            #     synth_params.append(synth_param.basin3d_id)
+        if self.observed_properties:
+            if not isinstance(self.observed_properties, list):
+                logger.warning("observed_properties parameter not in expected list format")
+            pass
+            # self.observed_properties = plugin_access
 
-            self.observed_property_variables = list(synth_params)
+        # if self.observed_property_variables and isinstance(self.observed_property_variables, (tuple, list, enumerate)):
+        #     # synthesize measurement variables
+        #     synth_params = set()
+        #     for ds_vocab in self.observed_property_variables:
+        #         basin3d_vocab = plugin_access.get_basin3d_vocab('OBSERVED_PROPERTY', ds_vocab)
+        #         synth_params.add(basin3d_vocab)
+        #     # for synth_param in plugin_access.get_observed_property_variables(self.observed_property_variables):
+        #     #     synth_params.append(synth_param.basin3d_id)
+        #
+        #     self.observed_property_variables = list(synth_params)
 
-        # ToDo: do we really want this?
-        elif self.observed_property_variables:
-            self.observed_property_variables = [self.observed_property_variables]
+        # # ToDo: do we really want this?
+        # elif self.observed_property_variables:
+        #     self.observed_property_variables = [self.observed_property_variables]
 
     def __validate__(self):
         """
@@ -954,14 +966,23 @@ class Feature(Base):
     def feature_type(self, value: str):
         self._feature_type = value
 
-    @property
-    def observed_property_variables(self) -> List[str]:
-        """List of observed property variables"""
-        return self._observed_property_variables
+    # @property
+    # def mapped_attributes(self) -> List[str]:
+    #     """List of observed property variables"""
+    #     return self._mapped_attributes
+    #
+    # @mapped_attributes.setter
+    # def mapped_attributes(self, value: List[str]):
+    #     self._mapped_attributes = value
 
-    @observed_property_variables.setter
-    def observed_property_variables(self, value: List[str]):
-        self._observed_property_variables = value
+    @property
+    def observed_properties(self) -> List[str]:
+        """List of observed property variables"""
+        return self._observed_properties
+
+    @observed_properties.setter
+    def observed_properties(self, value: List[str]):
+        self._observed_properties = value
 
 
 class SamplingFeature(Feature):

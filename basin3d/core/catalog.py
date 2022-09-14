@@ -727,6 +727,7 @@ class CatalogTinyDb(CatalogBase):
                     (query.datasource_variable_id.test(is_in)) & (query.datasource_id == datasource.id) & (query.attr_type.search(attr_type)))
 
             # Yield the results
+            # ToDo: what happens with a ds_vocab that is not in the db?
             for r in results:
                 yield self._get_attribute_mapping(**r)
 
@@ -860,7 +861,7 @@ class CatalogTinyDb(CatalogBase):
             # change the attr_type to the compound mapping str
             attr_type = compound_mapping_attrs
 
-        ds_vocab = set()
+        ds_vocab = []
         for basin3d_vocab_str in b3d_vocab_combo_str:
             query_results = self.in_memory_db_attr.search(
                 (query.datasource_id == datasource_id) & (query.attr_type == attr_type) & (query.basin3d_vocab.matches(basin3d_vocab_str)))
@@ -870,13 +871,16 @@ class CatalogTinyDb(CatalogBase):
                     qr_copy.pop('datasource_desc')
                     attr_mapping = self._get_attribute_mapping(**qr_copy)
                     if attr_mapping is not None:
-                        ds_vocab.add(attr_mapping.datasource_vocab)
+                        ds_vocab.append(attr_mapping.datasource_vocab)
+
+        if not ds_vocab:
+            ds_vocab = [NO_MAPPING_TEXT]
 
         # ds_vocab = []
         # for r in results:
         #     ds_vocab.append(self._get_attribute_mappings(*r))
 
-        return list(ds_vocab)
+        return ds_vocab
 
     def _find_compound_mapping(self, datasource_id, attr_type):
         """
