@@ -536,104 +536,42 @@ class CatalogTinyDb(CatalogBase):
     #     for r in results:
     #         yield self._get_observed_property(**r)
 
-    # ToDo: DELETE
-    def find_observed_property_variable(self, datasource, variable_name) -> Optional[
+    # Eventually this should be general b3d vocab
+    def find_observed_property_variable(self, basin3d_vocab) -> Optional[
             ObservedPropertyVariable]:
         """
-        Convert the given name to either BASIN-3D from :class:`~basin3d.models.DataSource`
-        variable name or the other way around.
-        :param datasource:
-        :param variable_name:  The :class:`~basin3d.models.ObservedPropertyVariable`
-            name to convert
-        :param: from_basin3d: boolean that says whether the variable name is a
-           BASIN-3D variable. If not, then this a datasource variable name.
-        :type from_basin3d: boolean
-        :return: A variable name
-        :rtype: str
+        Return the ObservedPropertyVariable object for the basin3d_vocab
+        :param basin3d_vocab:
+        :return: ObservedPropertyVariable
         """
 
-        if not self._observed_property_variables or self.in_memory_db_attr is None:
+        if not self._observed_property_variables is None:
             raise CatalogException("Variable Store has not been initialized")
 
-        results = self.find_attribute_mapping(datasource=datasource, attr_type='OBSERVED_PROPERTY', attr_vocab=variable_name)
-        # from tinydb import Query
-        # query = Query()
-        # if from_basin3d:
-        #     results = self.in_memory_db_attr.search(
-        #         (query.attr_type == 'OBSERVED_PROPERTY') & (query.basin3d_vocab.matches(variable_name)) & (query.datasource_id == datasource_id))
-        # else:
-        #     # Convert from DataSource variable name to BASIN-3D
-        #     results = self.in_memory_db_attr.search(
-        #         (query.attr_type == 'OBSERVED_PROPERTY') & (query.datasource_vocab == variable_name) & (query.datasource_id == datasource_id))
-        # basin3d_variable_id = results[0]['basin3d_id']
+        return self._get_observed_property_variable(basin3d_vocab)
 
-        if results:
-            return self._get_observed_property_variable(results.basin3d_vocab)
-
-        # ToDo: add some messaging
-        return None
-
-    # ToDo: DELETE
-    def find_observed_property_variables(self, datasource=None, variable_names=None, from_basin3d=False) -> Iterator[
-            ObservedPropertyVariable]:
+    def find_observed_property_variables(self, basin3d_vocab=None) -> Iterator[ObservedPropertyVariable]:
         """
-        Convert the given list of names to either BASIN-3D from :class:`~basin3d.models.DataSource`
-        variable name or the other way around.
-
-        :param datasource:
-        :param variable_names:  The :class:`~basin3d.models.ObservedPropertyVariable`
+        :param basin3d_vocab:  The :class:`~basin3d.models.ObservedPropertyVariable`
              names to convert
-        :type variable_names: iterable
-        :param: from_basin3d: boolean that says whether the variable name is a
-            BASIN-3D variable. If not, then this a datasource variable names.
-        :type from_basin3d: boolean
-        :return: list of variable names
+        :type basin3d_vocab: iterable
+        :return: ObservedPropertyVariable objects
         :rtype: iterable
         """
 
         if not self._observed_property_variables:
             raise CatalogException("Variable Store has not been initialized")
 
-        results = self.find_attribute_mappings(datasource=datasource, attr_type='OBSERVED_PROPERTY', attr_vocab=variable_names, from_basin3d=from_basin3d)
-
-        for r in results:
-            yield self._get_observed_property_variable(r.basin3d_vocab)
-
-        # if self.in_memory_db_attr is None:
-        #     raise CatalogException("Variable Store has not been initialized")
-        #
-        # from tinydb import Query
-        # query = Query()
-        #
-        # is_in = lambda x: x in variable_names
-        # if not datasource_id and not variable_names:
-        #     # return all observe_property_variables possible
-        #     for opv in self._observed_property_variables.values():
-        #         yield opv
-        # else:
-        #     if not datasource_id:
-        #         # It wouldn't make sense to return observed property variables without a data source filter
-        #         raise CatalogException(
-        #             "find_observed_property_variables: 'datasource' should be specified with 'variable_names'")
-        #
-        #     if not variable_names:
-        #         # This returns all possible observed property variables for a data source
-        #         results = self.in_memory_db_attr.search((query.datasource_id == datasource_id) & (query.attr_type.search('OBSERVED_PROPERTY')))
-        #
-        #     elif from_basin3d:
-        #
-        #         # Convert from BASIN-3D to DataSource variable name
-        #         results = self.in_memory_db_attr.search(
-        #             (query.basin3d_id.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.search('OBSERVED_PROPERTY')))
-        #
-        #     else:
-        #         # Convert from DataSource variable name to BASIN-3D
-        #         results = self.in_memory_db_attr.search(
-        #             (query.datasource_variable_id.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.search('OBSERVED_PROPERTY')))
-        #
-        #     # Yield the results
-        #     for r in results:
-        #         yield self._get_observed_property_variable(r['basin3d_id'])
+        if basin3d_vocab is None:
+            for opv in self._observed_property_variables.values():
+                yield opv
+        else:
+            for b3d_vocab in basin3d_vocab:
+                opv = self._observed_property_variables.get(b3d_vocab)
+                if opv is not None:
+                    yield opv
+                else:
+                    logger.warning(f'BASIN-3D does not support variable {b3d_vocab}')
 
     # USING via plugins
     def find_attribute_mapping(self, datasource, attr_type, attr_vocab, from_basin3d=False) -> Optional[AttributeMapping]:
@@ -699,7 +637,7 @@ class CatalogTinyDb(CatalogBase):
 
         # none for all 3 query parameters --> get all mapped variables back for all registered plugins
         if not datasource and not attr_vocab and not attr_type:
-            # return all observe_property_variables possible
+            # return all mapped attributes possible possible
             for attr_mapping in self._attribute_mappings.values():
                 yield attr_mapping
         else:

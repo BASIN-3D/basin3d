@@ -898,8 +898,10 @@ class Feature(Base):
         if self.observed_properties:
             if not isinstance(self.observed_properties, list):
                 logger.warning("observed_properties parameter not in expected list format")
-            pass
-            # self.observed_properties = plugin_access
+            self.observed_properties = plugin_access.get_mapped_attribute(
+                attr_type='OBSERVED_PROPERTY', attr_vocab=self.observed_properties)
+        else:
+            self.observed_properties = None
 
         # if self.observed_property_variables and isinstance(self.observed_property_variables, (tuple, list, enumerate)):
         #     # synthesize measurement variables

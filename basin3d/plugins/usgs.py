@@ -70,11 +70,6 @@ from basin3d.plugins import usgs_huc_codes
 logger = monitor.get_logger(__name__)
 
 URL_USGS_HUC = "https://water.usgs.gov/GIS/new_huc_rdb.txt"
-# USGS_STATISTIC_MAP: Dict = {
-#     MeasurementMetadataMixin.STATISTIC_MEAN: '00003',
-#     MeasurementMetadataMixin.STATISTIC_MIN: '00002',
-#     MeasurementMetadataMixin.STATISTIC_MAX: '00001'
-# }
 
 
 def convert_discharge(data, parameter, units):
@@ -91,15 +86,6 @@ def convert_discharge(data, parameter, units):
         data *= 0.028316847
         units = "m^3/s"
     return data, units
-
-
-'''
-def map_statistic_code(stat_cd):
-    for k, v in USGS_STATISTIC_MAP.items():
-        if stat_cd == v:
-            return k
-    return 'NOT_SUPPORTED'  # consider making this part of the Mixin Statistic type
-'''
 
 
 def generator_usgs_measurement_timeseries_tvp_observation(view,
@@ -270,7 +256,7 @@ def _load_point_obj(datasource, json_obj, observed_property_variables, synthesis
             )],
             # geographical_group_id=huc_accounting_unit_id,
             # geographical_group_type=FeatureTypeEnum.REGION,
-            observed_property_variables=mf_opv,
+            observed_properties=mf_opv,
             coordinates=Coordinate(
                 absolute=AbsoluteCoordinate(
                     horizontal_position=GeographicCoordinate(
@@ -528,7 +514,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                 shape=SpatialSamplingShapes.SHAPE_SURFACE,
                 coordinates=None,
                 related_sampling_feature_complex=related_sampling_feature_complex,
-                observed_property_variables=None)
+                observed_properties=None)
         return result
 
 

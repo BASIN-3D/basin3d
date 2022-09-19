@@ -237,7 +237,7 @@ def list_monitoring_features(self, query: QueryMonitoringFeature):
                     distance_units=VerticalCoordinate.DISTANCE_UNITS_METERS)
             )
         ),
-        observed_property_variables=["Ag", "Acetate"],
+        observed_properties=["Ag", "Acetate"],
         related_sampling_feature_complex=[
             RelatedSamplingFeature(plugin_access=self,
                                    related_sampling_feature="Region1",

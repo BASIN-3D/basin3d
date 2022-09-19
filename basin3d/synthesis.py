@@ -289,6 +289,7 @@ class DataSynthesizer:
     #     """
     #     return self._catalog.find_observed_properties(datasource_id, variable_names)
 
+    # Replace with mapped_attributes
     def observed_property_variables(self, datasource_id=None):
         """
 
@@ -319,6 +320,19 @@ class DataSynthesizer:
         if datasource_id:
             datasource = self._datasources[datasource_id]
         return self._catalog.find_observed_property_variables(datasource=datasource)
+
+    def attribute_mappings(self, datasource_id=None, attr_type=None, attr_vocab=None):
+        """
+
+        :param datasource_id:
+        :param attr_type:
+        :param attr_vocab:
+        :return:
+        """
+        datasource = None
+        if datasource_id:
+            datasource = self._datasources[datasource_id]
+        return self._catalog.find_attribute_mappings(datasource, attr_type, attr_vocab)
 
     def monitoring_features(self, query: Union[QueryById, QueryMonitoringFeature] = None, **kwargs) -> Union[
             DataSourceModelIterator, SynthesisResponse]:
