@@ -289,14 +289,13 @@ class DataSynthesizer:
     #     """
     #     return self._catalog.find_observed_properties(datasource_id, variable_names)
 
-    # Replace with mapped_attributes
-    def observed_property_variables(self, datasource_id=None):
+    def observed_properties(self):
         """
 
         >>> from basin3d.plugins import usgs
         >>> from basin3d import synthesis
         >>> synthesizer = synthesis.register()
-        >>> response = synthesizer.observed_property_variables(datasource_id='USGS')
+        >>> response = synthesizer.observed_properties()
         >>> for opv in response:
         ...     print(opv)
         pH
@@ -308,18 +307,13 @@ class DataSynthesizer:
         Total Dissolved Solids (TDS)
         ...
 
-
         Common names for observed property variables. An observed property variable defines what is being measured.
         Data source observed property variables are mapped to these synthesized observed property variables.
 
-        :param datasource_id: filter observer properity variables by data source
-        :return: a list of observed property variables
+        :return: an iterator of observed property variables
 
         """
-        datasource = None
-        if datasource_id:
-            datasource = self._datasources[datasource_id]
-        return self._catalog.find_observed_property_variables(datasource=datasource)
+        return self._catalog.find_observed_properties()
 
     def attribute_mappings(self, datasource_id=None, attr_type=None, attr_vocab=None):
         """

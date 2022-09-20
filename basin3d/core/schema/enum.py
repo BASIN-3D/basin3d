@@ -48,11 +48,13 @@ class BaseEnum(Enum):
 
 class MappedAttributeEnum(str, BaseEnum):
     """
-    Enumeration for attributes
+    Enumeration for mapped attributes
     """
-    TIME_FREQUENCY = 'TIME_FREQUENCY'
-    STATISTIC = 'STATISTIC'
+    OBSERVED_PROPERTY = 'OBSERVED_PROPERTY'
+    AGGREGATION_DURATION = 'AGGREGATION_DURATION'
     RESULT_QUALITY = 'RESULT_QUALITY'
+    SAMPLING_MEDIUM = 'SAMPLING_MEDIUM'
+    STATISTIC = 'STATISTIC'
     # ToDo: see if we can add FeatureType
 
 
@@ -70,6 +72,32 @@ class TimeFrequencyEnum(str, BaseEnum):
     SECOND = "SECOND"
     NONE = "NONE"
     NOT_SUPPORTED = NO_MAPPING_TEXT
+
+
+class AggregationDurationEnum(str, BaseEnum):
+    """
+
+    """
+    #: Observations aggregated by year
+    AGGREGATION_DURATION_YEAR = TimeFrequencyEnum.YEAR
+
+    #: Observations aggregated by month
+    AGGREGATION_DURATION_MONTH = TimeFrequencyEnum.MONTH
+
+    #: Observations aggregated by day
+    AGGREGATION_DURATION_DAY = TimeFrequencyEnum.DAY
+
+    #: Observations aggregated by hour
+    AGGREGATION_DURATION_HOUR = TimeFrequencyEnum.HOUR
+
+    #: Observations aggregated by minute
+    AGGREGATION_DURATION_MINUTE = TimeFrequencyEnum.MINUTE
+
+    #: Observations aggregated by second
+    AGGREGATION_DURATION_SECOND = TimeFrequencyEnum.SECOND
+
+    #: Observations aggregated by no standard frequency, used for instantaneous values
+    AGGREGATION_DURATION_NONE = TimeFrequencyEnum.NONE
 
 
 class FeatureTypeEnum(str, BaseEnum):
@@ -149,3 +177,21 @@ class MessageLevelEnum(str, BaseEnum):
     WARN = "WARN"
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
+
+
+def set_mapped_attribute_enum_type(attr_type: str):
+    """
+
+    :param attr_type:
+    :return:
+    """
+    if attr_type == MappedAttributeEnum.AGGREGATION_DURATION:
+        return AggregationDurationEnum
+    elif attr_type == MappedAttributeEnum.RESULT_QUALITY:
+        return ResultQualityEnum
+    elif attr_type == MappedAttributeEnum.SAMPLING_MEDIUM:
+        return SamplingMediumEnum
+    elif attr_type == MappedAttributeEnum.STATISTIC:
+        return StatisticEnum
+    else:
+        return None

@@ -57,12 +57,12 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 
 # Get an instance of a logger
-from basin3d.core.schema.query import FeatureTypeEnum, QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, \
-    ResultQualityEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, TimeFrequencyEnum
+from basin3d.core.schema.query import QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.access import get_url
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, GeographicCoordinate, \
-    MeasurementMetadataMixin, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
-    TimeMetadataMixin, TimeValuePair, TimeFrequencyEnum, ResultListTVP
+    MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
+    TimeMetadataMixin, TimeValuePair, ResultListTVP
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin
 from basin3d.core.types import SpatialSamplingShapes
 from basin3d.plugins import usgs_huc_codes

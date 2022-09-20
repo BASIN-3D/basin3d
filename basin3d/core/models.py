@@ -29,7 +29,7 @@ from numbers import Number
 from typing import List, Union
 
 from basin3d.core import monitor
-from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, MAPPING_DELIMITER, FeatureTypeEnum, ResultQualityEnum, TimeFrequencyEnum, StatisticEnum
+from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, MAPPING_DELIMITER, FeatureTypeEnum, AggregationDurationEnum, ResultQualityEnum, SamplingMediumEnum, StatisticEnum
 from basin3d.core.types import SpatialSamplingShapes
 
 logger = monitor.get_logger(__name__)
@@ -90,12 +90,12 @@ class DataSource(JSONSerializable):
 
 
 @dataclass
-class ObservedPropertyVariable(JSONSerializable):
+class ObservedProperty(JSONSerializable):
     """
     Defining the properties being observed (measured). See http://vocabulary.odm2.org/variablename/ for controlled vocabulary
 
     Attributes:
-        - *basin3d_id:* string,
+        - *basin3d_vocab:* string,
         - *full_name:* string,
         - *categories:* List of strings (in order of priority).
         - *units:* string
@@ -104,7 +104,7 @@ class ObservedPropertyVariable(JSONSerializable):
 
 
     """
-    basin3d_id: str = ''
+    basin3d_vocab: str = ''
     full_name: str = ''
     categories: list = field(default_factory=list)
     units: str = field(default='')
@@ -113,7 +113,7 @@ class ObservedPropertyVariable(JSONSerializable):
         return self.__unicode__()
 
     def __unicode__(self):
-        return self.full_name
+        return self.basin3d_vocab
 
 
 @dataclass
@@ -122,14 +122,16 @@ class AttributeMapping(JSONSerializable):
     General mapping attribute model for 1:1 mappings of enums, etc
 
     Definitions:
-        - * attr_type: STATISTIC, RESULT_QUALITY, OPV; separate compound mappings with :
-        - * basin3d_vocab: the basin3d vocabulary; separate compound mappings with :
+        - * attr_type: STATISTIC, RESULT_QUALITY, OPV; separate compound mappings with ":"
+        - * basin3d_vocab: the basin3d vocabulary; separate compound mappings with ":"
+        - * basin3d_desc: the basin3d vocabulary descriptions; objects or enum
         - * datasource_vocab: the datasource vocabulary; single value only
         - * datasource_desc: datasource description of the attribute
         - * datasource: the datasource for the mapping
     """
     attr_type: str
-    basin3d_vocab: str  # Figure out if can type: Union[TimeFrequencyEnum, StatisticEnum, ResultQualityEnum]
+    basin3d_vocab: str  # native mapping
+    basin3d_desc: list  # [Union[ObservedProperty, AggregationDurationEnum, ResultQualityEnum, SamplingMediumEnum, StatisticEnum]]
     datasource_vocab: str
     datasource_desc: str
     datasource: DataSource = DataSource()
@@ -1247,10 +1249,10 @@ class Observation(Base):
         self._type: str = None
         self._utc_offset: int = None
         self._phenomenon_time: str = None
-        self._observed_property: ObservedPropertyVariable = None
+        self._observed_property: MappedAttribute = None
         self._feature_of_interest: MonitoringFeature = None
         self._feature_of_interest_type: FeatureTypeEnum = None
-        self._result_quality: List[ResultQualityEnum] = []
+        self._result_quality: List[MappedAttribute] = []
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
@@ -1306,12 +1308,12 @@ class Observation(Base):
         self._phenomenon_time = value
 
     @property
-    def observed_property(self) -> 'ObservedPropertyVariable':
+    def observed_property(self) -> 'MappedAttribute':
         """The property that was observed"""
         return self._observed_property
 
     @observed_property.setter
-    def observed_property(self, value: 'ObservedPropertyVariable'):
+    def observed_property(self, value: 'MappedAttribute'):
         self._observed_property = value
 
     @property
@@ -1333,12 +1335,12 @@ class Observation(Base):
         self._feature_of_interest_type = value
 
     @property
-    def result_quality(self) -> List['ResultQualityEnum']:
+    def result_quality(self) -> List['MappedAttribute']:
         """The result quality assessment. See :class:`ResultQuality`"""
         return self._result_quality
 
     @result_quality.setter
-    def result_quality(self, value: List['ResultQualityEnum']):
+    def result_quality(self, value: List['MappedAttribute']):
         self._result_quality = value
 
 
@@ -1346,28 +1348,6 @@ class TimeMetadataMixin(object):
     """
     Metadata attributes for Observations with a time
     """
-
-    #: Observations aggregated by year
-    AGGREGATION_DURATION_YEAR = TimeFrequencyEnum.YEAR
-
-    #: Observations aggregated by month
-    AGGREGATION_DURATION_MONTH = TimeFrequencyEnum.MONTH
-
-    #: Observations aggregated by day
-    AGGREGATION_DURATION_DAY = TimeFrequencyEnum.DAY
-
-    #: Observations aggregated by hour
-    AGGREGATION_DURATION_HOUR = TimeFrequencyEnum.HOUR
-
-    #: Observations aggregated by minute
-    AGGREGATION_DURATION_MINUTE = TimeFrequencyEnum.MINUTE
-
-    #: Observations aggregated by second
-    AGGREGATION_DURATION_SECOND = TimeFrequencyEnum.SECOND
-
-    #: Observations aggregated by no standard frequency, used for instantaneous values
-    AGGREGATION_DURATION_NONE = TimeFrequencyEnum.NONE
-
     #: Observation taken at the start
     TIME_REFERENCE_START = "START"
 
@@ -1378,20 +1358,20 @@ class TimeMetadataMixin(object):
     TIME_REFERENCE_END = "END"
 
     def __init__(self, *args, **kwargs):
-        self._aggregation_duration: str = None
+        self._aggregation_duration: MappedAttribute = None
         self._time_reference_position: str = None
 
         # Instantiate the serializer superclass
         super(TimeMetadataMixin, self).__init__(*args, **kwargs)
 
     @property
-    def aggregation_duration(self) -> str:
+    def aggregation_duration(self) -> 'MappedAttribute':
         """Time period represented by the observation. Follows OGC TM_PeriodDuration.
            Use constants prefixed with `AGGREGATION_DURATION` from :class:`TimeseriesMetadataMixin`"""
         return self._aggregation_duration
 
     @aggregation_duration.setter
-    def aggregation_duration(self, value: str):
+    def aggregation_duration(self, value: 'MappedAttribute'):
         self._aggregation_duration = value
 
     @property
@@ -1413,8 +1393,8 @@ class MeasurementMetadataMixin(object):
     def __init__(self, *args, **kwargs):
         # self._observed_property_variable: str = None
         # ToDo: consider enums
-        self._sampling_medium: str = None
-        self._statistic: StatisticEnum = None
+        self._sampling_medium: MappedAttribute = None
+        self._statistic: MappedAttribute = None
 
         # Instantiate the serializer superclass
         super(MeasurementMetadataMixin, self).__init__(*args, **kwargs)
@@ -1429,21 +1409,21 @@ class MeasurementMetadataMixin(object):
     #     self._observed_property_variable = value
 
     @property
-    def sampling_medium(self) -> str:
+    def sampling_medium(self) -> 'MappedAttribute':
         """Sampling medium in which the observed property was measured"""
         return self._sampling_medium
 
     @sampling_medium.setter
-    def sampling_medium(self, value: str):
+    def sampling_medium(self, value: 'MappedAttribute'):
         self._sampling_medium = value
 
     @property
-    def statistic(self) -> str:
+    def statistic(self) -> 'MappedAttribute':
         """The statistical property of the observation result. Use constants prefixed with `STATISTIC_` from :class:`MeasurementMetadataMixin`"""
         return self._statistic
 
     @statistic.setter
-    def statistic(self, value: str):
+    def statistic(self, value: 'MappedAttribute'):
         self._statistic = value
 
 
@@ -1453,7 +1433,7 @@ class ResultListTVP(Base):
     """
     def __init__(self, plugin_access, **kwargs):
         self._value: List['TimeValuePair'] = []
-        self._quality: List['ResultQualityEnum'] = []
+        self._quality: List['MappedAttribute'] = []
 
         if 'quality' in kwargs and kwargs['quality']:
             kwargs['quality'] = plugin_access.get_mapped_attribute(attr_type='RESULT_QUALITY', attr_vocab=kwargs['quality'])
@@ -1471,12 +1451,12 @@ class ResultListTVP(Base):
         self._value = value
 
     @property
-    def quality(self) -> List['ResultQualityEnum']:
+    def quality(self) -> List['MappedAttribute']:
         """Result that was measured"""
         return self._quality
 
     @quality.setter
-    def quality(self, value: List['ResultQualityEnum']):
+    def quality(self, value: List['MappedAttribute']):
         self._quality = value
 
 
@@ -1517,7 +1497,7 @@ class ResultPointFloat(Base):
     """
     def __init__(self, **kwargs):
         self._value: float = None
-        self._quality: 'ResultQualityEnum' = None
+        self._quality: 'MappedAttribute' = None
 
         # Initialize after the attributes have been set
         super().__init__(None, **kwargs)
@@ -1532,12 +1512,12 @@ class ResultPointFloat(Base):
         self._value = value
 
     @property
-    def quality(self) -> 'ResultQualityEnum':
+    def quality(self) -> 'MappedAttribute':
         """Result that was measured"""
         return self._quality
 
     @quality.setter
-    def quality(self, value: 'ResultQualityEnum'):
+    def quality(self, value: 'MappedAttribute'):
         self._quality = value
 
 
