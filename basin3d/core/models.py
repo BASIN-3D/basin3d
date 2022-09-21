@@ -124,7 +124,7 @@ class ObservedProperty(JSONSerializable):
         - *datasource_description:*
     """
     datasource_variable: str = ''
-    observed_property_variable: ObservedPropertyVariable = ObservedPropertyVariable()
+    observed_property_variable: ObservedPropertyVariable = field(default_factory=lambda: ObservedPropertyVariable())
     sampling_medium: str = ''
     datasource: DataSource = DataSource()
     datasource_description: str = ''
