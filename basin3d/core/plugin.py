@@ -177,7 +177,7 @@ class DataSourcePluginAccess:
         """
         return self._catalog.find_compound_mapping_attributes(self.datasource.id, attr_type)
 
-    # potentially delete
+    # used by query Translator Mixin
     def get_ds_vocab(self, attr_type, basin3d_vocab, query):
         """
         Convert given list of attr ids (per given attr_type) to BASIN-3D name or vice versa.

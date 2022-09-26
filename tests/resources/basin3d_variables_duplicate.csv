@@ -1,4 +1,4 @@
-basin3d_id,description,categories,units
+basin3d_vocab,description,categories,units
 ACT,Acetate (CH3COO),"Biogeochemistry,Anions",mM
 Br,Bromide (Br),"Biogeochemistry,Anions",mM
 Br,Bromide ions,"Biogeochemistry,Anions",mM

@@ -4,7 +4,7 @@ OBSERVED_PROPERTY:SAMPLING_MEDIUM,RDC:WATER,00060,"Discharge, cubic feet per sec
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,WLE:WATER,63161,"Stream water level elevation above NAVD 1988, in meters"
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,WT:WATER,00010,"Temperature, water, degrees Celsius"
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,DO:WATER,00300,"Dissolved oxygen, water, unfiltered, lab, milligrams per liter"
-OBSERVED_PROPERTY:SAMPLING_MEDIUM,SC:WATER,00095," Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,SC:WATER,00095,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,TDS:WATER,70301,"Dissolved solids, water, filtered, sum of constituents, milligrams per liter"
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,DIN:WATER,00631,"Nitrate plus nitrite, water, filtered, milligrams per liter as nitrogen"
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,DTN:WATER,00602,"Total nitrogen [nitrate + nitrite + ammonia + organic-N], water, filtered, milligrams per liter"

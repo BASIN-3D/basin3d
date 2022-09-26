@@ -1,5 +1,5 @@
-the_id,datasource_name,sampling_medium,description
-ACT,Acetate,WATER,
-Ag,Ag,WATER,
-Al,Al,WATER,
-As,As,WATER,
+attr_type,the_id,datasource_vocab,datasource_description
+OBSERVED_PROPERTY,ACT,Acetate,
+OBSERVED_PROPERTY,Ag,Ag,
+OBSERVED_PROPERTY,Al,Al,
+OBSERVED_PROPERTY,As,As,'As description'

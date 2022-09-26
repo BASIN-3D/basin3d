@@ -35,6 +35,28 @@ from basin3d.core.types import SpatialSamplingShapes
 logger = monitor.get_logger(__name__)
 
 
+def translate_attributes(plugin_access, mapped_attrs, **kwargs):
+    # copy the kwargs be able to loop thru the original while modifying the actual for compound mappings
+    kwargs_orig = kwargs.copy()
+
+    for attr in mapped_attrs:
+        if attr in kwargs_orig:
+            datasource_vocab = kwargs[attr]
+            attr_mapping = plugin_access.get_mapped_attribute(attr_type=attr.upper(), attr_vocab=datasource_vocab)
+            kwargs[attr] = attr_mapping
+
+            # If the attr is part of a compound mapping and the compound attr is not part of the kwargs, set it.
+            cm_attrs = plugin_access.get_compound_mapping_attributes(attr)
+            if cm_attrs:
+                for cm_attr in cm_attrs:
+                    if cm_attr.lower() not in kwargs:
+                        cm_attr_mapping = plugin_access.get_mapped_attribute(attr_type=cm_attr.upper(),
+                                                                             attr_vocab=datasource_vocab)
+                        kwargs[cm_attr.lower()] = cm_attr_mapping
+
+    return kwargs
+
+
 class JSONSerializable:
     """
     Make a Data class serializable to json
@@ -1254,6 +1276,8 @@ class Observation(Base):
         self._feature_of_interest_type: FeatureTypeEnum = None
         self._result_quality: List[MappedAttribute] = []
 
+        kwargs = self._translate_attributes(plugin_access, **kwargs)
+
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
         self.__validate__()
@@ -1269,6 +1293,10 @@ class Observation(Base):
         # Validate feature of interest type if present is class FeatureTypeEnum
         if self.feature_of_interest_type and self.feature_of_interest_type not in FeatureTypeEnum.values():
             raise AttributeError("feature_of_interest_type must be FeatureType")
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        mapped_attrs = ('observed_property', 'result_quality')
+        return translate_attributes(plugin_access, mapped_attrs, **kwargs)
 
     @property
     def id(self) -> str:
@@ -1564,26 +1592,8 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
     def __init__(self, plugin_access, **kwargs):
         kwargs["type"] = self.TYPE_MEASUREMENT_TVP_TIMESERIES
 
-        # copy the kwargs be able to loop thru the original while modifying the actual for compound mappings
-        kwargs_orig = kwargs.copy()
-
-        # it seems problematic to list these out specifically;
-        # maybe they could be indicated as mapped values in their mixins and collated in the __init__??
-        for attr in ('observed_property', 'statistic', 'aggregation_duration', 'result_quality', 'sampling_medium'):
-            # ToDo: ?? add handling for direct assignment of MappedAttribute -- maybe better place is in the plugin get_mapped_attribute method
-            if attr in kwargs_orig:
-                datasource_vocab = kwargs[attr]
-                attr_mapping = plugin_access.get_mapped_attribute(attr_type=attr.upper(), attr_vocab=datasource_vocab)
-                # self[attr] = basin3d_vocab
-                kwargs[attr] = attr_mapping
-
-                # If the attr is part of a compound mapping and the compound attr is not part of the kwargs, set it.
-                cm_attrs = plugin_access.get_compound_mapping_attributes(attr)
-                if cm_attrs:
-                    for cm_attr in cm_attrs:
-                        if cm_attr.lower() not in kwargs:
-                            cm_attr_mapping = plugin_access.get_mapped_attribute(attr_type=cm_attr.upper(), attr_vocab=datasource_vocab)
-                            kwargs[cm_attr.lower()] = cm_attr_mapping
+        # ToDo: extract into separate translation layer??
+        self._translate_attributes(plugin_access, **kwargs)
 
         # kwargs['observed_property'] = plugin_access.get_observed_property(basin3d_variable_id)
 
@@ -1597,3 +1607,9 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
 
     def __eq__(self, other):
         return self.id == other.id
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        # it seems problematic to list these out specifically;
+        # maybe they could be indicated as mapped values in their mixins and collated in the __init__??
+        mapped_attrs = ('observed_property', 'statistic', 'aggregation_duration', 'result_quality', 'sampling_medium')
+        return translate_attributes(plugin_access, mapped_attrs, **kwargs)

@@ -2,26 +2,86 @@ import pytest
 
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, DepthCoordinate, \
     GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, Observation, \
-    ObservedPropertyVariable, RelatedSamplingFeature, RepresentativeCoordinate, TimeValuePair, ResultListTVP, \
-    VerticalCoordinate, DataSource
-from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum, StatisticEnum
+    ObservedProperty, RelatedSamplingFeature, RepresentativeCoordinate, TimeValuePair, ResultListTVP, \
+    VerticalCoordinate, MappedAttribute, AttributeMapping
+from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum, StatisticEnum, SamplingMediumEnum
 from basin3d.core.types import SpatialSamplingShapes
 
 
 @pytest.fixture
-def observed_property_var():
+def observed_property():
     """
     Load some fake data to use in the tests
     """
-    return ObservedPropertyVariable(basin3d_id='FH2O', full_name='Groundwater Flux',
-                                    categories=['Hydrology', 'Subsurface'], units='m3/m/s')
+    return ObservedProperty(basin3d_vocab='FH2O', full_name='Groundwater Flux',
+                            categories=['Hydrology', 'Subsurface'], units='m3/m/s')
 
 
-# @pytest.fixture
-# def observed_property(datasource, observed_property_var):
-#     return ObservedProperty(datasource_variable='water_flux', observed_property_variable=observed_property_var,
-#                             sampling_medium=SamplingMedium.WATER, datasource=datasource,
-#                             datasource_description='a test variable')
+@pytest.fixture
+def mapped_attribute_op_ag(datasource):
+    return MappedAttribute(
+        attr_type='OBSERVED_PROPERTY',
+        attr_mapping=AttributeMapping(
+            attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
+            basin3d_vocab='Ag:WATER',
+            basin3d_desc=[
+                ObservedProperty(basin3d_vocab='Ag', full_name='Silver (Ag)', categories=['Biogeochemistry', 'Trace elements'], units='mg/L'),
+                SamplingMediumEnum.WATER],
+            datasource_vocab='Ag',
+            datasource_desc='sliver concentration in water',
+            datasource=datasource))
+
+
+@pytest.fixture
+def mapped_attribute_op_act(datasource):
+    return MappedAttribute(
+        attr_type='OBSERVED_PROPERTY',
+        attr_mapping=AttributeMapping(
+            attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
+            basin3d_vocab='ACT:WATER',
+            basin3d_desc=[ObservedProperty(basin3d_vocab='ACT', full_name='Acetate (CH3COO)', categories=['Biogeochemistry', 'Anions'], units='mM'),
+                          SamplingMediumEnum.WATER],
+            datasource_vocab='Acetate',
+            datasource_desc='acetate',
+            datasource=datasource))
+
+
+@pytest.fixture
+def mapped_attribute_sampling_medium_act(datasource):
+    return MappedAttribute(
+        attr_type='SAMPLING_MEDIUM',
+        attr_mapping=AttributeMapping(
+            attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
+            basin3d_vocab='ACT:WATER',
+            basin3d_desc=[ObservedProperty(basin3d_vocab='ACT', full_name='Acetate (CH3COO)', categories=['Biogeochemistry', 'Anions'], units='mM'),
+                          SamplingMediumEnum.WATER],
+            datasource_vocab='Acetate',
+            datasource_desc='acetate',
+            datasource=datasource))
+
+
+@pytest.fixture
+def mapped_attribute_result_quality_validated(datasource):
+    return MappedAttribute(attr_type='RESULT_QUALITY',
+                           attr_mapping=AttributeMapping(
+                               attr_type='RESULT_QUALITY',
+                               basin3d_vocab='VALIDATED',
+                               basin3d_desc=[ResultQualityEnum.VALIDATED],
+                               datasource_vocab='VALIDATED',
+                               datasource_desc='',
+                               datasource=datasource))
+
+
+@pytest.fixture
+def mapped_attribute_agg_dur_not_supported(datasource):
+    return MappedAttribute(attr_type='AGGREGATION_DURATION',
+                           attr_mapping=AttributeMapping(
+                               attr_type='AGGREGATION_DURATION',
+                               basin3d_vocab='NOT_SUPPORTED',
+                               basin3d_desc=[],
+                               datasource_vocab='daily',
+                               datasource_desc='no mapping was found for "daily" in Alpha datasource',
+                               datasource=datasource))
 
 
 def test_data_source_model(datasource):
@@ -33,23 +93,40 @@ def test_data_source_model(datasource):
     assert datasource.location == 'https://asource.foo/'
 
 
-def test_observed_property_create(observed_property, observed_property_var, datasource):
-    """ Was the object created correctly? """
-
-    assert observed_property.sampling_medium == 'WATER'
-    assert observed_property.datasource_variable == 'water_flux'
-    assert observed_property.observed_property_variable == observed_property_var
-    assert observed_property.datasource == datasource
-    assert observed_property.datasource_description == 'a test variable'
-
-
-def test_observed_property_variable_create(observed_property_var):
+def test_observed_property_variable_create(observed_property):
     """ create the object and test attributes """
 
-    assert observed_property_var.basin3d_id == 'FH2O'
-    assert observed_property_var.full_name == 'Groundwater Flux'
-    assert observed_property_var.categories == ['Hydrology', 'Subsurface']
-    assert observed_property_var.units == 'm3/m/s'
+    assert observed_property.basin3d_vocab == 'FH2O'
+    assert observed_property.full_name == 'Groundwater Flux'
+    assert observed_property.categories == ['Hydrology', 'Subsurface']
+    assert observed_property.units == 'm3/m/s'
+
+
+def test_attribute_mapping(mapped_attribute_op_act, datasource):
+    attr_mapping = mapped_attribute_op_act.attr_mapping
+    assert attr_mapping.attr_type == 'OBSERVED_PROPERTY:SAMPLING_MEDIUM'
+    assert attr_mapping.basin3d_vocab == 'ACT:WATER'
+    assert attr_mapping.basin3d_desc[0] == ObservedProperty(basin3d_vocab='ACT', full_name='Acetate (CH3COO)', categories=['Biogeochemistry', 'Anions'], units='mM')
+    assert attr_mapping.basin3d_desc[1] == SamplingMediumEnum.WATER
+    assert attr_mapping.datasource_vocab == 'Acetate'
+    assert attr_mapping.datasource_desc == 'acetate'
+    assert attr_mapping.datasource == datasource
+
+
+def test_mapped_attribute(mapped_attribute_op_act):
+    assert mapped_attribute_op_act.attr_type == 'OBSERVED_PROPERTY'
+    assert isinstance(mapped_attribute_op_act.attr_mapping, AttributeMapping) is True
+
+
+def test_mapped_attribute_not_supported(mapped_attribute_agg_dur_not_supported, datasource):
+    assert mapped_attribute_agg_dur_not_supported.attr_type == 'AGGREGATION_DURATION'
+    attr_mapping = mapped_attribute_agg_dur_not_supported.attr_mapping
+    assert attr_mapping.attr_type == 'AGGREGATION_DURATION'
+    assert attr_mapping.basin3d_vocab == 'NOT_SUPPORTED'
+    assert attr_mapping.basin3d_desc == []
+    assert attr_mapping.datasource_vocab == 'daily'
+    assert attr_mapping.datasource_desc == 'no mapping was found for "daily" in Alpha datasource'
+    assert attr_mapping.datasource == datasource
 
 
 def test_representative_coordinate():
@@ -100,7 +177,7 @@ def test_absolute_coordinate():
     assert a_coord.distance_units == VerticalCoordinate.DISTANCE_UNITS_FEET
 
 
-def test_monitoring_feature_create(plugin_access_alpha):
+def test_monitoring_feature_create(plugin_access_alpha, mapped_attribute_op_ag, mapped_attribute_op_act):
     """Test instance of monitoring feature"""
 
     a_region = MonitoringFeature(
@@ -162,7 +239,7 @@ def test_monitoring_feature_create(plugin_access_alpha):
                     value=-0.5, distance_units=VerticalCoordinate.DISTANCE_UNITS_METERS)
             )
         ),
-        observed_property_variables=['Ag', 'Acetate'],
+        observed_properties=['Ag', 'Acetate'],
         related_sampling_feature_complex=[
             RelatedSamplingFeature(plugin_access=plugin_access_alpha,
                                    related_sampling_feature='Region1',
@@ -190,12 +267,13 @@ def test_monitoring_feature_create(plugin_access_alpha):
         VerticalCoordinate.DISTANCE_UNITS_METERS
     assert a_point.coordinates.representative.vertical_position.datum == \
         DepthCoordinate.DATUM_LOCAL_SURFACE
-    assert a_point.observed_property_variables == ['ACT', 'Ag']
+    assert a_point.observed_properties[0] == mapped_attribute_op_ag
+    assert a_point.observed_properties[1] == mapped_attribute_op_act
     assert a_point.related_sampling_feature_complex[0].related_sampling_feature == 'A-Region1'
     assert a_point.related_sampling_feature_complex[0].role == 'PARENT'
 
 
-def test_observation_create(plugin_access_alpha):
+def test_observation_create(plugin_access_alpha, mapped_attribute_result_quality_validated):
     """
     Test instance of observation model class
     NOTE: In practice, the Observation should not be used stand alone
@@ -205,7 +283,7 @@ def test_observation_create(plugin_access_alpha):
         id='timeseries01',
         utc_offset='9',
         phenomenon_time='20180201',
-        result_quality=ResultQualityEnum.VALIDATED,
+        result_quality=['VALIDATED'],
         feature_of_interest='Point011')
 
     assert obs01.datasource.id == 'Alpha'
@@ -213,11 +291,13 @@ def test_observation_create(plugin_access_alpha):
     assert obs01.utc_offset == '9'
     assert obs01.phenomenon_time == '20180201'
     assert obs01.observed_property is None
-    assert obs01.result_quality == ResultQualityEnum.VALIDATED
+    assert obs01.result_quality == [mapped_attribute_result_quality_validated]
     assert obs01.feature_of_interest == 'Point011'
 
 
-def test_measurement_timeseries_tvp_observation_create(plugin_access_alpha):
+def test_measurement_timeseries_tvp_observation_create(
+        plugin_access_alpha, datasource,
+        mapped_attribute_op_act, mapped_attribute_sampling_medium_act, mapped_attribute_result_quality_validated, mapped_attribute_agg_dur_not_supported):
     """Test instance of Measurement Timeseries TVP Observation"""
 
     obs01 = MeasurementTimeseriesTVPObservation(
@@ -225,39 +305,39 @@ def test_measurement_timeseries_tvp_observation_create(plugin_access_alpha):
         id='timeseries01',
         utc_offset='9',
         phenomenon_time='20180201',
-        result_quality=[ResultQualityEnum.VALIDATED],
+        result_quality=['VALIDATED'],
         feature_of_interest='Point011',
         feature_of_interest_type=FeatureTypeEnum.POINT,
         aggregation_duration='daily',
         time_reference_position='start',
-        observed_property_variable='Acetate',
+        observed_property='Acetate',
         statistic='mean',
-        result=ResultListTVP(value=[TimeValuePair('201802030100', '5.32')],
-                             quality=[ResultQualityEnum.VALIDATED]),
+        result=ResultListTVP(plugin_access=plugin_access_alpha,
+                             value=[TimeValuePair('201802030100', '5.32')],
+                             quality=['VALIDATED']),
         unit_of_measurement='m'
     )
 
     assert obs01.id == 'A-timeseries01'
     assert obs01.utc_offset == '9'
     assert obs01.phenomenon_time == '20180201'
-    # assert obs01.observed_property == ObservedProperty(
-    #     datasource_variable='Acetate',
-    #     observed_property_variable=ObservedPropertyVariable(
-    #         basin3d_id='ACT', full_name='Acetate (CH3COO)',
-    #         categories=['Biogeochemistry', 'Anions'], units='mM'),
-    #     sampling_medium=SamplingMedium.WATER,
-    #     datasource=DataSource(
-    #         id='Alpha', name='Alpha', id_prefix='A',
-    #         location='https://asource.foo/', credentials={}),
-    #     datasource_description='')
-    assert obs01.observed_property == 'ACT'
-    assert obs01.result_quality == [ResultQualityEnum.VALIDATED]
+    assert obs01.observed_property == mapped_attribute_op_act
+    assert obs01.sampling_medium == mapped_attribute_sampling_medium_act
+    assert obs01.result_quality == [mapped_attribute_result_quality_validated]
     assert obs01.feature_of_interest == 'Point011'
     assert obs01.feature_of_interest_type == FeatureTypeEnum.POINT
-    assert obs01.aggregation_duration == 'daily'
+    assert obs01.aggregation_duration == mapped_attribute_agg_dur_not_supported
     assert obs01.time_reference_position == 'start'
-    assert obs01.statistic == StatisticEnum.MEAN
+    assert obs01.statistic == MappedAttribute(attr_type='STATISTIC',
+                                              attr_mapping=AttributeMapping(
+                                                  attr_type='STATISTIC',
+                                                  basin3d_vocab='MEAN',
+                                                  basin3d_desc=[StatisticEnum.MEAN],
+                                                  datasource_vocab='mean',
+                                                  datasource_desc='',
+                                                  datasource=datasource))
     assert obs01.unit_of_measurement == 'm'
     assert obs01.datasource.id == 'Alpha'
     assert obs01.result.value[0] == TimeValuePair('201802030100', '5.32')
-    assert obs01.result.quality[0] == ResultQualityEnum.VALIDATED
+    assert obs01.result.quality[0] == mapped_attribute_result_quality_validated
+
