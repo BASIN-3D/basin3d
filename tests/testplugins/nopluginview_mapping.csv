@@ -1,6 +1,7 @@
-basin3d_id,datasource_variable,sampling_medium,description
-ACT,Acetate,WATER,
-Ag,Ag,WATER,
-Ag,Ag_gas,GAS,
-Al,Aluminum,WATER,
-As,As,DIRT,
+attr_type,basin3d_vocab,datasource_vocab,datasource_desc
+OBSERVED_PROPERTY,ACT,Acetate,
+OBSERVED_PROPERTY,Ag,Ag,
+OBSERVED_PROPERTY,Ag,Ag_gas,
+OBSERVED_PROPERTY,Al,Aluminum,
+OBSERVED_PROPERTY,As,As,
+AGGREGATION_DURATION,DAY,DAY
