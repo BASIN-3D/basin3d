@@ -315,18 +315,19 @@ class DataSynthesizer:
         """
         return self._catalog.find_observed_properties()
 
-    def attribute_mappings(self, datasource_id=None, attr_type=None, attr_vocab=None):
+    def attribute_mappings(self, datasource_id=None, attr_type=None, attr_vocab=None, from_basin3d=False):
         """
 
         :param datasource_id:
         :param attr_type:
         :param attr_vocab:
+        :param from_basin3d:
         :return:
         """
         datasource = None
         if datasource_id:
             datasource = self._datasources[datasource_id]
-        return self._catalog.find_attribute_mappings(datasource, attr_type, attr_vocab)
+        return self._catalog.find_attribute_mappings(datasource, attr_type, attr_vocab, from_basin3d)
 
     def monitoring_features(self, query: Union[QueryById, QueryMonitoringFeature] = None, **kwargs) -> Union[
             DataSourceModelIterator, SynthesisResponse]:
@@ -621,7 +622,7 @@ def get_timeseries_data(synthesizer: DataSynthesizer, location_lat_long: bool = 
                 'records': records,
                 'units': data_obj.unit_of_measurement,
                 'basin_3d_variable': observed_property.get_basin3d_vocab(),
-                'basin_3d_variable_full_name': "to be added",
+                'basin_3d_variable_full_name': getattr(observed_property.get_basin3d_desc(), 'full_name'),
                 'statistic': statistic,
                 'temporal_aggregation': data_obj.aggregation_duration.get_basin3d_vocab(),
                 'quality': result_quality,

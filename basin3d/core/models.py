@@ -26,10 +26,10 @@ import json
 from collections import namedtuple
 from dataclasses import dataclass, field
 from numbers import Number
-from typing import List, Union
+from typing import List, Optional, Union
 
 from basin3d.core import monitor
-from basin3d.core.schema.enum import FEATURE_SHAPE_TYPES, MAPPING_DELIMITER, FeatureTypeEnum, AggregationDurationEnum, ResultQualityEnum, SamplingMediumEnum, StatisticEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, FEATURE_SHAPE_TYPES, MAPPING_DELIMITER, NO_MAPPING_TEXT
 from basin3d.core.types import SpatialSamplingShapes
 
 logger = monitor.get_logger(__name__)
@@ -179,12 +179,31 @@ class MappedAttribute(JSONSerializable):
     def __unicode__(self):
         return self.get_basin3d_vocab()
 
-    def get_basin3d_vocab(self) -> str:
+    def get_basin3d_vocab(self) -> Optional[str]:
+        if self.attr_mapping.basin3d_vocab == NO_MAPPING_TEXT:
+            return NO_MAPPING_TEXT
         attrs = self.attr_mapping.attr_type.split(MAPPING_DELIMITER)
         b3d_vocabs = self.attr_mapping.basin3d_vocab.split(MAPPING_DELIMITER)
-        for idx, attr in enumerate(attrs):
-            if attr == self.attr_type.upper():
-                return b3d_vocabs[idx]
+        try:
+            for attr, vocab in zip(attrs, b3d_vocabs):
+                if attr == self.attr_type.upper():
+                    return vocab
+        except Exception as e:
+            logger.error(f'Issue returning basin3d_vocab for MappedAttribute. THIS SHOULD NEVER HAPPEN. {e}')
+        return None
+
+    def get_basin3d_desc(self):
+        b3d_descs = self.attr_mapping.basin3d_desc
+        if not b3d_descs:
+            return None
+        attrs = self.attr_mapping.attr_type.split(MAPPING_DELIMITER)
+        try:
+            for attr, desc in zip(attrs, b3d_descs):
+                if attr == self.attr_type.upper():
+                    return desc
+        except Exception:
+            logger.error(f'Issue returning basin3d_desc for MappedAttribute. THIS SHOULD NEVER HAPPEN.')
+        return None
 
     def get_datasource_vocab(self) -> str:
         return self.attr_mapping.datasource_vocab
@@ -192,32 +211,6 @@ class MappedAttribute(JSONSerializable):
     def get_datasource_desc(self) -> str:
         return self.attr_mapping.datasource_desc
 
-
-# HERE: remove
-# @dataclass
-# class ObservedProperty(JSONSerializable):
-#     """
-#     Defining the attributes for a single/multiple Observed Properties
-#
-#     Attributes:
-#         - *datasource_variable:* id, e.g., Cs 137 air dose rate car survey campaigns
-#         - *observed_property_variable_id:* string, e.g., Cs137MVID
-#         - *sampling_medium:* enum (WATER, GAS, SOLID PHASE, OTHER, NOT APPLICABLE)
-#         - *datasource:*
-#         - *datasource_description:*
-#     """
-#     datasource_variable: str = ''
-#     observed_property_variable: ObservedPropertyVariable = ObservedPropertyVariable()
-#     sampling_medium: str = ''
-#     datasource: DataSource = DataSource()
-#     datasource_description: str = ''
-#
-#     def __str__(self):
-#         return self.__unicode__()
-#
-#     def __unicode__(self):
-#         return self.datasource_variable
-#
 
 class Base(JSONSerializable):
     """
@@ -914,7 +907,6 @@ class Feature(Base):
         self._description: str = None
         self._feature_type: str = None
         self._observed_properties: Union[List[MappedAttribute], List[str]] = None
-        # self._mapped_attributes = List[MappedAttribute] = None
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
@@ -926,21 +918,6 @@ class Feature(Base):
                 attr_type='OBSERVED_PROPERTY', attr_vocab=self.observed_properties)
         else:
             self.observed_properties = None
-
-        # if self.observed_property_variables and isinstance(self.observed_property_variables, (tuple, list, enumerate)):
-        #     # synthesize measurement variables
-        #     synth_params = set()
-        #     for ds_vocab in self.observed_property_variables:
-        #         basin3d_vocab = plugin_access.get_basin3d_vocab('OBSERVED_PROPERTY', ds_vocab)
-        #         synth_params.add(basin3d_vocab)
-        #     # for synth_param in plugin_access.get_observed_property_variables(self.observed_property_variables):
-        #     #     synth_params.append(synth_param.basin3d_id)
-        #
-        #     self.observed_property_variables = list(synth_params)
-
-        # # ToDo: do we really want this?
-        # elif self.observed_property_variables:
-        #     self.observed_property_variables = [self.observed_property_variables]
 
     def __validate__(self):
         """
@@ -992,22 +969,13 @@ class Feature(Base):
     def feature_type(self, value: str):
         self._feature_type = value
 
-    # @property
-    # def mapped_attributes(self) -> List[str]:
-    #     """List of observed property variables"""
-    #     return self._mapped_attributes
-    #
-    # @mapped_attributes.setter
-    # def mapped_attributes(self, value: List[str]):
-    #     self._mapped_attributes = value
-
     @property
-    def observed_properties(self) -> List[str]:
+    def observed_properties(self) -> Union[List[MappedAttribute], List[str]]:
         """List of observed property variables"""
         return self._observed_properties
 
     @observed_properties.setter
-    def observed_properties(self, value: List[str]):
+    def observed_properties(self, value: Union[List[MappedAttribute], List[str]]):
         self._observed_properties = value
 
 

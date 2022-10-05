@@ -64,7 +64,7 @@ def test_measurement_timeseries_tvp_observations_usgs_iv():
             count += 1
             # checking to make sure the query statistic is not the statistic in timeseries data,
             # and checking to make sure that when aggregation duration is NONE the statistic in timeseries data has the value 'NOT_SUPPORTED'
-            assert timeseries.statistic == 'NOT_SUPPORTED'
+            assert timeseries.statistic.get_basin3d_vocab() == 'NOT_SUPPORTED'
         expected_msgs = "USGS Instantaneous Values service does not support statistics and cannot be specified when aggregation_duration = NONE. Specified statistic arguments will be ignored."
         msgs = measurement_timeseries_tvp_observations.synthesis_response.messages[0].msg
         assert msgs == expected_msgs

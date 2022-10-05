@@ -121,8 +121,8 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
     start_date: date = Field(title="Start Date", description="Filter by data taken on or after the start date")
 
     # optional
-    aggregation_duration: Optional[TimeFrequencyEnum] = Field(default='DAY', title="Aggregation Duration",
-                                                              description="Filter by the specified time frequency")
+    aggregation_duration: Optional[Union[TimeFrequencyEnum, List[TimeFrequencyEnum]]] = Field(default='DAY', title="Aggregation Duration",
+                                                                                              description="Filter by the specified time frequency")
     end_date: Optional[date] = Field(title="End Date", description="Filter by data taken on or before the end date")
     statistic: Optional[List[StatisticEnum]] = Field(title="Statistic",
                                                      description="Return specified statistics, if they exist.")

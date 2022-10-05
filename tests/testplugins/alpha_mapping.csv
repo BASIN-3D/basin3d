@@ -3,6 +3,7 @@ OBSERVED_PROPERTY:SAMPLING_MEDIUM,ACT:WATER,Acetate,acetate
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,Ag:WATER,Ag,sliver concentration in water
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,Ag:GAS,Ag_gas,silver concentration vaporized (bogus)
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,Al:WATER,Aluminum,aluminum concentration in water
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,Al:WATER,Al,aluminum (Al) concentration in water
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,As:SOLID_PHASE,As,arsenic in soil
 STATISTIC,MEAN,mean,
 STATISTIC,MAX,max,

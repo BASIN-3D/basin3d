@@ -9,7 +9,6 @@ from pydantic import ValidationError
 
 from basin3d.core.models import Base
 from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum
-# from basin3d.core.types import SamplingMedium
 from basin3d.synthesis import register, get_timeseries_data
 
 
@@ -24,8 +23,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "observed_property_variables": [],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": TimeFrequencyEnum.DAY,
-        "results_quality": ResultQualityEnum.VALIDATED
+        "aggregation_duration": "DAY",
+        "results_quality": "VALIDATED"
     }
 
     with pytest.raises(ValidationError):
@@ -36,8 +35,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "observed_property_variables": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": TimeFrequencyEnum.DAY,
-        "results_quality": ResultQualityEnum.VALIDATED
+        "aggregation_duration": "DAY",
+        "results_quality": "VALIDATED"
     }
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query1)
 
@@ -55,8 +54,8 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "observed_property_variables": ["RDC"],
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
-        "aggregation_duration": TimeFrequencyEnum.DAY,
-        "results_quality": ResultQualityEnum.VALIDATED
+        "aggregation_duration": "DAY",
+        "results_quality": "VALIDATED"
     }
 
     with pytest.raises(ValidationError):
@@ -68,7 +67,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
         "start_date": "2020-04-01",
         "end_date": "2020-04-30",
         "statistic": ["MEAN"],
-        "results_quality": ResultQualityEnum.VALIDATED
+        "results_quality": "VALIDATED"
     }
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query3)
     if isinstance(measurement_timeseries_tvp_observations, Iterator):

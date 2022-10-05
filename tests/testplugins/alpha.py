@@ -59,7 +59,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
     if query.monitoring_features == ['region']:
         return StopIteration({"message": "FOO"})
 
-    supported_monitoring_features = [f'A-{num}' for num in range(1, 5)]
+    supported_monitoring_features = [f'{num}' for num in range(1, 5)]
 
     if not any([loc_id in supported_monitoring_features for loc_id in query.monitoring_features]):
         return StopIteration({"message": "No data from data source matches monitoring features specified."})
@@ -84,7 +84,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
                  [rqe2, rqe3],
                  [],
                  [rqe1, rqe2, rqe3]]
-    observed_property_variables = ["Acetate", "Acetate", "Aluminum", "Aluminum"]
+    observed_property_variables = ["Acetate", "Acetate", "Aluminum", "Al"]
     units = ['nm', 'nm', 'mg/L', 'mg/L']
     statistics = ['mean', 'max', 'mean', 'max']
 
@@ -92,6 +92,8 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
         observed_property_variable = observed_property_variables[num - 1]
         feature_id = f'A-{str(num - 1)}'
         if query:
+            if observed_property_variable not in query.observed_property_variables:
+                continue
             if query.statistic:
                 if statistics[num - 1] not in query.statistic:
                     continue
@@ -153,7 +155,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
                             distance_units=VerticalCoordinate.DISTANCE_UNITS_METERS)
                     )
                 ),
-                observed_property_variables=["Ag", "Acetate", "Aluminum"],
+                observed_properties=["Ag", "Acetate", "Aluminum", "Al"],
                 related_sampling_feature_complex=[
                     RelatedSamplingFeature(plugin_access=self,
                                            related_sampling_feature="Region1",

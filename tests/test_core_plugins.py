@@ -87,41 +87,43 @@ def test_get_feature_type(feature_name, return_format, result):
 
 
 @pytest.mark.parametrize("plugin, messages, synthesis_call, synthesis_args", [
+    # ErrorSource.MF
     ("tests.testplugins.plugin_error.ErrorSourcePlugin",
-     [{'msg': 'Unexpected Error(Exception): This is a list_monitoring_features exception',
-       'level': 'ERROR',
-       'where': ['Error', 'MonitoringFeature']}], "monitoring_features", {}),
-    ("tests.testplugins.plugin_error.ErrorSourcePlugin", [{'level': 'ERROR',
-                                                           'msg': 'Unexpected Error(Exception): This is a '
-                                                                  'find_measurement_timeseries_tvp_observations error',
-                                                           'where': ['Error', 'MeasurementTimeseriesTVPObservation']}],
+     [{'msg': 'Unexpected Error(Exception): This is a list_monitoring_features exception', 'level': 'ERROR', 'where': ['Error', 'MonitoringFeature']}],
+     "monitoring_features",
+     {}),
+    # ErrorSource.TVP
+    ("tests.testplugins.plugin_error.ErrorSourcePlugin",
+     [{'level': 'ERROR', 'msg': 'Unexpected Error(Exception): This is a find_measurement_timeseries_tvp_observations error', 'where': ['Error', 'MeasurementTimeseriesTVPObservation']}],
      "measurement_timeseries_tvp_observations",
-     {'start_date': '2019-10-01', 'observed_property_variables': ["Ag"],
-      'monitoring_features': ['region']}),
-    ("tests.testplugins.alpha.AlphaSourcePlugin", [{'level': 'ERROR',
-                                                    'msg': 'DataSource not not found for id E-1234',
-                                                    'where': None}], "monitoring_features", {"id": 'E-1234'}),
-    ("basin3d.plugins.usgs.USGSDataSourcePlugin", [{'level': 'ERROR',
-                                                    'msg': 'DataSource not not found for id E-1234',
-                                                    'where': None}], "monitoring_features", {"id": 'E-1234'}),
-    ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin", [{'level': 'WARN',
-                                                                'msg': 'Plugin view does not exist',
-                                                                'where': ['NoPluginView',
-                                                                          'MeasurementTimeseriesTVPObservation']}],
-     "measurement_timeseries_tvp_observations", {'start_date': '2019-10-01', 'observed_property_variables': ["Ca"],
-                                                 'monitoring_features': ['region']}),
-    ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin", [{'level': 'WARN',
-                                                                'msg': 'Plugin view does not exist',
-                                                                'where': ['NoPluginView', 'MonitoringFeature']}],
-     "monitoring_features", {'id': 'NPV-01'}),
-    ("tests.testplugins.alpha.AlphaSourcePlugin", [{'level': 'WARN',
-                                                    'msg': 'Synthesis generated warnings but they are in the wrong format',
-                                                    'where': ['Alpha', 'MeasurementTimeseriesTVPObservation']}],
+     {'start_date': '2019-10-01', 'observed_property_variables': ["Ag"], 'monitoring_features': ['E-region']}),
+    # AlphaSource.MF
+    ("tests.testplugins.alpha.AlphaSourcePlugin",
+     [{'level': 'ERROR', 'msg': 'DataSource not not found for id E-1234', 'where': None}],
+     "monitoring_features",
+     {"id": 'E-1234'}),
+
+    ("basin3d.plugins.usgs.USGSDataSourcePlugin",
+     [{'level': 'ERROR', 'msg': 'DataSource not not found for id E-1234', 'where': None}],
+     "monitoring_features",
+     {"id": 'E-1234'}),
+    # USGS.MR
+    ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin",
+     [{'level': 'WARN', 'msg': 'Plugin view does not exist', 'where': ['NoPluginView', 'MeasurementTimeseriesTVPObservation']}],
      "measurement_timeseries_tvp_observations",
-     {'start_date': '2019-10-01', 'observed_property_variables': ["Ag"],
-      'monitoring_features': ['A-region']}),
-], ids=["ErrorSource.MF", "ErrorSource.TVP", "AlphaSource.MF", "USGS.MR", "NoPluginViews.TVP", "NoPluginViews.MF",
-        "AlphaSource.TVP"])
+     {'start_date': '2019-10-01', 'observed_property_variables': ["Ca"], 'monitoring_features': ['NPV-region']}),
+    # NoPluginViews.TVP
+    ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin",
+     [{'level': 'WARN', 'msg': 'Plugin view does not exist', 'where': ['NoPluginView', 'MonitoringFeature']}],
+     "monitoring_features",
+     {'id': 'NPV-01'}),
+    # NoPluginViews.MF
+    ("tests.testplugins.alpha.AlphaSourcePlugin",
+     [{'level': 'WARN', 'msg': 'Synthesis generated warnings but they are in the wrong format', 'where': ['Alpha', 'MeasurementTimeseriesTVPObservation']}],
+     "measurement_timeseries_tvp_observations",
+     {'start_date': '2019-10-01', 'observed_property_variables': ["Ag"], 'monitoring_features': ['A-region']}),
+    ],
+    ids=["ErrorSource.MF", "ErrorSource.TVP", "AlphaSource.MF", "USGS.MR", "NoPluginViews.TVP", "NoPluginViews.MF", "AlphaSource.TVP"])
 def test_plugin_exceptions(plugin, messages, synthesis_call, synthesis_args):
     """Test that basin3d handles unexpected exceptions"""
 

@@ -18,7 +18,7 @@ import logging
 from typing import Iterator, List, Optional, Union
 
 from basin3d.core import monitor
-from basin3d.core.models import Base, MappedAttribute, MeasurementTimeseriesTVPObservation, MonitoringFeature
+from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
 from basin3d.core.schema.enum import NO_MAPPING_TEXT, MessageLevelEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
@@ -138,7 +138,7 @@ class TranslatorMixin(object):
 
         return translated_query
 
-    def translate_mapped_query_attrs(self, plugin_access, query) -> QueryBase:
+    def translate_mapped_query_attrs(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
         """
         Translation functionality
         """
@@ -165,7 +165,7 @@ class TranslatorMixin(object):
                         ds_vocab.extend(plugin_access.get_ds_vocab(attr.upper(), b3d_value, query))
                 setattr(query, attr, ds_vocab)
 
-        # NOTE: always returns list b/c multiple mappings are possible.
+        # NOTE: always returns list for each attr b/c multiple mappings are possible.
         return query
 
     def translate_prefixed_query_attrs(self, plugin_access, query) -> QueryBase:
@@ -450,12 +450,7 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
         :param plugin_access: The plugin view to synthesize query params for
         :return: The synthesized query information
         """
-        translated_query = query.copy()
-
-        if query:
-            translated_query = self.translate_query(plugin_access, query)
-
-        return translated_query
+        return self.translate_query(plugin_access, query)
 
 
 class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
@@ -513,14 +508,8 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         :return: The query parameters
         """
 
-        translated_query = query.copy()
+        # query at this point is still basin3d vocabulary
+        if query.aggregation_duration != TimeFrequencyEnum.NONE:
+            query.aggregation_duration = TimeFrequencyEnum.DAY
 
-        if query:
-            # Aggregation duration will be default to DAY in QueryMeasurementTimeseriesTVP.
-            # Query will accept aggregation duration NONE and DAY only
-            if translated_query.aggregation_duration != TimeFrequencyEnum.NONE:
-                translated_query.aggregation_duration = TimeFrequencyEnum.DAY
-
-            translated_query = self.translate_query(plugin_access, query)
-
-        return translated_query
+        return self.translate_query(plugin_access, query)

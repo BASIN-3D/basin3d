@@ -9,7 +9,6 @@ from pydantic import ValidationError
 from basin3d.core.schema.enum import ResultQualityEnum, SamplingMediumEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.synthesis import DataSourceModelIterator
-# from basin3d.core.types import SamplingMedium
 from basin3d.synthesis import TimeseriesOutputType, get_timeseries_data, register, PandasTimeseriesData, \
     HDFTimeseriesData
 
@@ -103,14 +102,14 @@ def test_measurement_timeseries_tvp_observations_count():
 
     synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(
-        monitoring_features=['A-1'], observed_property_variables=['Al'], start_date='2016-02-01')
+        monitoring_features=['A-3'], observed_property_variables=['Al'], start_date='2016-02-01')
     if isinstance(measurement_timeseries_tvp_observations, DataSourceModelIterator):
         count = 0
         assert measurement_timeseries_tvp_observations.synthesis_response is not None
         assert measurement_timeseries_tvp_observations.synthesis_response.query is not None
         assert isinstance(measurement_timeseries_tvp_observations.synthesis_response.query,
                           QueryMeasurementTimeseriesTVP)
-        assert measurement_timeseries_tvp_observations.synthesis_response.query.monitoring_features == ['A-1']
+        assert measurement_timeseries_tvp_observations.synthesis_response.query.monitoring_features == ['A-3']
         assert measurement_timeseries_tvp_observations.synthesis_response.query.observed_property_variables == ['Al']
         assert measurement_timeseries_tvp_observations.synthesis_response.query.start_date == datetime.date(2016, 2, 1)
 
@@ -273,7 +272,7 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['units'] == 'nm'
         assert var_metadata['basin_3d_variable'] == 'ACT'
         # Fix basin3d_variable_full_name
-        assert var_metadata['basin_3d_variable_full_name'] == 'to be added'
+        assert var_metadata['basin_3d_variable_full_name'] == 'Acetate (CH3COO)'
         assert var_metadata['statistic'] == 'MEAN'
         assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
         assert var_metadata['quality'] == ResultQualityEnum.VALIDATED
@@ -300,7 +299,7 @@ def test_get_timeseries_data(output_type, output_path, cleanup):
         assert var_metadata['records'] == 0
         assert var_metadata['units'] == 'mg/L'
         assert var_metadata['basin_3d_variable'] == 'Al'
-        assert var_metadata['basin_3d_variable_full_name'] == 'to be added'
+        assert var_metadata['basin_3d_variable_full_name'] == 'Aluminum (Al)'
         assert var_metadata['statistic'] == 'MEAN'
         assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
         assert var_metadata['quality'] is None

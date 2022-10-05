@@ -159,14 +159,14 @@ class CatalogBase:
         """
         raise NotImplementedError
 
-    def _get_attribute_mapping(self, datasource_id, attr_type, basin3d_id, datasource_attr_id) -> Optional[AttributeMapping]:
+    def _get_attribute_mapping(self, datasource_id, attr_type, basin3d_vocab, datasource_vocab, **kwargs) -> Optional[AttributeMapping]:
         """
         Access a single attribute mapping
 
         :param datasource_id:
         :param attr_type:
-        :param basin3d_id:
-        :param datasource_attr_id:
+        :param basin3d_vocab:
+        :param datasource_vocab:
         :return:
         """
         raise NotImplementedError
@@ -221,13 +221,13 @@ class CatalogBase:
         """
         raise NotImplementedError
 
-    def find_attribute_mappings(self, datasource_id, attr_type, basin3d_id, datasource_attr_id) -> Iterator[AttributeMapping]:
+    def find_attribute_mappings(self, datasource, attr_type, attr_vocab, from_basin3d) -> Iterator[AttributeMapping]:
         """
 
-        :param datasource_id:
+        :param datasource:
         :param attr_type:
-        :param basin3d_id:
-        :param datasource_attr_id:
+        :param attr_vocab:
+        :param from_basin3d:
         :return:
         """
         raise NotImplementedError
@@ -479,8 +479,9 @@ class CatalogTinyDb(CatalogBase):
 
         return self._get_observed_property(basin3d_vocab)
 
-    def find_observed_properties(self, basin3d_vocab=None) -> Iterator[ObservedProperty]:
+    def find_observed_properties(self, basin3d_vocab: Optional[List[str]] = None) -> Iterator[ObservedProperty]:
         """
+
         :param basin3d_vocab:  The :class:`~basin3d.models.ObservedPropertyVariable`
              names to convert
         :type basin3d_vocab: iterable
@@ -496,7 +497,7 @@ class CatalogTinyDb(CatalogBase):
                 yield opv
         else:
             for b3d_vocab in basin3d_vocab:
-                opv = self._observed_properties.get(b3d_vocab)
+                opv = self._get_observed_property(b3d_vocab)
                 if opv is not None:
                     yield opv
                 else:
@@ -592,7 +593,7 @@ class CatalogTinyDb(CatalogBase):
                     (query.datasource_variable_id.test(is_in)) & (query.datasource_id == datasource.id) & (query.attr_type.search(attr_type)))
 
             # Yield the results
-            # ToDo: what happens with a ds_vocab that is not in the db?
+            # ToDo: what happens with a ds_vocab that is not in the db? Plan: track this and return WARNING with list of ds_vocabs not found.
             for r in results:
                 yield self._get_attribute_mapping(**r)
 
@@ -623,6 +624,7 @@ class CatalogTinyDb(CatalogBase):
             compound_mapping_attrs = compound_mapping.compound_mapping  # e.g. OPV
             b3d_vocab_filter_lists = []  # list to hold lists of specified filters, one for each attr
 
+            # ToDo: refigure out this logic and write some tests for it.
             # loop thru each of the compound mapping attributes
             for attr in compound_mapping_attrs.split(MAPPING_DELIMITER):
                 # by default: match any number of characters excepting a new line for the attribute
@@ -638,7 +640,8 @@ class CatalogTinyDb(CatalogBase):
                         filter_values = attr_value
                         # if the values are a str, change it to a list
                         if isinstance(attr_value, str):
-                            filter_values = filter_values.split(',')
+                            # filter_values = filter_values.split(',')
+                            filter_values = attr_value.split(',')
                 # append the filter list to the main list
                 b3d_vocab_filter_lists.append(filter_values)
 
@@ -647,10 +650,6 @@ class CatalogTinyDb(CatalogBase):
 
             # change each set into a str for search
             b3d_vocab_combo_str = [MAPPING_DELIMITER.join(v) for v in b3d_vocab_combo_sets]
-            # is_match = lambda x: x in b3d_vocab_combo_str
-
-            # because there can be wildcards, use match in the query
-            # b3d_vocab_query = query.basin3d_vocab.test(is_match)
 
             # change the attr_type to the compound mapping str
             attr_type = compound_mapping_attrs
@@ -670,13 +669,7 @@ class CatalogTinyDb(CatalogBase):
         if not ds_vocab:
             ds_vocab = [NO_MAPPING_TEXT]
 
-        # ds_vocab = []
-        # for r in results:
-        #     ds_vocab.append(self._get_attribute_mappings(*r))
-
         return ds_vocab
-
-
 
     # USING via plugins
     def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False) -> list:
@@ -698,7 +691,7 @@ class CatalogTinyDb(CatalogBase):
 
         attr_types = []
         for r in results:
-            compound_attr_type = self._get_compound_mapping(**r).attr_type
+            compound_attr_type = getattr(self._get_compound_mapping(**r), 'attr_type')
             if not include_specified_type and compound_attr_type == attr_type:
                 continue
             attr_types.append(compound_attr_type)

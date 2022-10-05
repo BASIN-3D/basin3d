@@ -309,7 +309,7 @@ def test_usgs_get_data(monkeypatch):
     assert var_metadata['records'] == 4
     assert var_metadata['units'] == 'm^3/s'
     assert var_metadata['basin_3d_variable'] == 'RDC'
-    assert var_metadata['basin_3d_variable_full_name'] == 'to be added'
+    assert var_metadata['basin_3d_variable_full_name'] == 'River Discharge'
     assert var_metadata['statistic'] == 'MEAN'
     assert var_metadata['temporal_aggregation'] == TimeFrequencyEnum.DAY
     assert var_metadata['quality'] == ResultQualityEnum.VALIDATED
