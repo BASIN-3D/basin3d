@@ -619,6 +619,8 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 if v["site_no"]:
                     feature_obj_dict[v["site_no"]] = v
 
+        aggregation_duration = query.aggregation_duration
+
         # Iterate over data objects returned
         for data_json in generator_usgs_measurement_timeseries_tvp_observation(self, query, synthesis_messages):
             unit_of_measurement = data_json["variable"]["unit"]['unitCode']

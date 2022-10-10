@@ -202,7 +202,7 @@ class CatalogBase:
         """
         raise NotImplementedError
 
-    def find_observed_properties(self, basin3d_vocab=None) -> Iterator[ObservedProperty]:
+    def find_observed_properties(self, basin3d_vocab=None) -> Iterator[Optional[ObservedProperty]]:
         """
 
         :param basin3d_vocab:
@@ -221,7 +221,7 @@ class CatalogBase:
         """
         raise NotImplementedError
 
-    def find_attribute_mappings(self, datasource, attr_type, attr_vocab, from_basin3d) -> Iterator[AttributeMapping]:
+    def find_attribute_mappings(self, datasource, attr_type, attr_vocab, from_basin3d) -> Iterator[Optional[AttributeMapping]]:
         """
 
         :param datasource:
@@ -479,7 +479,7 @@ class CatalogTinyDb(CatalogBase):
 
         return self._get_observed_property(basin3d_vocab)
 
-    def find_observed_properties(self, basin3d_vocab: Optional[List[str]] = None) -> Iterator[ObservedProperty]:
+    def find_observed_properties(self, basin3d_vocab: Optional[List[str]] = None) -> Iterator[Optional[ObservedProperty]]:
         """
 
         :param basin3d_vocab:  The :class:`~basin3d.models.ObservedPropertyVariable`
@@ -492,6 +492,7 @@ class CatalogTinyDb(CatalogBase):
         if not self._observed_properties:
             raise CatalogException("Variable Store has not been initialized")
 
+        opv: Optional[ObservedProperty]
         if basin3d_vocab is None:
             for opv in self._observed_properties.values():
                 yield opv
@@ -540,7 +541,7 @@ class CatalogTinyDb(CatalogBase):
         return AttributeMapping(attr_type=attr_type, basin3d_vocab=basin3d_vocab, basin3d_desc=[],
                                 datasource_vocab=datasource_vocab, datasource_desc=f'no mapping was found for "{datasource_vocab}" in {datasource.id} datasource', datasource=datasource)
 
-    def find_attribute_mappings(self, datasource, attr_type, attr_vocab, from_basin3d=False) -> Iterator[AttributeMapping]:
+    def find_attribute_mappings(self, datasource, attr_type, attr_vocab, from_basin3d=False) -> Iterator[Optional[AttributeMapping]]:
         """
         Convert the given list of attributes to either BASIN-3D from :class:`~basin3d.models.DataSource`
         attribute id or the other way around.

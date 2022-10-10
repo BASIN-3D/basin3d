@@ -168,7 +168,7 @@ class TranslatorMixin(object):
         # NOTE: always returns list for each attr b/c multiple mappings are possible.
         return query
 
-    def translate_prefixed_query_attrs(self, plugin_access, query) -> QueryBase:
+    def translate_prefixed_query_attrs(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
         """
 
         :param plugin_access:
@@ -201,7 +201,7 @@ class TranslatorMixin(object):
                 return None
         return True
 
-    def clean_query(self, translated_query) -> QueryBase:
+    def clean_query(self, translated_query: QueryBase) -> QueryBase:
         """
         Remove any NOT_SUPPORTED translations
         :param translated_query:
