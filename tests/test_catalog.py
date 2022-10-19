@@ -64,14 +64,29 @@ def catalog(monkeypatch):
 
 # ToDo: add following tests thinking about order
 # CompoundMapping model (catalogBASE)
+def test_compound_mapping_model():
+    from basin3d.core.catalog import CatalogBase
+
+    catalog = CatalogBase()
+    datasource = get_datasource_from_id('Alpha', 'A')
+    compound_mapping = catalog.CompoundMapping(attr_type='TEST',
+                                               compound_mapping='TEST:TEST',
+                                               datasource=datasource)
+    assert compound_mapping.attr_type == 'TEST'
+    assert compound_mapping.compound_mapping == 'TEST:TEST'
+    assert compound_mapping.datasource == datasource
+
+
 # _get_attribute_enum (catalogBASE)
-# catalog.find_observed_property (TinyDB)
-# catalog.find_attribute_mappings (TinyDB)
-# catalog.find_datasource_vocab (TinyDB)
-# catalog.find_compound_mapping_attributes (TinyDB)
-#
+def test_get_attribute_enum():
+    from basin3d.core.catalog import CatalogBase
+    catalog = CatalogBase()
+    assert catalog._get_attribute_enum('WATER', SamplingMediumEnum) == SamplingMediumEnum.WATER
+    assert catalog._get_attribute_enum('FOO', SamplingMediumEnum) is None
+
 # ToDo: Think about outcomes of logic
 # ToDo: see if can resolve datasource vs datasource_id arguments
+
 
 # Test with different variable files.
 # Last test uses the default basin3d hydrology variables which is needed for rest of tests.
@@ -103,22 +118,37 @@ def test_gen_basin3d_variable_store(catalog, caplog):
     assert catalog._get_observed_property('heya') is None
 
 
-def test_process_plugin_attr_mapping(catalog):
-    """Test a bad mapping file with the wrong header"""
-    from tests.testplugins import alpha
-    from basin3d.core.catalog import CatalogException
+# catalog.find_observed_property (TinyDB)
+def test_find_observed_property(catalog):
+    assert catalog.find_observed_property('ACT') == ObservedProperty(basin3d_vocab='ACT',
+                                                                     full_name='Acetate (CH3COO)',
+                                                                     categories=['Biogeochemistry' ,'Anions'],
+                                                                     units='mM')
+    assert catalog.find_observed_property('FOO') is None
+
+
+def test_variable_store_not_initialized_errors(caplog):
+    from basin3d.core.catalog import CatalogTinyDb, CatalogException
+    new_catalog = CatalogTinyDb()
+
+    caplog.clear()
     with pytest.raises(CatalogException):
-        catalog._process_plugin_attr_mapping(
-            alpha.AlphaSourcePlugin(catalog), filename='mapping_alpha_wrong_header.csv', datasource=DataSource())
+        new_catalog.find_observed_property('FOO')
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'Variable Store has not been initialized.' in log_msgs
+
+    caplog.clear()
+    del log_msgs
+    with pytest.raises(CatalogException):
+        test_gen = new_catalog.find_observed_properties()
+        for op in test_gen:
+            pass
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'Variable Store has not been initialized.' in log_msgs
 
 
-def test_get_observed_properties():
+def test_find_observed_properties(catalog):
     """Test that all of the observed property variable are returned"""
-    from tests.testplugins import alpha
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
-    plugins = [alpha.AlphaSourcePlugin(catalog)]
-    catalog.initialize(plugins)
     assert ['ACT', 'Br', 'Cl', 'DIN', 'DTN', 'F', 'NO3', 'NO2', 'PO4', 'SO4', 'S2', 'S2O3', 'HCO3', 'DIC', 'DOC',
             'NPOC', 'POC', 'TIC', 'TOC', 'd13C', 'CO2_d13C_soilgas', 'CH4_d13C_soilgas', 'd15N', 'N2O_d15N_soilgas',
             'CO2_d18O_soilgas', 'N2O_d18O_soilgas', 'SO4_d34S', 'U235', 'H2O_d18O', 'H2O_dD', 'NH4', 'Ca', 'Mg', 'K',
@@ -134,6 +164,16 @@ def test_get_observed_properties():
             'TSS', 'TRB', 'STO_RES', 'LAI', 'PLT_HT', 'PAI', 'PFT', 'SAP', 'RGB', 'GCC', 'NDVI'] == [i.basin3d_vocab for
                                                                                                      i in
                                                                                                      catalog.find_observed_properties()]
+    assert ['ACT', 'Br'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['ACT', 'Br'])]
+
+
+def test_process_plugin_attr_mapping(catalog):
+    """Test a bad mapping file with the wrong header"""
+    from tests.testplugins import alpha
+    from basin3d.core.catalog import CatalogException
+    with pytest.raises(CatalogException):
+        catalog._process_plugin_attr_mapping(
+            alpha.AlphaSourcePlugin(catalog), filename='mapping_alpha_wrong_header.csv', datasource=DataSource())
 
 
 @pytest.mark.parametrize("plugins, query, datasource_id, expected",
@@ -203,7 +243,7 @@ def test_get_observed_properties():
                            )
                           ],
                          ids=['Wrong-plugin-initialized', 'USGS', 'USGS-from_basin3d', 'Alpha', 'Bad-DataSource'])
-def test_attribute_mapping(plugins, query, datasource_id, expected):
+def test_find_attribute_mapping(plugins, query, datasource_id, expected):
     """ Test observed property """
     from basin3d.core.catalog import CatalogTinyDb
     catalog = CatalogTinyDb()
@@ -216,3 +256,12 @@ def test_attribute_mapping(plugins, query, datasource_id, expected):
     #     assert attribute_mapping == expected
     # else:
     assert attribute_mapping == expected
+
+# ToDo: test_find_attribute_mappings
+# catalog.find_attribute_mappings (TinyDB)
+
+# ToDo: test_find_datasource_vocab
+# catalog.find_datasource_vocab (TinyDB)
+
+# ToDo: test_find_compound_mapping_attributes
+# catalog.find_compound_mapping_attributes (TinyDB)

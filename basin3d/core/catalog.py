@@ -295,7 +295,7 @@ class CatalogBase:
     def _get_attribute_enum(self, str_value, enum_type):
         """
 
-        :param value:
+        :param str_value:
         :param enum_type:
         :return:
         """
@@ -465,9 +465,7 @@ class CatalogTinyDb(CatalogBase):
 
         return None
 
-    # Eventually this should be general b3d vocab
-    def find_observed_property(self, basin3d_vocab) -> Optional[
-            ObservedProperty]:
+    def find_observed_property(self, basin3d_vocab) -> Optional[ObservedProperty]:
         """
         Return the ObservedPropertyVariable object for the basin3d_vocab
         :param basin3d_vocab:
@@ -475,7 +473,9 @@ class CatalogTinyDb(CatalogBase):
         """
 
         if not self._observed_properties:
-            raise CatalogException("Variable Store has not been initialized")
+            msg = "Variable Store has not been initialized."
+            logger.critical(msg)
+            raise CatalogException(msg)
 
         return self._get_observed_property(basin3d_vocab)
 
@@ -490,7 +490,9 @@ class CatalogTinyDb(CatalogBase):
         """
 
         if not self._observed_properties:
-            raise CatalogException("Variable Store has not been initialized")
+            msg = "Variable Store has not been initialized."
+            logger.critical(msg)
+            raise CatalogException(msg)
 
         opv: Optional[ObservedProperty]
         if basin3d_vocab is None:
