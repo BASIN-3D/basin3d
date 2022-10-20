@@ -122,7 +122,7 @@ class DataSourcePluginAccess:
     #     """
     #     return self._catalog.find_observed_property_variables(self.datasource, variable_names)
 
-    def get_attribute_mapping(self, attr_type, attr_vocab, from_basin3d=False):
+    def get_attribute_mapping(self, attr_type, attr_vocab):
         """
         Convert attr id of given attr_type to BASIN-3D name or vice versa.
         :param attr_type:
@@ -130,14 +130,13 @@ class DataSourcePluginAccess:
         :param from_basin3d:
         :return:
         """
-        return self._catalog.find_attribute_mapping(self.datasource.id, attr_type, attr_vocab, from_basin3d)
+        return self._catalog.find_attribute_mapping(self.datasource.id, attr_type, attr_vocab)
 
-    def get_mapped_attribute(self, attr_type, attr_vocab, from_basin3d=False):
+    def get_datasource_mapped_attribute(self, attr_type, attr_vocab):
         """
 
         :param attr_type:
         :param attr_vocab:
-        :param from_basin3d:
         :return:
         """
 
@@ -145,11 +144,11 @@ class DataSourcePluginAccess:
             return MappedAttribute(a_type, a_mapping)
 
         if isinstance(attr_vocab, str):
-            attr_mapping = self.get_attribute_mapping(attr_type, attr_vocab, from_basin3d)
+            attr_mapping = self.get_attribute_mapping(attr_type, attr_vocab)
             return create_mapped_attribute(attr_type, attr_mapping)
 
         elif isinstance(attr_vocab, list):
-            mapping_attrs = list(map(self.get_attribute_mapping, repeat(attr_type), attr_vocab, repeat(from_basin3d)))
+            mapping_attrs = list(map(self.get_attribute_mapping, repeat(attr_type), attr_vocab))
             return list(map(create_mapped_attribute, repeat(attr_type), mapping_attrs))
 
     # Really subtle name difference -- do better?

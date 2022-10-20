@@ -203,19 +203,19 @@ def test_process_plugin_attr_mapping(catalog):
                                                                   location='https://waterservices.usgs.gov/nwis/', credentials={}))
                            ),
                           # USGS-from_basin3d
-                          ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
-                           {'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Hg', 'from_basin3d': True},
-                           'USGS',
-                           AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
-                                            basin3d_vocab='Hg:WATER',
-                                            basin3d_desc=[ObservedProperty(basin3d_vocab='Hg', full_name='Mercury (Hg)',
-                                                                           categories=['Biogeochemistry', 'Trace elements'], units='mg/L'),
-                                                          SamplingMediumEnum.WATER],
-                                            datasource_vocab='50287',
-                                            datasource_desc='Mercury, water, filtered, nanograms per liter',
-                                            datasource=DataSource(id='USGS', name='USGS', id_prefix='USGS',
-                                                                  location='https://waterservices.usgs.gov/nwis/', credentials={}))
-                           ),
+                          # ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
+                          #  {'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Hg', 'from_basin3d': True},
+                          #  'USGS',
+                          #  AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
+                          #                   basin3d_vocab='Hg:WATER',
+                          #                   basin3d_desc=[ObservedProperty(basin3d_vocab='Hg', full_name='Mercury (Hg)',
+                          #                                                  categories=['Biogeochemistry', 'Trace elements'], units='mg/L'),
+                          #                                 SamplingMediumEnum.WATER],
+                          #                   datasource_vocab='50287',
+                          #                   datasource_desc='Mercury, water, filtered, nanograms per liter',
+                          #                   datasource=DataSource(id='USGS', name='USGS', id_prefix='USGS',
+                          #                                         location='https://waterservices.usgs.gov/nwis/', credentials={}))
+                          #  ),
                           # Alpha-plus
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
                            {'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Acetate'},
@@ -230,23 +230,23 @@ def test_process_plugin_attr_mapping(catalog):
                            ),
                           # Bad-DataSource
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
-                           {'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'ACT', 'from_basin3d': True},
+                           {'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Acetate'},
                            'FOO',
                            AttributeMapping(attr_type='OBSERVED_PROPERTY',
-                                            basin3d_vocab='ACT',
+                                            basin3d_vocab='NOT_SUPPORTED',
                                             basin3d_desc=[],
-                                            datasource_vocab='NOT_SUPPORTED',
+                                            datasource_vocab='Acetate',
                                             datasource_desc='No datasource was found for id "FOO".',
                                             datasource=DataSource())
                            )
                           ],
-                         ids=['Wrong-plugin-initialized', 'USGS', 'USGS-from_basin3d', 'Alpha', 'Bad-DataSource'])
+                         ids=['Wrong-plugin-initialized', 'USGS',  # 'USGS-from_basin3d',
+                              'Alpha', 'Bad-DataSource'])
 def test_find_attribute_mapping(plugins, query, datasource_id, expected):
     """ Test attribute mapping """
     from basin3d.core.catalog import CatalogTinyDb
     catalog = CatalogTinyDb()
     catalog.initialize([p(catalog) for p in plugins])
-    # datasource = get_datasource_from_id(id=datasource_id, id_prefix='A' if datasource_id == 'Alpha' else datasource_id)
     query.update({'datasource_id': datasource_id})
 
     attribute_mapping = catalog.find_attribute_mapping(**query)

@@ -42,7 +42,7 @@ def translate_attributes(plugin_access, mapped_attrs, **kwargs):
     for attr in mapped_attrs:
         if attr in kwargs_orig:
             datasource_vocab = kwargs[attr]
-            attr_mapping = plugin_access.get_mapped_attribute(attr_type=attr.upper(), attr_vocab=datasource_vocab)
+            attr_mapping = plugin_access.get_datasource_mapped_attribute(attr_type=attr.upper(), attr_vocab=datasource_vocab)
             kwargs[attr] = attr_mapping
 
             # If the attr is part of a compound mapping and the compound attr is not part of the kwargs, set it.
@@ -50,8 +50,8 @@ def translate_attributes(plugin_access, mapped_attrs, **kwargs):
             if cm_attrs:
                 for cm_attr in cm_attrs:
                     if cm_attr.lower() not in kwargs:
-                        cm_attr_mapping = plugin_access.get_mapped_attribute(attr_type=cm_attr.upper(),
-                                                                             attr_vocab=datasource_vocab)
+                        cm_attr_mapping = plugin_access.get_datasource_mapped_attribute(attr_type=cm_attr.upper(),
+                                                                                        attr_vocab=datasource_vocab)
                         kwargs[cm_attr.lower()] = cm_attr_mapping
 
     return kwargs
@@ -914,7 +914,7 @@ class Feature(Base):
         if self.observed_properties:
             if not isinstance(self.observed_properties, list):
                 logger.warning("observed_properties parameter not in expected list format")
-            self.observed_properties = plugin_access.get_mapped_attribute(
+            self.observed_properties = plugin_access.get_datasource_mapped_attribute(
                 attr_type='OBSERVED_PROPERTY', attr_vocab=self.observed_properties)
         else:
             self.observed_properties = None
@@ -1432,7 +1432,7 @@ class ResultListTVP(Base):
         self._quality: List['MappedAttribute'] = []
 
         if 'quality' in kwargs and kwargs['quality']:
-            kwargs['quality'] = plugin_access.get_mapped_attribute(attr_type='RESULT_QUALITY', attr_vocab=kwargs['quality'])
+            kwargs['quality'] = plugin_access.get_datasource_mapped_attribute(attr_type='RESULT_QUALITY', attr_vocab=kwargs['quality'])
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
