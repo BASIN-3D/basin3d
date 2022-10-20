@@ -62,7 +62,6 @@ def catalog(monkeypatch):
 # ********* ORDER of tests matters!! see comments
 # ********* The catalog is only first created in the test_create_catalog function below.
 
-# ToDo: add following tests thinking about order
 # CompoundMapping model (catalogBASE)
 def test_compound_mapping_model():
     from basin3d.core.catalog import CatalogBase
@@ -186,9 +185,8 @@ def test_process_plugin_attr_mapping(catalog):
                                basin3d_vocab='NOT_SUPPORTED',
                                basin3d_desc=[],
                                datasource_vocab='ACT',
-                               datasource_desc='no mapping was found for "ACT" in Alpha datasource',
-                               datasource=DataSource(id='Alpha', name='Alpha', id_prefix='A',
-                                                     location='test.location', credentials={}))
+                               datasource_desc='No datasource was found for id "Alpha".',
+                               datasource=DataSource())
                            ),
                           # USGS
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
@@ -238,23 +236,20 @@ def test_process_plugin_attr_mapping(catalog):
                                             basin3d_vocab='ACT',
                                             basin3d_desc=[],
                                             datasource_vocab='NOT_SUPPORTED',
-                                            datasource_desc='no mapping was found for "NOT_SUPPORTED" in FOO datasource',
-                                            datasource=DataSource(id='FOO', name='FOO', id_prefix='FOO', location='test.location', credentials={}))
+                                            datasource_desc='No datasource was found for id "FOO".',
+                                            datasource=DataSource())
                            )
                           ],
                          ids=['Wrong-plugin-initialized', 'USGS', 'USGS-from_basin3d', 'Alpha', 'Bad-DataSource'])
 def test_find_attribute_mapping(plugins, query, datasource_id, expected):
-    """ Test observed property """
+    """ Test attribute mapping """
     from basin3d.core.catalog import CatalogTinyDb
     catalog = CatalogTinyDb()
     catalog.initialize([p(catalog) for p in plugins])
-    datasource = get_datasource_from_id(id=datasource_id, id_prefix='A' if datasource_id == 'Alpha' else datasource_id)
-    query.update({'datasource': datasource})
+    # datasource = get_datasource_from_id(id=datasource_id, id_prefix='A' if datasource_id == 'Alpha' else datasource_id)
+    query.update({'datasource_id': datasource_id})
 
     attribute_mapping = catalog.find_attribute_mapping(**query)
-    # if expected is None:
-    #     assert attribute_mapping == expected
-    # else:
     assert attribute_mapping == expected
 
 # ToDo: test_find_attribute_mappings

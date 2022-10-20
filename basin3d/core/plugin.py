@@ -130,7 +130,7 @@ class DataSourcePluginAccess:
         :param from_basin3d:
         :return:
         """
-        return self._catalog.find_attribute_mapping(self.datasource, attr_type, attr_vocab, from_basin3d)
+        return self._catalog.find_attribute_mapping(self.datasource.id, attr_type, attr_vocab, from_basin3d)
 
     def get_mapped_attribute(self, attr_type, attr_vocab, from_basin3d=False):
         """
@@ -151,11 +151,6 @@ class DataSourcePluginAccess:
         elif isinstance(attr_vocab, list):
             mapping_attrs = list(map(self.get_attribute_mapping, repeat(attr_type), attr_vocab, repeat(from_basin3d)))
             return list(map(create_mapped_attribute, repeat(attr_type), mapping_attrs))
-            # mapped_attrs = []
-            # for vocab in attr_vocab:
-            #     attr_mapping = self.get_attribute_mapping(attr_type, vocab, from_basin3d)
-            #     mapped_attrs.append(MappedAttribute(attr_type, attr_mapping))
-            # return mapped_attrs
 
     # Really subtle name difference -- do better?
     def get_mapped_attributes(self, attr_type=None, attr_vocab=None, from_basin3d=False):
@@ -166,7 +161,7 @@ class DataSourcePluginAccess:
         :param from_basin3d:
         :return:
         """
-        return self._catalog.find_attribute_mappings(self.datasource, attr_type, attr_vocab, from_basin3d)
+        return self._catalog.find_attribute_mappings(self.datasource.id, attr_type, attr_vocab, from_basin3d)
 
     def get_compound_mapping_attributes(self, attr_type):
         """
@@ -189,18 +184,18 @@ class DataSourcePluginAccess:
         return self._catalog.find_datasource_vocab(self.datasource.id, attr_type, basin3d_vocab, query)
 
     # used by models (Feature) to return list of observed_property_variables
-    def get_basin3d_vocab(self, attr_type, datasource_vocab, include_not_supported=False):
-        """
-
-        :param attr_type:
-        :param datasource_vocab:
-        :param include_not_supported: bool, True to include NOT_SUPPORTED values
-        :return:
-        """
-        if isinstance(datasource_vocab, str):
-            return self._catalog.find_basin3d_vocab(self.datasource.id, attr_type, datasource_vocab)
-        elif isinstance(datasource_vocab, list):
-            return self._catalog.find_basin3d_vocabs(self.datasource.id, attr_type, datasource_vocab, include_not_supported)
+    # def get_basin3d_vocab(self, attr_type, datasource_vocab, include_not_supported=False):
+    #     """
+    #
+    #     :param attr_type:
+    #     :param datasource_vocab:
+    #     :param include_not_supported: bool, True to include NOT_SUPPORTED values
+    #     :return:
+    #     """
+    #     if isinstance(datasource_vocab, str):
+    #         return self._catalog.find_basin3d_vocab(self.datasource.id, attr_type, datasource_vocab)
+    #     elif isinstance(datasource_vocab, list):
+    #         return self._catalog.find_basin3d_vocabs(self.datasource.id, attr_type, datasource_vocab, include_not_supported)
 
 
 def basin3d_plugin(cls):
