@@ -64,64 +64,6 @@ class DataSourcePluginAccess:
     def datasource(self):
         return self._datasource
 
-    # def get_observed_property(self, variable_name: str):
-    #     """
-    #     Convert the given name to either BASIN-3D from :class:`~basin3d.models.DataSource`
-    #     variable name or the other way around.
-    #
-    #     :param variable_name:  The :class:`~basin3d.models.ObservedPropertyVariable`
-    #          name to convert
-    #     :return: An observed property variable name
-    #     :rtype: str
-    #     """
-    #
-    #     return self._catalog.find_observed_property(self.datasource.id, variable_name)
-    #
-    # def get_observed_properties(self, variable_names):
-    #     """
-    #     Convert the given name to either BASIN-3D from :class:`~basin3d.models.DataSource`
-    #     variable name or the other way around.
-    #
-    #     :param variable_names:  The :class:`~basin3d.models.ObservedPropertyVariable`
-    #          name to convert
-    #     :return: An observerd proeprty variable name
-    #     :rtype: str
-    #     """
-    #
-    #     return self._catalog.find_observed_properties(self.datasource.id, variable_names)
-
-    # ToDo: REMOVE
-    # def get_observed_property_variable(self, variable_name):
-    #     """
-    #     Convert the given name to either BASIN-3D from :class:`~basin3d.models.DataSource`
-    #     variable name or the other way around.
-    #
-    #     :param variable_name:  The :class:`~basin3d.models.ObservedPropertyVariable`
-    #          name to convert
-    #     :param: from_basin3d: boolean that says whether the variable name is a
-    #         BASIN-3D variable. If not, then this a datasource variable name.
-    #     :return: A variable name
-    #     :rtype: str
-    #     """
-    #
-    #     return self._catalog.find_observed_property_variable(self.datasource, variable_name)
-
-    # ToDo: REMOVE
-    # def get_observed_property_variables(self, variable_names=None):
-    #     """
-    #     Convert the given list of names to either BASIN-3D from :class:`~basin3d.models.DataSource`
-    #     variable name or the other way around.
-    #
-    #     :param variable_names:  The :class:`~basin3d.models.ObservedPropertyVariable`
-    #          names to convert
-    #     :type variable_names: iterable
-    #     :param: from_basin3d: boolean that says whether the variable name is a
-    #         BASIN-3D variable. If not, then this a datasource variable names.
-    #     :return: list of variable names
-    #     :rtype: iterable
-    #     """
-    #     return self._catalog.find_observed_property_variables(self.datasource, variable_names)
-
     def get_attribute_mapping(self, attr_type, attr_vocab):
         """
         Convert attr id of given attr_type to BASIN-3D name or vice versa.
@@ -151,8 +93,7 @@ class DataSourcePluginAccess:
             mapping_attrs = list(map(self.get_attribute_mapping, repeat(attr_type), attr_vocab))
             return list(map(create_mapped_attribute, repeat(attr_type), mapping_attrs))
 
-    # Really subtle name difference -- do better?
-    def get_mapped_attributes(self, attr_type=None, attr_vocab=None, from_basin3d=False):
+    def get_attribute_mappings(self, attr_type=None, attr_vocab=None, from_basin3d=False):
         """
         Returns an iterator that yields MappedAttribute objects that match the criteria
         :param attr_type:
@@ -181,20 +122,6 @@ class DataSourcePluginAccess:
         :return:
         """
         return self._catalog.find_datasource_vocab(self.datasource.id, attr_type, basin3d_vocab, query)
-
-    # used by models (Feature) to return list of observed_property_variables
-    # def get_basin3d_vocab(self, attr_type, datasource_vocab, include_not_supported=False):
-    #     """
-    #
-    #     :param attr_type:
-    #     :param datasource_vocab:
-    #     :param include_not_supported: bool, True to include NOT_SUPPORTED values
-    #     :return:
-    #     """
-    #     if isinstance(datasource_vocab, str):
-    #         return self._catalog.find_basin3d_vocab(self.datasource.id, attr_type, datasource_vocab)
-    #     elif isinstance(datasource_vocab, list):
-    #         return self._catalog.find_basin3d_vocabs(self.datasource.id, attr_type, datasource_vocab, include_not_supported)
 
 
 def basin3d_plugin(cls):

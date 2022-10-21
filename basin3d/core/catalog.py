@@ -230,7 +230,7 @@ class CatalogBase:
         """
         raise NotImplementedError
 
-    def find_attribute_mappings(self, datasource, attr_type, attr_vocab, from_basin3d) -> Iterator[Optional[AttributeMapping]]:
+    def find_attribute_mappings(self, datasource, attr_type, attr_vocab, from_basin3d) -> Iterator[AttributeMapping]:
         """
 
         :param datasource:
@@ -524,7 +524,7 @@ class CatalogTinyDb(CatalogBase):
                 else:
                     logger.warning(f'BASIN-3D does not support variable {b3d_vocab}')
 
-    def find_attribute_mapping(self, datasource_id, attr_type, attr_vocab) -> Optional[AttributeMapping]:
+    def find_attribute_mapping(self, datasource_id: str, attr_type: str, attr_vocab: str) -> Optional[AttributeMapping]:
         """
         Convert the given datasource attribute vocabulary to BASIN-3D from :class:`~basin3d.models.DataSource`
         attribute.
@@ -541,7 +541,6 @@ class CatalogTinyDb(CatalogBase):
         from tinydb import Query
         query = Query()
 
-        # Convert from DataSource variable name to BASIN-3D
         results = self.in_memory_db_attr.search(
             (query.datasource_vocab == attr_vocab) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
         basin3d_vocab = NO_MAPPING_TEXT
@@ -566,8 +565,8 @@ class CatalogTinyDb(CatalogBase):
         return AttributeMapping(attr_type=attr_type, basin3d_vocab=basin3d_vocab, basin3d_desc=[],
                                 datasource_vocab=datasource_vocab, datasource_desc=msg, datasource=datasource)
 
-    def find_attribute_mappings(self, datasource_id: str = None, attr_type: str = None, attr_vocab: str = None,
-                                from_basin3d: bool = False) -> Iterator[Optional[AttributeMapping]]:
+    def find_attribute_mappings(self, datasource_id: str = None, attr_type: str = None, attr_vocab: Union[str, List] = None,
+                                from_basin3d: bool = False) -> Iterator[AttributeMapping]:
         """
         Convert the given list of attributes to either BASIN-3D from :class:`~basin3d.models.DataSource`
         attribute id or the other way around.
@@ -580,15 +579,38 @@ class CatalogTinyDb(CatalogBase):
         :return: list of variable names
         :rtype: iterable
         """
+        catalog_messages: List[str] = []
+
+        if datasource_id and self._get_datasource(datasource_id) is None:
+            raise CatalogException(f'Specified datasource_id: "{datasource_id}" has not been registered.')
+
+        if attr_type and attr_type not in MappedAttributeEnum.values():
+            raise CatalogException(f'"{attr_type}" is not an attribute type suppored by BASIN-3D.')
 
         if self.in_memory_db_attr is None:
-            raise CatalogException("Attribute Store has not been initialized")
+            raise CatalogException('Attribute Store has not been initialized')
 
         from tinydb import Query
         query = Query()
 
+        # is_in = None
+        attr_vocab_list = []
         if attr_vocab:
-            is_in = lambda x: x in attr_vocab
+            if isinstance(attr_vocab, str):
+                attr_vocab = [attr_vocab]
+            elif not isinstance(attr_vocab, List):
+                raise CatalogException("attr_vocab must be a str or list")
+            # is_in = lambda x: x in attr_vocab
+            attr_vocab_list = attr_vocab.copy()
+
+        def is_in(x, attr_vocabs=attr_vocab, is_from_basin3d=from_basin3d):
+            if is_from_basin3d and MAPPING_DELIMITER in x:
+                x_elements = x.split(MAPPING_DELIMITER)
+                for x_element in x_elements:
+                    if x_element in attr_vocabs:
+                        return True
+            else:
+                return x in attr_vocabs
 
         # none for all 3 query parameters --> get all mapped variables back for all registered plugins
         if not datasource_id and not attr_vocab and not attr_type:
@@ -597,11 +619,18 @@ class CatalogTinyDb(CatalogBase):
                 yield attr_mapping
         else:
             if not datasource_id:
-                # It wouldn't make sense to return specific attributes without a data source filter
-                raise CatalogException(
-                    "find_attribute_mappings: 'datasource' should be specified with 'attr_type' and/or 'attr_ids")
+                if attr_type and attr_vocab and from_basin3d:
+                    results = self.in_memory_db_attr.search((query.basin3d_vocab.test(is_in)) & (query.attr_type.search(attr_type)))
+                elif attr_type and attr_vocab:
+                    results = self.in_memory_db_attr.search((query.datasource_vocab.test(is_in)) & (query.attr_type.search(attr_type)))
+                elif not attr_type and from_basin3d:
+                    results = self.in_memory_db_attr.search(query.basin3d_vocab.test(is_in))
+                elif not attr_type:
+                    results = self.in_memory_db_attr.search(query.datasource_vocab.test(is_in))
+                else:
+                    results = self.in_memory_db_attr.search(query.attr_type.search(attr_type))
 
-            if not attr_type and not attr_vocab:
+            elif not attr_type and not attr_vocab:
                 # This returns all possible attributes for a data source
                 results = self.in_memory_db_attr.search(query.datasource_id == datasource_id)
 
@@ -609,20 +638,60 @@ class CatalogTinyDb(CatalogBase):
                 # Returns all attributes for a data source and attribute type
                 results = self.in_memory_db_attr.search((query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
 
+            elif not attr_type:
+                if from_basin3d:
+                    results = self.in_memory_db_attr.search((query.basin3d_vocab.test(is_in)) & (query.datasource_id == datasource_id))
+                else:
+                    results = self.in_memory_db_attr.search((query.datasource_vocab.test(is_in)) & (query.datasource_id == datasource_id))
+
             elif from_basin3d:
                 # Convert from BASIN-3D to DataSource variable name
                 results = self.in_memory_db_attr.search(
-                    (query.basin3d_id.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
+                    (query.basin3d_vocab.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
 
             else:
                 # Convert from DataSource variable name to BASIN-3D
                 results = self.in_memory_db_attr.search(
-                    (query.datasource_variable_id.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
+                    (query.datasource_vocab.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
 
             # Yield the results
-            # ToDo: what happens with a ds_vocab that is not in the db? Plan: track this and return WARNING with list of ds_vocabs not found.
+            attr_map: Optional[AttributeMapping]
             for r in results:
-                yield self._get_attribute_mapping(**r)
+                attr_map = self._get_attribute_mapping(**r)
+                if attr_map is None:
+                    # ToDo: figure out if want to through an error here -- it should never happen
+                    continue
+
+                if attr_vocab:
+                    vocabs = [attr_map.datasource_vocab]
+                    if from_basin3d:
+                        vocabs = attr_map.basin3d_vocab.split(MAPPING_DELIMITER)
+
+                    for vocab in vocabs:
+                        try:
+                            idx = attr_vocab_list.index(vocab)
+                            attr_vocab_list.pop(idx)
+                        except ValueError:
+                            pass
+
+                yield attr_map
+
+            if attr_vocab_list:
+                attr_vocab_text = ', '.join(attr_vocab_list)
+                attr_vocab_source = 'datasource'
+                if from_basin3d:
+                    attr_vocab_source = 'BASIN-3D'
+                if not results:
+                    # if no results,
+                    msg = (f'No attribute mappings found for specified parameters: datasource id = "{datasource_id}", '
+                           f'attribute type = "{attr_type}", {attr_vocab_source} vocabularies: {attr_vocab_text}.')
+                else:
+                    msg = (f'No attribute mappings found for the following {attr_vocab_source} vocabularies: {attr_vocab_text}. '
+                           f'Note: specified datasource id = {datasource_id} and attribute type = {attr_type}')
+                logger.info(msg)
+                catalog_messages.append(msg)
+
+            return StopIteration(catalog_messages)
 
     def find_datasource_vocab(self, datasource_id, attr_type, basin3d_vocab, b3d_query) -> list:
         """
@@ -698,7 +767,6 @@ class CatalogTinyDb(CatalogBase):
 
         return ds_vocab
 
-    # USING via plugins
     def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False) -> list:
         """
         Return the attributes if attr_type is part of a compound mapping
