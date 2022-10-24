@@ -24,6 +24,7 @@ from string import whitespace
 from typing import Dict, Iterator, List, Optional, Union
 
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MappedAttributeEnum, set_mapped_attribute_enum_type
+from basin3d.core.schema.query import QueryBase
 from basin3d.core.models import DataSource, AttributeMapping, ObservedProperty  # ObservedProperty
 
 logger = monitor.get_logger(__name__)
@@ -708,36 +709,43 @@ class CatalogTinyDb(CatalogBase):
         from tinydb import Query
         query = Query()
 
-        # is the attr_type part of a compound mapping?
+        # convert attr_type to the form in the database if necessary. e.g. OBSERVED_PROPERTIES --> OBSERVED_PROPERTY
         attr_type = _verify_attr_type(attr_type)
+
+        # is the attr_type part of a compound mapping?
         compound_mapping = self._find_compound_mapping(datasource_id, attr_type)
 
-        # b3d_vocab_query = query.basin3d_vocab.fragment(basin3d_vocab)
         b3d_vocab_combo_str = [basin3d_vocab]
 
-        # if so, find all the relevant value combos given the query
+        # if compound_mapping, find all the relevant value combos given the query
         if compound_mapping:
             compound_mapping_attrs = compound_mapping.compound_mapping  # e.g. OPV
             b3d_vocab_filter_lists = []  # list to hold lists of specified filters, one for each attr
 
-            # ToDo: refigure out this logic and write some tests for it.
-            # loop thru each of the compound mapping attributes
+            # loop thru each of the compound mapping attributes, build a list of lists of query combos
             for attr in compound_mapping_attrs.split(MAPPING_DELIMITER):
+                attr_value = None
+
                 # by default: match any number of characters excepting a new line for the attribute
+                # replace this value below if a value for the attribute is specified in the query
                 filter_values = ['.*']
                 # if the attr is the attr_type, set the filter to the specified vocab
                 if attr == attr_type:
                     filter_values = [basin3d_vocab]
-                # if the other attribute is specified in the query
-                elif _verify_query_var(attr, is_query=True) in b3d_query.get_mapped_fields():
-                    # get the filter values
-                    attr_value = getattr(b3d_query, _verify_query_var(attr_type, is_query=True))
-                    if not attr_value:
-                        filter_values = attr_value
-                        # if the values are a str, change it to a list
-                        if isinstance(attr_value, str):
-                            # filter_values = filter_values.split(',')
-                            filter_values = attr_value.split(',')
+                # if the other attribute is specified in the query, get the value
+                # elif _verify_query_var(attr, is_query=True) in b3d_query.get_mapped_fields():
+                elif issubclass(b3d_query.__class__, QueryBase) and hasattr(b3d_query, _verify_query_var(attr, is_query=True)):
+                    attr_value = getattr(b3d_query, _verify_query_var(attr, is_query=True))
+                elif isinstance(b3d_query, dict) and _verify_query_var(attr) in b3d_query.keys():
+                    attr_value = b3d_query.get(_verify_query_var(attr))
+
+                # if there is a value, replace the default value
+                if attr_value:
+                    filter_values = attr_value
+                    # if the values are a str, change it to a list
+                    if isinstance(attr_value, str):
+                        filter_values = attr_value.split(',')
+
                 # append the filter list to the main list
                 b3d_vocab_filter_lists.append(filter_values)
 
@@ -751,19 +759,32 @@ class CatalogTinyDb(CatalogBase):
             attr_type = compound_mapping_attrs
 
         ds_vocab = []
+        no_match_list = []
+
+        # Loop thru the list of vocabulary string combos to search the attribute mapping database
         for basin3d_vocab_str in b3d_vocab_combo_str:
             query_results = self.in_memory_db_attr.search(
                 (query.datasource_id == datasource_id) & (query.attr_type == attr_type) & (query.basin3d_vocab.matches(basin3d_vocab_str)))
             if query_results:
                 for qr in query_results:
+
+                    # pop the datasource_desc without altering the restuls to find the attribute mapping
                     qr_copy = qr.copy()
                     qr_copy.pop('datasource_desc')
+
                     attr_mapping = self._get_attribute_mapping(**qr_copy)
                     if attr_mapping is not None:
                         ds_vocab.append(attr_mapping.datasource_vocab)
+                        continue
+
+            # if not result for the combo, add it to the no_match_list
+            no_match_list.append(basin3d_vocab_str)
 
         if not ds_vocab:
             ds_vocab = [NO_MAPPING_TEXT]
+
+        if no_match_list:
+            logger.info(f'Datasource "{datasource_id}" did not have matches for attr_type "{attr_type}" and BASIN-3D vocab: {", ".join(no_match_list)}.')
 
         return ds_vocab
 

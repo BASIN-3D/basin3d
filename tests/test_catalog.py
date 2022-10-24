@@ -6,6 +6,7 @@ from tinydb import TinyDB
 from basin3d.core.catalog import CatalogException
 from basin3d.core.models import DataSource, ObservedProperty, AttributeMapping
 from basin3d.core.schema.enum import SamplingMediumEnum, StatisticEnum
+from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP
 from tests.testplugins import alpha
 from basin3d.plugins import usgs
 
@@ -343,8 +344,92 @@ def test_find_attribute_mappings(caplog, plugins, query, expected_count, expecte
             for attr_mapping in attribute_mappings:
                 pass
 
-# ToDo: test_find_datasource_vocab
+
 # catalog.find_datasource_vocab (TinyDB)
+# ToDo: add test for triple compound mapping
+@pytest.mark.parametrize(
+    'attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs',
+    # non-compound
+    [('statistic', 'MEAN', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['ACT'], start_date='2020-01-01', statistic=['MEAN']),
+      ['mean'], []),
+     # non-compound-no-match
+     ('statistic', 'ESTIMATED', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['ACT'], start_date='2020-01-01', statistic=['MEAN']),
+      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "STATISTIC" and BASIN-3D vocab: ESTIMATED.']),
+     # compound-simple_query
+     ('observed_property_variables', 'ACT', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['ACT'], start_date='2020-01-01'),
+      ['Acetate'], []),
+     # compound-simple_query-multimap
+     ('observed_property_variables', 'Al', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Al'], start_date='2020-01-01'),
+      ['Al', 'Aluminum'], []),
+     # compound-compound_query-multimap
+     ('observed_property_variables', 'Al', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Al'], start_date='2020-01-01', sampling_medium=['WATER']),
+      ['Al', 'Aluminum'], []),
+     # compound-compound_query
+     ('observed_property_variables', 'Ag', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Ag'], start_date='2020-01-01', sampling_medium=['WATER']),
+      ['Ag'], []),
+     # compound-compound_query-no_compound_match
+     ('observed_property_variables', 'Al', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Al'], start_date='2020-01-01', sampling_medium=['GAS']),
+      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "OBSERVED_PROPERTY:SAMPLING_MEDIUM" and BASIN-3D vocab: Al:GAS.']),
+     # compound-compound_query_lists
+     ('observed_property_variables', 'Ag', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Ag', 'Al'], start_date='2020-01-01', sampling_medium=['WATER', 'GAS']),
+      ['Ag', 'Ag_gas'], []),
+     # compound-compound_query_no_match
+     ('observed_property_variables', 'Hg', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Ag', 'Al', 'Hg'], start_date='2020-01-01'),
+      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "OBSERVED_PROPERTY:SAMPLING_MEDIUM" and BASIN-3D vocab: Hg:.*.']),
+     # non-compound_non-query-class
+     ('statistic', 'MEAN', {'statistic': 'MEAN'}, ['mean'], []),
+     # compound-simple_query_non-query-class
+     ('observed_property', 'ACT', {'observed_property': 'ACT'}, ['Acetate'], []),
+     # compound-compound_query_non-query-class-lists
+     ('observed_property', 'Ag', {'observed_property': ['Ag'], 'sampling_medium': ['WATER']}, ['Ag'], []),
+     ],
+    ids=['non-compound', 'non-compound-no-match', 'compound-simple_query', 'compound-simple_query-multimap',
+         'compound-compound_query-multimap', 'compound-compound_query', 'compound-compound_query-no_compound_match',
+         'compound-compound_query_lists', 'compound-compound_query_no_match',
+         'non-compound_non-query-class', 'compound-simple_query_non-query-class', 'compound-compound_query_non-query-class-lists'])
+def test_find_datasource_vocab(caplog, attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs):
+    caplog.set_level(logging.INFO)
+
+    from basin3d.core.catalog import CatalogTinyDb
+    catalog = CatalogTinyDb()
+    catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
+    caplog.clear()
+
+    results = catalog.find_datasource_vocab('Alpha', attr_type, basin3d_vocab, basin3d_query)
+    assert sorted(results) == sorted(expected_results)
+
+    if expected_msgs:
+        log_msgs = [rec.message for rec in caplog.records]
+        for msg in expected_msgs:
+            assert msg in log_msgs
+
+
+@pytest.mark.parametrize('attr_type, expected_result',
+                         [('OBSERVED_PROPERTY', 'OBSERVED_PROPERTY'),
+                          ('OBSERVED_PROPERTY_VARIABLE', 'OBSERVED_PROPERTY'),
+                          ('OBSERVED_PROPERTY_VARIABLES', 'OBSERVED_PROPERTY'),
+                          ('foo', 'FOO')
+                          ],
+                         ids=['OP', 'OPV', 'OPVs', 'foo'])
+def test_verify_attr_type(attr_type, expected_result):
+    from basin3d.core.catalog import _verify_attr_type
+    assert _verify_attr_type(attr_type) == expected_result
+
+
+@pytest.mark.parametrize('query_var, is_query, expected_result',
+                         [('OBSERVED_PROPERTY', [False], 'observed_property_variable'),
+                          ('OBSERVED_PROPERTY', [True], 'observed_property_variables'),
+                          ('FOO', [], 'foo'),
+                          ('foo', [], 'foo')
+                          ],
+                         ids=['OP-False', 'OP-True', 'FOO', 'foo'])
+def test_verify_query_var(query_var, is_query, expected_result):
+    from basin3d.core.catalog import _verify_query_var
+    if is_query:
+        assert _verify_query_var(query_var, is_query[0]) == expected_result
+    else:
+        assert _verify_query_var(query_var) == expected_result
+
 
 # ToDo: test_find_compound_mapping_attributes
 # catalog.find_compound_mapping_attributes (TinyDB)
