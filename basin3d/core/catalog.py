@@ -413,6 +413,8 @@ class CatalogTinyDb(CatalogBase):
         super().__init__(variable_filename)
 
         self.in_memory_db = None
+        self.in_memory_db_attr = None
+        self.in_memory_db_cm = None
         self._observed_properties: Dict[str, ObservedProperty] = {}
         self._attribute_mappings: Dict[str, AttributeMapping] = {}
         self._compound_mapping: Dict[str, CatalogBase.CompoundMapping] = {}
@@ -470,7 +472,9 @@ class CatalogTinyDb(CatalogBase):
         :return:
         """
         if self.in_memory_db_cm is None:
-            raise CatalogException("Compound mapping database has not been initialized")
+            msg = 'Compound mapping database has not been initialized.'
+            logger.critical(msg)
+            raise CatalogException(msg)
 
         from tinydb import Query
         query = Query()
@@ -537,7 +541,9 @@ class CatalogTinyDb(CatalogBase):
         :rtype: str
         """
         if self.in_memory_db_attr is None:
-            raise CatalogException("Attribute Store has not been initialized")
+            msg = 'Attribute Store has not been initialized.'
+            logger.critical(msg)
+            raise CatalogException(msg)
 
         from tinydb import Query
         query = Query()
@@ -583,13 +589,19 @@ class CatalogTinyDb(CatalogBase):
         catalog_messages: List[str] = []
 
         if datasource_id and self._get_datasource(datasource_id) is None:
-            raise CatalogException(f'Specified datasource_id: "{datasource_id}" has not been registered.')
+            msg = f'Specified datasource_id: "{datasource_id}" has not been registered.'
+            logger.critical(msg)
+            raise CatalogException(msg)
 
         if attr_type and attr_type not in MappedAttributeEnum.values():
-            raise CatalogException(f'"{attr_type}" is not an attribute type suppored by BASIN-3D.')
+            msg = f'"{attr_type}" is not an attribute type suppored by BASIN-3D.'
+            logger.critical(msg)
+            raise CatalogException(msg)
 
         if self.in_memory_db_attr is None:
-            raise CatalogException('Attribute Store has not been initialized')
+            msg = 'Attribute Store has not been initialized.'
+            logger.critical(msg)
+            raise CatalogException(msg)
 
         from tinydb import Query
         query = Query()
@@ -704,7 +716,9 @@ class CatalogTinyDb(CatalogBase):
         :return:
         """
         if self.in_memory_db_attr is None:
-            raise CatalogException("Compound mapping database has not been initialized")
+            msg = 'Attribute Store has not been initialized.'
+            logger.critical(msg)
+            raise CatalogException(msg)
 
         from tinydb import Query
         query = Query()
@@ -797,7 +811,9 @@ class CatalogTinyDb(CatalogBase):
         :return:
         """
         if self.in_memory_db_cm is None:
-            raise CatalogException("Compound mapping database has not been initialized")
+            msg = 'Compound mapping database has not been initialized.'
+            logger.critical(msg)
+            raise CatalogException(msg)
 
         from tinydb import Query
         query = Query()
@@ -862,4 +878,6 @@ class CatalogTinyDb(CatalogBase):
             elif isinstance(record, DataSource):
                 self._datasources[record.id] = record
         else:
-            raise CatalogException(f'Could not insert record.  Catalog not initialize')
+            msg = 'Could not insert record. Catalog not initialized.'
+            logger.critical(msg)
+            raise CatalogException(msg)

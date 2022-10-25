@@ -128,11 +128,18 @@ def test_find_observed_property(catalog):
     assert catalog.find_observed_property('FOO') is None
 
 
-def test_variable_store_not_initialized_errors(caplog):
+def test_not_initialized_errors(caplog):
     from basin3d.core.catalog import CatalogTinyDb, CatalogException
     new_catalog = CatalogTinyDb()
 
     caplog.clear()
+    with pytest.raises(CatalogException):
+        new_catalog._insert('Foo')
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'Could not insert record. Catalog not initialized.' in log_msgs
+
+    caplog.clear()
+    del log_msgs
     with pytest.raises(CatalogException):
         new_catalog.find_observed_property('FOO')
     log_msgs = [rec.message for rec in caplog.records]
@@ -146,6 +153,43 @@ def test_variable_store_not_initialized_errors(caplog):
             pass
     log_msgs = [rec.message for rec in caplog.records]
     assert 'Variable Store has not been initialized.' in log_msgs
+
+    caplog.clear()
+    del log_msgs
+    with pytest.raises(CatalogException):
+        new_catalog._find_compound_mapping('Foo', 'FOO')
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'Compound mapping database has not been initialized.' in log_msgs
+
+    caplog.clear()
+    del log_msgs
+    with pytest.raises(CatalogException):
+        new_catalog.find_attribute_mapping('Foo', 'FOO', 'Foo')
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'Attribute Store has not been initialized.' in log_msgs
+
+    caplog.clear()
+    del log_msgs
+    with pytest.raises(CatalogException):
+        test_gen = new_catalog.find_attribute_mappings()
+        for attr_map in test_gen:
+            pass
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'Attribute Store has not been initialized.' in log_msgs
+
+    caplog.clear()
+    del log_msgs
+    with pytest.raises(CatalogException):
+        new_catalog.find_datasource_vocab('Foo', 'FOO', 'Foo', {})
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'Attribute Store has not been initialized.' in log_msgs
+
+    caplog.clear()
+    del log_msgs
+    with pytest.raises(CatalogException):
+        new_catalog.find_compound_mapping_attributes('Foo', 'FOO')
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'Compound mapping database has not been initialized.' in log_msgs
 
 
 def test_find_observed_properties(catalog):
@@ -303,16 +347,21 @@ def test_find_attribute_mapping(plugins, query, expected):
                           ([alpha.AlphaSourcePlugin], {'datasource_id': 'Foo'}, -1, [], []),
                           # BAD-attr_type
                           ([alpha.AlphaSourcePlugin], {'attr_type': 'BAD_ATTR_TYPE'}, -1, [], []),
+                          # BAD-attr_vocab_type
+                          ([alpha.AlphaSourcePlugin], {'attr_vocab': {'foo': 'foo'}}, -1, [], []),
                           # No-results
                           ([alpha.AlphaSourcePlugin], {'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Hg'}, 0, [],
-                           ['No attribute mappings found for specified parameters: datasource id = "None", attribute type = "OBSERVED_PROPERTY", datasource vocabularies: Hg.'])
+                           ['No attribute mappings found for specified parameters: datasource id = "None", attribute type = "OBSERVED_PROPERTY", datasource vocabularies: Hg.']),
+                          # No-results-from_basin3d
+                          ([alpha.AlphaSourcePlugin], {'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Hg', 'from_basin3d': True}, 0, [],
+                           ['No attribute mappings found for specified parameters: datasource id = "None", attribute type = "OBSERVED_PROPERTY", BASIN-3D vocabularies: Hg.'])
                          ],
                          ids=['USGS-from_basin3d', 'datasource_id-only-Alpha-all', 'no-params-ALL', 'ds_id-attr_type-Alpha-STATISTIC',
                               'ds_id-attr_type-attr_vocab--Alpha-STATISTIC-mean', 'ds_id-attr_type_attr_vocab-from_basin3d--Alpha-STATISTIC-MEAN',
                               'ds_id-attr_vocab--Alpha-mean', 'ds_id-attr_vocab-from_basin3d--Alpha-MEAN', 'attr_type_attr_vocab--STATISTIC-mean',
                               'attr_type_attr_vocab-from_basin3d--STATISTIC-MEAN', 'attr_type--AGGREGATION_TYPE', 'attr_vocab--Aluminum',
                               'attr_vocab-from_basin3d--Al', 'attr_vocabs--Aluminum-Acetate', 'attr_vocabs-from_basin3d--ACT-Al',
-                              'attr_vocabs-some_bad--Aluminum-Acetate-Foo', 'BAD-ds_id', 'BAD-attr_type', 'No-results'])
+                              'attr_vocabs-some_bad--Aluminum-Acetate-Foo', 'BAD-ds_id', 'BAD-attr_type', 'BAD-attr_vocab_type', 'No-results', 'No-results-from_basin3d'])
 def test_find_attribute_mappings(caplog, plugins, query, expected_count, expected_list, expected_msg):
     """ Test attribute mapping """
     caplog.set_level(logging.INFO)
@@ -431,5 +480,20 @@ def test_verify_query_var(query_var, is_query, expected_result):
         assert _verify_query_var(query_var) == expected_result
 
 
-# ToDo: test_find_compound_mapping_attributes
 # catalog.find_compound_mapping_attributes (TinyDB)
+@pytest.mark.parametrize('datasource_id, attr_type, include_specified_type, expected_results',
+                         [('Alpha', 'OBSERVED_PROPERTY', False, ['SAMPLING_MEDIUM']),
+                          ('Alpha', 'OBSERVED_PROPERTY', True, ['SAMPLING_MEDIUM', 'OBSERVED_PROPERTY']),
+                          ('Alpha', 'FOO', False, []),
+                          ],
+                         ids=['compound-other', 'compound-both', 'non-compound'])
+def test_find_compound_mapping_attributes(datasource_id, attr_type, include_specified_type, expected_results):
+    from basin3d.core.catalog import CatalogTinyDb
+    catalog = CatalogTinyDb()
+    catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
+
+    if include_specified_type:
+        results = catalog.find_compound_mapping_attributes(datasource_id, attr_type, include_specified_type)
+    else:
+        results = catalog.find_compound_mapping_attributes(datasource_id, attr_type)
+    assert sorted(results) == sorted(expected_results)
