@@ -473,11 +473,11 @@ def test_verify_attr_type(attr_type, expected_result):
                           ],
                          ids=['OP-False', 'OP-True', 'FOO', 'foo'])
 def test_verify_query_var(query_var, is_query, expected_result):
-    from basin3d.core.catalog import _verify_query_var
+    from basin3d.core.catalog import _verify_query_param
     if is_query:
-        assert _verify_query_var(query_var, is_query[0]) == expected_result
+        assert _verify_query_param(query_var, is_query[0]) == expected_result
     else:
-        assert _verify_query_var(query_var) == expected_result
+        assert _verify_query_param(query_var) == expected_result
 
 
 # catalog.find_compound_mapping_attributes (TinyDB)

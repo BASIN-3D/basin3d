@@ -36,6 +36,8 @@ logger = monitor.get_logger(__name__)
 
 
 def translate_attributes(plugin_access, mapped_attrs, **kwargs):
+    """Helper method to translate datasource vocabularies to BASIN-3D vocabularies via MappedAttributes"""
+
     # copy the kwargs be able to loop thru the original while modifying the actual for compound mappings
     kwargs_orig = kwargs.copy()
 
@@ -90,11 +92,11 @@ class DataSource(JSONSerializable):
     """
     Data Source definition
 
-    Attributes:
+    Fields:
         - *id:* string (inherited)
         - *name:* string
         - *id_prefix:* string, prefix that is added to all data source ids
-        - *location*
+        - *location:*
         - *credentials:*
 
     """
@@ -116,15 +118,13 @@ class ObservedProperty(JSONSerializable):
     """
     Defining the properties being observed (measured). See http://vocabulary.odm2.org/variablename/ for controlled vocabulary
 
-    Attributes:
+    Fields:
         - *basin3d_vocab:* string,
         - *full_name:* string,
         - *categories:* List of strings (in order of priority).
         - *units:* string
 
     See http://vocabulary.odm2.org/variabletype/ for options, although I think we should have our own list (theirs is a bit funky).
-
-
     """
     basin3d_vocab: str = ''
     full_name: str = ''
@@ -141,19 +141,20 @@ class ObservedProperty(JSONSerializable):
 @dataclass
 class AttributeMapping(JSONSerializable):
     """
-    General mapping attribute model for 1:1 mappings of enums, etc
+    A data class for attribute mappings between datasource vocabularies and BASIN-3D vocabularies.
+    These are the associations defined in the datasource (i.e., plugin) mapping file.
 
-    Definitions:
-        - * attr_type: STATISTIC, RESULT_QUALITY, OPV; separate compound mappings with ":"
-        - * basin3d_vocab: the basin3d vocabulary; separate compound mappings with ":"
-        - * basin3d_desc: the basin3d vocabulary descriptions; objects or enum
-        - * datasource_vocab: the datasource vocabulary; single value only
-        - * datasource_desc: datasource description of the attribute
-        - * datasource: the datasource for the mapping
+    Fields:
+         - *attr_type:* Attribute Type; e.g., STATISTIC, RESULT_QUALITY, OBSERVED_PROPERTY; separate compound mappings with ':'
+         - *basin3d_vocab:* The BASIN-3D vocabulary; separate compound mappings with ':'
+         - *basin3d_desc:* The BASIN-3D vocabulary descriptions; objects or enum
+         - *datasource_vocab:* The datasource vocabulary
+         - *datasource_desc:* The datasource vocabulary description
+         - *datasource:* The datasource of the mapping
     """
     attr_type: str
-    basin3d_vocab: str  # native mapping
-    basin3d_desc: list  # [Union[ObservedProperty, AggregationDurationEnum, ResultQualityEnum, SamplingMediumEnum, StatisticEnum]]
+    basin3d_vocab: str
+    basin3d_desc: list
     datasource_vocab: str
     datasource_desc: str
     datasource: DataSource = DataSource()
@@ -168,7 +169,14 @@ class AttributeMapping(JSONSerializable):
 @dataclass
 class MappedAttribute(JSONSerializable):
     """
+    A data class for an attribute that is translated (i.e., mapped) from a datasource vocabulary to BASIN-3D vocabulary.
+    Note that this model holds an AttributeMapping that maybe compound in nature; however this class specifies only one attribute types.
+    For example, if the AttributeMapping is for a compound mapping of attribute types OBSERVED_PROPERTY:SAMPLING_MEDIUM,
+    then the attr_type field would be either OBSERVED_PROPERTY or SAMPLING_MEDIUM but not both.
 
+    Fields:
+         - *attr_type:* Attribute Type; e.g., STATISTIC, RESULT_QUALITY, OBSERVED_PROPERTY, etc; single type only
+         - *attr_mapping:* AttributeMapping as described in the datasource's (i.e., plugin's mapping file).
     """
     attr_type: str
     attr_mapping: AttributeMapping
@@ -1263,6 +1271,7 @@ class Observation(Base):
             raise AttributeError("feature_of_interest_type must be FeatureType")
 
     def _translate_attributes(self, plugin_access, **kwargs):
+        # ToDo: see note with TimeseriesTVPObservation
         mapped_attrs = ('observed_property', 'result_quality')
         return translate_attributes(plugin_access, mapped_attrs, **kwargs)
 
@@ -1387,22 +1396,11 @@ class MeasurementMetadataMixin(object):
     """
 
     def __init__(self, *args, **kwargs):
-        # self._observed_property_variable: str = None
-        # ToDo: consider enums
         self._sampling_medium: MappedAttribute = None
         self._statistic: MappedAttribute = None
 
         # Instantiate the serializer superclass
         super(MeasurementMetadataMixin, self).__init__(*args, **kwargs)
-
-    # @property
-    # def observed_property_variable(self) -> str:
-    #     """The observed property that was measured"""
-    #     return self._observed_property_variable
-    #
-    # @observed_property_variable.setter
-    # def observed_property_variable(self, value: str):
-    #     self._observed_property_variable = value
 
     @property
     def sampling_medium(self) -> 'MappedAttribute':
@@ -1431,6 +1429,8 @@ class ResultListTVP(Base):
         self._value: List['TimeValuePair'] = []
         self._quality: List['MappedAttribute'] = []
 
+        # translate quality
+        # ToDo: figure out how to handle quality v result_quality discrepancy
         if 'quality' in kwargs and kwargs['quality']:
             kwargs['quality'] = plugin_access.get_datasource_mapped_attribute(attr_type='RESULT_QUALITY', attr_vocab=kwargs['quality'])
 
@@ -1491,9 +1491,14 @@ class ResultPointFloat(Base):
     """
     Result Point Float
     """
-    def __init__(self, **kwargs):
+    def __init__(self, plugin_access, **kwargs):
         self._value: float = None
         self._quality: 'MappedAttribute' = None
+
+        # translate quality
+        # ToDo: figure out how to handle quality v result_quality discrepancy
+        if 'quality' in kwargs and kwargs['quality']:
+            kwargs['quality'] = plugin_access.get_datasource_mapped_attribute(attr_type='RESULT_QUALITY', attr_vocab=kwargs['quality'])
 
         # Initialize after the attributes have been set
         super().__init__(None, **kwargs)
@@ -1569,7 +1574,7 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
         return self.id == other.id
 
     def _translate_attributes(self, plugin_access, **kwargs):
-        # it seems problematic to list these out specifically;
-        # maybe they could be indicated as mapped values in their mixins and collated in the __init__??
+        # ToDo: Introspect which attributes are MappedAttributes. Cannot do this easily b/c using @property decorator.
+        # For a simple dataclass, typing.get_type_hints would work. As properties, the fget for each property can be introspected with typing.get_type_hints
         mapped_attrs = ('observed_property', 'statistic', 'aggregation_duration', 'result_quality', 'sampling_medium')
         return translate_attributes(plugin_access, mapped_attrs, **kwargs)

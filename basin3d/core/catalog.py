@@ -25,7 +25,7 @@ from typing import Dict, Iterator, List, Optional, Union
 
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MappedAttributeEnum, set_mapped_attribute_enum_type
 from basin3d.core.schema.query import QueryBase
-from basin3d.core.models import DataSource, AttributeMapping, ObservedProperty  # ObservedProperty
+from basin3d.core.models import DataSource, AttributeMapping, ObservedProperty
 
 logger = monitor.get_logger(__name__)
 
@@ -36,9 +36,10 @@ class CatalogException(Exception):
 
 def _verify_attr_type(attr_type: str) -> str:
     """
-
-    :param attr_type:
-    :return:
+    Helper method to translate query and model parameters (lower case and sometimes plural)
+    to proper attribute types (upper case and singular) in the catalog
+    :param attr_type: str, attribute type, single only
+    :return: str, attribute type for give parameter with format confirmed and/or modified
     """
 
     attr_type = attr_type.upper()
@@ -49,11 +50,12 @@ def _verify_attr_type(attr_type: str) -> str:
     return attr_type
 
 
-def _verify_query_var(attr_type: str, is_query=True) -> str:
+def _verify_query_param(attr_type: str, is_query=True) -> str:
     """
-
-    :param attr_type:
-    :return:
+    Helper method to translate attribute types (UPPER CASE) in the catalog to query parameters (lower case and sometimes plural)
+    :param attr_type: str, attribute type to translate
+    :param is_query: boolean, True = is a subclass of QueryBase
+    :return: str, parameter for given attribute with format confirmed and/or modified
     """
     if attr_type == 'OBSERVED_PROPERTY':
         attr_type = 'OBSERVED_PROPERTY_VARIABLE'
@@ -74,6 +76,11 @@ class CatalogBase:
     class CompoundMapping:
         """
         Helper model to handle compound attribute mapping
+
+        Attributes:
+            - *attr_type:* a single attribute type that is part of the associated compound mapping, e.g. STATISTIC, RESULT_QUALITY, OBSERVED_PROPERTY
+            - *compound_mapping:* the compound mapping
+            - *datasource:* the datasource containing the compound mapping
         """
         attr_type: str  # e.g. OBSERVED_PROPERTY
         compound_mapping: str  # e.g. OBSERVED_PROPERTY:SAMPLING_MEDIUM
@@ -304,9 +311,9 @@ class CatalogBase:
 
     def _get_attribute_enum(self, str_value, enum_type):
         """
-
-        :param str_value:
-        :param enum_type:
+        Get the enum for a given string value
+        :param str_value: string value to convert to enum, e.g., Max
+        :param enum_type: the enum type, e.g., StatisticEnum
         :return:
         """
         enum_value = None
@@ -345,7 +352,10 @@ class CatalogBase:
                 raise CatalogException(
                     f'Plugin {plugin_id}: {filename} is not in correct format. Cannot create catalog.')
 
+            # get a set ready to collect the attribute types for unique compound mappings
             compound_mappings = set()
+
+            # loop thru the file
             for row in reader:
                 attr_type = row[fields[0]]
                 basin3d_vocab = row[fields[1]]
@@ -358,6 +368,7 @@ class CatalogBase:
                         f'Plugin {plugin_id}: Duplicate BASIN-3D attr detected. Cannot handle duplicate mappings yet. '
                         f'Skipping datasource attribute {datasource_vocab}.')
 
+                # build the basin3d_description from objects (e.g., for OBSERVED_PROPERTY) or enums
                 basin3d_desc = []
                 for a_type, b3d_vocab in zip(attr_type.split(MAPPING_DELIMITER), basin3d_vocab.split(MAPPING_DELIMITER)):
                     valid_type_vocab = True
@@ -394,6 +405,7 @@ class CatalogBase:
                 self._insert(attr_mapping)
                 logger.debug(f"{datasource.id}: Mapped {attr_type} {datasource_vocab} to {basin3d_vocab}")
 
+                # if the mapping is compound collect it for later parsing
                 if MAPPING_DELIMITER in attr_type:
                     compound_mappings.add(attr_type)
 
@@ -426,9 +438,9 @@ class CatalogTinyDb(CatalogBase):
 
     def _get_datasource(self, datasource_id) -> Optional[DataSource]:
         """
-
-        :param datasource_id:
-        :return:
+        Access a datasource via the datasource_id
+        :param datasource_id: str, the datasource id
+        :return: a DataSource object
         """
         return self._datasources.get(datasource_id, None)
 
@@ -437,7 +449,7 @@ class CatalogTinyDb(CatalogBase):
         Access a single observed property variable
 
         :param basin3d_vocab: the observed property variable identifier
-        :return:
+        :return: an ObservedPropperty object
         """
         return self._observed_properties.get(basin3d_vocab, None)
 
@@ -455,6 +467,7 @@ class CatalogTinyDb(CatalogBase):
 
     def _get_compound_mapping(self, datasource_id, attr_type, compound_mapping) -> Optional[CatalogBase.CompoundMapping]:
         """
+        Access a single compound mapping
 
         :param datasource_id:
         :param attr_type:
@@ -463,7 +476,6 @@ class CatalogTinyDb(CatalogBase):
         """
         return self._compound_mapping.get(f'{datasource_id}-{attr_type}-{compound_mapping}', None)
 
-    # ToDo: check the return of None!
     def _find_compound_mapping(self, datasource_id, attr_type):
         """
         Get the compound mapping for the specified attr_type
@@ -484,6 +496,7 @@ class CatalogTinyDb(CatalogBase):
         results = self.in_memory_db_cm.search((query.datasource_id == datasource_id) & (query.attr_type == attr_type))
 
         if results:
+            # there should only be one result
             return self._get_compound_mapping(**results[0])
 
         return None
@@ -747,11 +760,10 @@ class CatalogTinyDb(CatalogBase):
                 if attr == attr_type:
                     filter_values = [basin3d_vocab]
                 # if the other attribute is specified in the query, get the value
-                # elif _verify_query_var(attr, is_query=True) in b3d_query.get_mapped_fields():
-                elif issubclass(b3d_query.__class__, QueryBase) and hasattr(b3d_query, _verify_query_var(attr, is_query=True)):
-                    attr_value = getattr(b3d_query, _verify_query_var(attr, is_query=True))
-                elif isinstance(b3d_query, dict) and _verify_query_var(attr) in b3d_query.keys():
-                    attr_value = b3d_query.get(_verify_query_var(attr))
+                elif issubclass(b3d_query.__class__, QueryBase) and hasattr(b3d_query, _verify_query_param(attr, is_query=True)):
+                    attr_value = getattr(b3d_query, _verify_query_param(attr, is_query=True))
+                elif isinstance(b3d_query, dict) and _verify_query_param(attr) in b3d_query.keys():
+                    attr_value = b3d_query.get(_verify_query_param(attr))
 
                 # if there is a value, replace the default value
                 if attr_value:
