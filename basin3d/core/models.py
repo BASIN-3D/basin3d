@@ -1560,15 +1560,7 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
     def __init__(self, plugin_access, **kwargs):
         kwargs["type"] = self.TYPE_MEASUREMENT_TVP_TIMESERIES
 
-        # ToDo: extract into separate translation layer??
         self._translate_attributes(plugin_access, **kwargs)
-
-        # kwargs['observed_property'] = plugin_access.get_observed_property(basin3d_variable_id)
-
-        # if 'statistic' in kwargs and kwargs['statistic'] is not None:
-        #     datasource_attr_id = kwargs['statistic']
-        #     statistic = plugin_access.get_basin3d_vocab(MappedAttributeEnum.STATISTIC, datasource_attr_id)
-        #     kwargs['statistic'] = statistic.basin3d_id
 
         # Initialize after the attributes have been set
         super(MeasurementTimeseriesTVPObservation, self).__init__(plugin_access, **kwargs)

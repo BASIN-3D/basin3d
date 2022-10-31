@@ -53,7 +53,7 @@ import pandas as pd
 from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import DataSource
 from basin3d.core.plugin import PluginMount
-from basin3d.core.schema.enum import NO_MAPPING_TEXT, PANDAS_TIME_FREQUENCY_MAP, TimeFrequencyEnum
+from basin3d.core.schema.enum import PANDAS_TIME_FREQUENCY_MAP, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisResponse
 from basin3d.core.synthesis import DataSourceModelIterator, MeasurementTimeseriesTVPObservationAccess, \
@@ -297,14 +297,13 @@ class DataSynthesizer:
         >>> synthesizer = synthesis.register()
         >>> response = synthesizer.observed_properties()
         >>> for opv in response:
-        ...     print(opv)
-        pH
-        River Discharge
-        Water Level Elevation
-        Water Temperature
-        Dissolved Oxygen (DO)
-        Specific Conductance (SC)
-        Total Dissolved Solids (TDS)
+        ...     print(f'{opv.basin3d_vocab} -- {opv.full_name} -- {opv.units}')
+        ACT -- Acetate (CH3COO) -- mM
+        Br -- Bromide (Br) -- mM
+        Cl -- Chloride (Cl) -- mM
+        DIN -- Dissolved Inorganic Nitrogen (Nitrate + Nitrite) -- mg/L
+        DTN -- Dissolved Total Nitrogen (DTN) -- mM
+        F -- Fluoride (F) -- mM
         ...
 
         Common names for observed property variables. An observed property variable defines what is being measured.
@@ -428,7 +427,7 @@ class DataSynthesizer:
             >>> synthesizer = synthesis.register()
             >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=['USGS-09110990'],observed_property_variables=['RDC','WT'],start_date='2019-10-01',end_date='2019-10-30',aggregation_duration='DAY')
             >>> for timeseries in timeseries:
-            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property_variable}")
+            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
 
             **Search with aggregation duration NONE (Instantaneous Values Service):**
@@ -438,7 +437,7 @@ class DataSynthesizer:
             >>> synthesizer = synthesis.register()
             >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=["USGS-09110990", "USGS-09111250"],observed_property_variables=['RDC','WT'],start_date='2020-04-01',end_date='2020-04-30',aggregation_duration='NONE')
             >>> for timeseries in timeseries:
-            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property}")
+            ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
             USGS-09111250 - RDC
 
