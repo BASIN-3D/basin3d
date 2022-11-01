@@ -63,14 +63,12 @@ class QueryBase(BaseModel):
         # Validate all fields when initialized
         validate_all = True
 
-    # def list_attribute_names(self):
-    #     # ToDo: probably don't want to use the protected class. Could use vars()?
-    #     return [a.name for a in self.__fields__.values()]
-
     def get_mapped_fields(self) -> list:
+        """Get the query fields that have mappings. Subclasses may overwrite this base function"""
         return []
 
     def get_prefixed_fields(self) -> list:
+        """Get the query fields that have prefixes. Subclasses may overwrite ths base function"""
         return []
 
 

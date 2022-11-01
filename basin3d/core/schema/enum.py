@@ -55,7 +55,6 @@ class MappedAttributeEnum(str, BaseEnum):
     RESULT_QUALITY = 'RESULT_QUALITY'
     SAMPLING_MEDIUM = 'SAMPLING_MEDIUM'
     STATISTIC = 'STATISTIC'
-    # ToDo: see if we can add FeatureType
 
 
 class TimeFrequencyEnum(str, BaseEnum):
@@ -76,7 +75,7 @@ class TimeFrequencyEnum(str, BaseEnum):
 
 class AggregationDurationEnum(str, BaseEnum):
     """
-
+    Aggregation Duration enums
     """
     #: Observations aggregated by year
     YEAR = TimeFrequencyEnum.YEAR
@@ -168,7 +167,6 @@ class SamplingMediumEnum(str, BaseEnum):
     OTHER = "OTHER"
     NOT_APPLICABLE = "NOT_APPLICABLE"
     NOT_SUPPORTED = NO_MAPPING_TEXT
-    # SAMPLING_MEDIUMS = [WATER, GAS, SOLID_PHASE, OTHER, NOT_APPLICABLE]
 
 
 class MessageLevelEnum(str, BaseEnum):
@@ -181,9 +179,9 @@ class MessageLevelEnum(str, BaseEnum):
 
 def set_mapped_attribute_enum_type(attr_type: str):
     """
-
-    :param attr_type:
-    :return:
+    Return the enum type for the specified MappedAttributeEnum.
+    :param attr_type: MappedAttributeEnum
+    :return: the type's Enum
     """
     if attr_type == MappedAttributeEnum.AGGREGATION_DURATION:
         return AggregationDurationEnum

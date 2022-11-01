@@ -20,7 +20,7 @@ from typing import Iterator, List, Optional, Union
 from basin3d.core import monitor
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
-from basin3d.core.schema.enum import NO_MAPPING_TEXT, MessageLevelEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MessageLevelEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
 
@@ -122,10 +122,10 @@ class TranslatorMixin(object):
 
     def translate_query(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
         """
-
-        :param plugin_access:
-        :param query:
-        :return:
+        Main translator method that calls individual methods
+        :param plugin_access: plugin access
+        :param query: query to be translated
+        :return: translated query
         """
         translated_query = query.copy()
         self.translate_mapped_query_attrs(plugin_access, translated_query)
@@ -138,22 +138,60 @@ class TranslatorMixin(object):
 
         return translated_query
 
+    @staticmethod
+    def _order_mapped_fields(plugin_access, query_mapped_fields):
+        """
+
+        :param plugin_access:
+        :param query_mapped_fields:
+        :return:
+        """
+        query_mapped_fields_ordered = []
+
+        # get list of compound mappings if any
+        compound_mappings = plugin_access.get_compound_mapping_str()
+
+        # If there are compound mappings...
+        if compound_mappings:
+            cm_fields = []
+            # Split up the compound mappings, preserving the order of the attributes as specified in the plugin mapping file.
+            # The order only matters relative to the individual compound mapping.
+            for cm in compound_mappings:
+                cm_fields.extend(cm.split(MAPPING_DELIMITER))
+            # first loop thru the compound mapping fields
+            for cm in cm_fields:
+                # if the attribute is one of the mapped fields in this particular query
+                if cm in query_mapped_fields:
+                    # add it to the ordered list
+                    query_mapped_fields_ordered.append(cm)
+                    # then remove it from the mapped field list
+                    query_mapped_fields.pop(query_mapped_fields.index(cm))
+            # then, add any remaining non-compound fields
+            query_mapped_fields_ordered.extend(query_mapped_fields)
+        else:
+            # if there are no compound mappings, then the order doesn't matter, just copy the mapped field list.
+            query_mapped_fields_ordered = query_mapped_fields
+
+        return query_mapped_fields_ordered
+
     def translate_mapped_query_attrs(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
         """
         Translation functionality
         """
-        for attr in query.get_mapped_fields():
-            # if the attribute is specified, proceed to translate it
-            # NOTE: looking in synthesized_query which is mutable so the if statement may change throughout the loop
-            if getattr(query, attr):
-                # look up whether the attr is part of a compound mapping
-                compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper())
-                # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
-                # ToDo: consider how order affects this -- might want to default to the first attr_type in a compound mapping.
-                #   Ex: OBSERVED_PROPERTY:SAMPLING_MEDIUM datasource_vocab will be put in the observed_property field. Effectively making the order of the coumpound mapping important.
-                for compound_attr in compound_attrs:
-                    setattr(query, compound_attr.lower(), None)
+        query_mapped_fields = query.get_mapped_fields()
 
+        # if there are no mapped fields, return the query as is.
+        if not query_mapped_fields:
+            return query
+
+        # order the query fields by any compound attributes
+        query_mapped_fields_ordered = self._order_mapped_fields(plugin_access, query_mapped_fields)
+
+        for attr in query_mapped_fields_ordered:
+            # if the attribute is specified, proceed to translate it
+            # NOTE: looking in the translated_query which is mutable. As the translation occurs, translated query fields may change
+            #       and the if statement may have different values for a given field during the loop.
+            if getattr(query, attr):
                 b3d_vocab = getattr(query, attr)
 
                 if isinstance(b3d_vocab, str):
@@ -164,6 +202,14 @@ class TranslatorMixin(object):
                         # handle multiple values returned
                         ds_vocab.extend(plugin_access.get_ds_vocab(attr.upper(), b3d_value, query))
                 setattr(query, attr, ds_vocab)
+
+                # look up whether the attr is part of a compound mapping
+                # ToDo: write some checks specifically for this mixin.
+                compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper())
+                # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
+                # ToDo: double check field name conversions...
+                for compound_attr in compound_attrs:
+                    setattr(query, compound_attr.lower(), None)
 
         # NOTE: always returns list for each attr b/c multiple mappings are possible.
         return query
