@@ -34,7 +34,7 @@ class CatalogException(Exception):
     pass
 
 
-def _verify_attr_type(attr_type: str) -> str:
+def verify_attr_type(attr_type: str) -> str:
     """
     Helper method to translate query and model parameters (lower case and sometimes plural)
     to proper attribute types (upper case and singular) in the catalog
@@ -51,7 +51,7 @@ def _verify_attr_type(attr_type: str) -> str:
     return attr_type
 
 
-def _verify_query_param(attr_type: str, is_query=True) -> str:
+def verify_query_param(attr_type: str, is_query=True) -> str:
     """
     Helper method to translate attribute types (UPPER CASE) in the catalog to query parameters (lower case and sometimes plural)
 
@@ -502,7 +502,7 @@ class CatalogTinyDb(CatalogBase):
         from tinydb import Query
         query = Query()
 
-        attr_type = _verify_attr_type(attr_type)
+        attr_type = verify_attr_type(attr_type)
 
         results = self.in_memory_db_cm.search((query.datasource_id == datasource_id) & (query.attr_type == attr_type))
 
@@ -742,7 +742,7 @@ class CatalogTinyDb(CatalogBase):
         query = Query()
 
         # convert attr_type to the form in the database if necessary. e.g. OBSERVED_PROPERTIES --> OBSERVED_PROPERTY
-        attr_type = _verify_attr_type(attr_type)
+        attr_type = verify_attr_type(attr_type)
 
         # is the attr_type part of a compound mapping?
         compound_mapping = self._find_compound_mapping(datasource_id, attr_type)
@@ -765,10 +765,10 @@ class CatalogTinyDb(CatalogBase):
                 if attr == attr_type:
                     filter_values = [basin3d_vocab]
                 # if the other attribute is specified in the query, get the value
-                elif issubclass(b3d_query.__class__, QueryBase) and hasattr(b3d_query, _verify_query_param(attr, is_query=True)):
-                    attr_value = getattr(b3d_query, _verify_query_param(attr, is_query=True))
-                elif isinstance(b3d_query, dict) and _verify_query_param(attr) in b3d_query.keys():
-                    attr_value = b3d_query.get(_verify_query_param(attr))
+                elif issubclass(b3d_query.__class__, QueryBase) and hasattr(b3d_query, verify_query_param(attr, is_query=True)):
+                    attr_value = getattr(b3d_query, verify_query_param(attr, is_query=True))
+                elif isinstance(b3d_query, dict) and verify_query_param(attr) in b3d_query.keys():
+                    attr_value = b3d_query.get(verify_query_param(attr))
 
                 # if there is a value, replace the default value
                 if attr_value:
@@ -819,7 +819,7 @@ class CatalogTinyDb(CatalogBase):
 
         return ds_vocab
 
-    def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False) -> list:
+    def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False, is_query=False) -> list:
         """
         Return the attributes if attr_type is part of a compound mapping
 
@@ -836,7 +836,7 @@ class CatalogTinyDb(CatalogBase):
         from tinydb import Query
         query = Query()
 
-        attr_type = _verify_attr_type(attr_type)
+        attr_type = verify_attr_type(attr_type)
         results = self.in_memory_db_cm.search((query.datasource_id == datasource_id) & (query.compound_mapping.matches(attr_type)))
 
         attr_types = []
@@ -844,7 +844,8 @@ class CatalogTinyDb(CatalogBase):
             compound_attr_type = getattr(self._get_compound_mapping(**r), 'attr_type')
             if not include_specified_type and compound_attr_type == attr_type:
                 continue
-            # ToDo: change back to query term??
+            if is_query:
+                compound_attr_type = verify_query_param(compound_attr_type, is_query)
             attr_types.append(compound_attr_type)
 
         return attr_types

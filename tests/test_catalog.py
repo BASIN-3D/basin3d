@@ -461,8 +461,8 @@ def test_find_datasource_vocab(caplog, attr_type, basin3d_vocab, basin3d_query, 
                           ],
                          ids=['OP', 'OPV', 'OPVs', 'foo'])
 def test_verify_attr_type(attr_type, expected_result):
-    from basin3d.core.catalog import _verify_attr_type
-    assert _verify_attr_type(attr_type) == expected_result
+    from basin3d.core.catalog import verify_attr_type
+    assert verify_attr_type(attr_type) == expected_result
 
 
 @pytest.mark.parametrize('query_var, is_query, expected_result',
@@ -473,11 +473,11 @@ def test_verify_attr_type(attr_type, expected_result):
                           ],
                          ids=['OP-False', 'OP-True', 'FOO', 'foo'])
 def test_verify_query_var(query_var, is_query, expected_result):
-    from basin3d.core.catalog import _verify_query_param
+    from basin3d.core.catalog import verify_query_param
     if is_query:
-        assert _verify_query_param(query_var, is_query[0]) == expected_result
+        assert verify_query_param(query_var, is_query[0]) == expected_result
     else:
-        assert _verify_query_param(query_var) == expected_result
+        assert verify_query_param(query_var) == expected_result
 
 
 # catalog.find_compound_mapping_attributes (TinyDB)

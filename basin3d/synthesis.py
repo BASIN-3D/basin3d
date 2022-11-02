@@ -278,17 +278,6 @@ class DataSynthesizer:
         """
         return list(self._datasources.values())
 
-    # def observed_properties(self, datasource_id=None, variable_names=None):
-    #     """
-    #     Search for observed properties
-    #
-    #     :param datasource_id: Unique feature identifier of datasource
-    #     :param variable_names: Observed property variables
-    #     :return: a list of observed properties
-    #
-    #     """
-    #     return self._catalog.find_observed_properties(datasource_id, variable_names)
-
     def observed_properties(self):
         """
 

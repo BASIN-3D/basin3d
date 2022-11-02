@@ -18,6 +18,7 @@ import logging
 from typing import Iterator, List, Optional, Union
 
 from basin3d.core import monitor
+from basin3d.core.catalog import verify_query_param, verify_attr_type
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MessageLevelEnum, TimeFrequencyEnum
@@ -157,7 +158,8 @@ class TranslatorMixin(object):
             # Split up the compound mappings, preserving the order of the attributes as specified in the plugin mapping file.
             # The order only matters relative to the individual compound mapping.
             for cm in compound_mappings:
-                cm_fields.extend(cm.split(MAPPING_DELIMITER))
+                cm_attrs = cm.split(MAPPING_DELIMITER)
+                cm_fields.extend([verify_query_param(cm_attr) for cm_attr in cm_attrs])
             # first loop thru the compound mapping fields
             for cm in cm_fields:
                 # if the attribute is one of the mapped fields in this particular query
@@ -204,12 +206,11 @@ class TranslatorMixin(object):
                 setattr(query, attr, ds_vocab)
 
                 # look up whether the attr is part of a compound mapping
-                # ToDo: write some checks specifically for this mixin.
-                compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper())
+                compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper(), is_query=True)
                 # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
-                # ToDo: double check field name conversions...
                 for compound_attr in compound_attrs:
-                    setattr(query, compound_attr.lower(), None)
+                    compound_attr = verify_query_param(compound_attr, is_query=True)
+                    setattr(query, compound_attr, None)
 
         # NOTE: always returns list for each attr b/c multiple mappings are possible.
         return query
