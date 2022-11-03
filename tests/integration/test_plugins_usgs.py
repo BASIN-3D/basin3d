@@ -137,7 +137,7 @@ def test_usgs_monitoring_feature(query, feature_type):
                                                    ({"feature_type": "point"}, 0),
                                                    ({"monitoring_features": ["USGS-09129600"], "feature_type": "point"}, 1),
                                                    ({"parent_features": ['USGS-02']}, 118),
-                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 52),
+                                                   ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 53),
                                                    ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8),
                                                    ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
                          ids=["all", "region_by_id", "region", "subregion",

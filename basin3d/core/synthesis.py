@@ -28,33 +28,33 @@ from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTime
 logger = monitor.get_logger(__name__)
 
 
-def _synthesize_query_identifiers(values, id_prefix) -> List[str]:
-    """
-    Extract the ids from the specified query params
-
-    :param values:  the ids to synthesize
-    :param id_prefix:  the datasource id prefix
-    :return: The list of synthesizes identifiers
-    """
-    # Synthesize the ids (remove datasource id_prefix)
-    if isinstance(values, str):
-        values = values.split(",")
-
-    def extract_id(identifer):
-        """
-        Extract the datasource identifier from the broker identifier
-        :param identifer:
-        :return:
-        """
-        if identifer:
-            site_list = identifer.split("-")
-            identifer = identifer.replace("{}-".format(site_list[0]),
-                                          "", 1)  # The datasource id prefix needs to be removed
-        return identifer
-
-    return [extract_id(x) for x in
-            values
-            if x.startswith("{}-".format(id_prefix))]
+# def _synthesize_query_identifiers(values, id_prefix) -> List[str]:
+#     """
+#     Extract the ids from the specified query params
+#
+#     :param values:  the ids to synthesize
+#     :param id_prefix:  the datasource id prefix
+#     :return: The list of synthesizes identifiers
+#     """
+#     # Synthesize the ids (remove datasource id_prefix)
+#     if isinstance(values, str):
+#         values = values.split(",")
+#
+#     def extract_id(identifer):
+#         """
+#         Extract the datasource identifier from the broker identifier
+#         :param identifer:
+#         :return:
+#         """
+#         if identifer:
+#             site_list = identifer.split("-")
+#             identifer = identifer.replace("{}-".format(site_list[0]),
+#                                           "", 1)  # The datasource id prefix needs to be removed
+#         return identifer
+#
+#     return [extract_id(x) for x in
+#             values
+#             if x.startswith("{}-".format(id_prefix))]
 
 
 class MonitorMixin(object):
@@ -131,7 +131,7 @@ class TranslatorMixin(object):
         translated_query = query.copy()
         self.translate_mapped_query_attrs(plugin_access, translated_query)
         self.translate_prefixed_query_attrs(plugin_access, translated_query)
-        is_valid_translated_query = self.is_translated_query_valid(query, translated_query)
+        is_valid_translated_query = self.is_translated_query_valid(plugin_access.datasource.id, query, translated_query)
 
         if is_valid_translated_query:
             translated_query.is_valid_translated_query = is_valid_translated_query
@@ -215,40 +215,65 @@ class TranslatorMixin(object):
         # NOTE: always returns list for each attr b/c multiple mappings are possible.
         return query
 
-    def translate_prefixed_query_attrs(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+    @staticmethod
+    def translate_prefixed_query_attrs(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
         """
 
         :param plugin_access:
         :param query:
         :return:
         """
+        def extract_id(identifer):
+            """
+            Extract the datasource identifier from the broker identifier
+            :param identifer:
+            :return:
+            """
+            if identifer:
+                site_list = identifer.split("-")
+                identifer = identifer.replace("{}-".format(site_list[0]), "", 1)  # The datasource id prefix needs to be removed
+            return identifer
+
+        id_prefix = plugin_access.datasource.id_prefix
+
         for attr in query.get_prefixed_fields():
             attr_value = getattr(query, attr)
             if attr_value:
-                setattr(query, attr, _synthesize_query_identifiers(values=attr_value, id_prefix=plugin_access.datasource.id_prefix))
+                if isinstance(attr_value, str):
+                    attr_value = attr_value.split(",")
+
+                translated_values = [extract_id(x) for x in attr_value if x.startswith("{}-".format(id_prefix))]
+
+                setattr(query, attr, translated_values)
 
         return query
 
-    def is_translated_query_valid(self, query, translated_query) -> Optional[bool]:
+    @staticmethod
+    def is_translated_query_valid(datasource_id, query, translated_query) -> Optional[bool]:
         # loop thru kwargs
         for attr in query.get_mapped_fields():
-            attr_value = getattr(translated_query, attr)
-            if attr_value and isinstance(attr_value, list):
+            translated_attr_value = getattr(translated_query, attr)
+            b3d_attr_value = getattr(query, attr)
+            if isinstance(b3d_attr_value, list):
+                b3d_attr_value = ', '.join(b3d_attr_value)
+            if translated_attr_value and isinstance(translated_attr_value, list):
                 # if list and all of list == NOT_SUPPORTED, False
-                if all([x == NO_MAPPING_TEXT for x in attr_value]):
-                    # ToDo: messaging
+                if all([x == NO_MAPPING_TEXT for x in translated_attr_value]):
+                    logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with values: {b3d_attr_value}.')
                     return False
-            elif attr_value and isinstance(attr_value, str):
+            elif translated_attr_value and isinstance(translated_attr_value, str):
                 # if single NOT_SUPPORTED, False
-                if attr_value == NO_MAPPING_TEXT:
-                    # ToDo: messaging
+                if translated_attr_value == NO_MAPPING_TEXT:
+                    logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with value: {b3d_attr_value}.')
                     return False
-            elif attr_value:
-                # ToDo: messaging invalid attr format
+            elif translated_attr_value:
+                logger.warning(
+                    f'Translated query for datasource {datasource_id} cannot be assessed. Translated value for {attr} is not expected type.')
                 return None
         return True
 
-    def clean_query(self, translated_query: QueryBase) -> QueryBase:
+    @staticmethod
+    def clean_query(translated_query: QueryBase) -> QueryBase:
         """
         Remove any NOT_SUPPORTED translations
         :param translated_query:
