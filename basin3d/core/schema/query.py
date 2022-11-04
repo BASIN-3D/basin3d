@@ -20,7 +20,7 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from basin3d.core.schema.enum import FeatureTypeEnum, MessageLevelEnum, ResultQualityEnum, SamplingMediumEnum, StatisticEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import FeatureTypeEnum, MessageLevelEnum, ResultQualityEnum, SamplingMediumEnum, StatisticEnum, AggregationDurationEnum
 
 
 def _to_camelcase(string) -> str:
@@ -119,8 +119,8 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
     start_date: date = Field(title="Start Date", description="Filter by data taken on or after the start date")
 
     # optional
-    aggregation_duration: TimeFrequencyEnum = Field(default='DAY', title="Aggregation Duration",
-                                                    description="Filter by the specified time frequency")
+    aggregation_duration: AggregationDurationEnum = Field(default='DAY', title="Aggregation Duration",
+                                                    description="Filter by the specified aggregation duration or time frequency")
     end_date: Optional[date] = Field(title="End Date", description="Filter by data taken on or before the end date")
     statistic: Optional[List[StatisticEnum]] = Field(title="Statistic",
                                                      description="Return specified statistics, if they exist.")

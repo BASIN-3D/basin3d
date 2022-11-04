@@ -212,13 +212,21 @@ def test_find_observed_properties(catalog):
     assert ['ACT', 'Br'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['ACT', 'Br'])]
 
 
-def test_process_plugin_attr_mapping(catalog):
+def test_process_plugin_attr_mapping(catalog, caplog):
     """Test a bad mapping file with the wrong header"""
     from tests.testplugins import alpha
     from basin3d.core.catalog import CatalogException
     with pytest.raises(CatalogException):
         catalog._process_plugin_attr_mapping(
             alpha.AlphaSourcePlugin(catalog), filename='mapping_alpha_wrong_header.csv', datasource=DataSource())
+
+    caplog.set_level(logging.INFO)
+    caplog.clear()
+    from tests.testplugins import beta
+    catalog._process_plugin_attr_mapping(beta.BetaSourcePlugin(catalog), filename='beta_mapping.csv', datasource=DataSource(id='Beta'))
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'Datasource Beta: Attribute type STAT is not supported. Skipping mapping.' in log_msgs
+    assert 'Datasource Beta: basin3d_vocab MAXIMUM for attr_type STATISTIC is not a valid BASIN-3D vocabulary. Skipping attribute mapping.' in log_msgs
 
 
 @pytest.mark.parametrize("plugins, query, expected",
@@ -431,11 +439,14 @@ def test_find_attribute_mappings(caplog, plugins, query, expected_count, expecte
      ('observed_property', 'ACT', {'observed_property': 'ACT'}, ['Acetate'], []),
      # compound-compound_query_non-query-class-lists
      ('observed_property', 'Ag', {'observed_property': ['Ag'], 'sampling_medium': ['WATER']}, ['Ag'], []),
+     # compound_non-query-class_str-value
+     ('observed_property', 'Ag', {'observed_property': 'Ag'}, ['Ag', 'Ag_gas'], []),
      ],
     ids=['non-compound', 'non-compound-no-match', 'compound-simple_query', 'compound-simple_query-multimap',
          'compound-compound_query-multimap', 'compound-compound_query', 'compound-compound_query-no_compound_match',
          'compound-compound_query_lists', 'compound-compound_query_no_match',
-         'non-compound_non-query-class', 'compound-simple_query_non-query-class', 'compound-compound_query_non-query-class-lists'])
+         'non-compound_non-query-class', 'compound-simple_query_non-query-class',
+         'compound-compound_query_non-query-class-lists', 'compound_non-query-class_str-value'])
 def test_find_datasource_vocab(caplog, attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs):
     caplog.set_level(logging.INFO)
 

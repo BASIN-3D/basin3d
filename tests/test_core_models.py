@@ -116,6 +116,8 @@ def test_attribute_mapping(mapped_attribute_op_act, datasource):
 def test_mapped_attribute(mapped_attribute_op_act):
     assert mapped_attribute_op_act.attr_type == 'OBSERVED_PROPERTY'
     assert isinstance(mapped_attribute_op_act.attr_mapping, AttributeMapping) is True
+    assert mapped_attribute_op_act.get_basin3d_vocab() == 'ACT'
+    assert mapped_attribute_op_act.get_basin3d_desc() == ObservedProperty(basin3d_vocab='ACT', full_name='Acetate (CH3COO)', categories=['Biogeochemistry', 'Anions'], units='mM')
 
 
 def test_mapped_attribute_not_supported(mapped_attribute_agg_dur_not_supported, datasource):

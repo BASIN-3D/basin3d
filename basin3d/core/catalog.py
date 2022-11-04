@@ -392,12 +392,14 @@ class CatalogBase:
                             b3d_enum_type = set_mapped_attribute_enum_type(b3d_attr_type)
                             b3d_desc = self._get_attribute_enum(b3d_vocab, b3d_enum_type)
                     except AttributeError:
-                        logger.warning(f'Attribute type {a_type} is not supported. Skipping mapping')
+                        logger.warning(f'Datasource {datasource.id}: Attribute type {a_type} is not supported. Skipping mapping.')
                         valid_type_vocab = False
+                        break
 
                     if not b3d_desc:
-                        logger.warning(f'{datasource.id}: basin3d_vocab {b3d_vocab} for attr_type {a_type} is not a valid BASIN-3D vocabulary. Skipping attribute mapping.')
+                        logger.warning(f'Datasource {datasource.id}: basin3d_vocab {b3d_vocab} for attr_type {a_type} is not a valid BASIN-3D vocabulary. Skipping attribute mapping.')
                         valid_type_vocab = False
+                        break
 
                     basin3d_desc.append(b3d_desc)
 

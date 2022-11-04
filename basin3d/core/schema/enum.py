@@ -78,25 +78,25 @@ class AggregationDurationEnum(str, BaseEnum):
     Aggregation Duration enums
     """
     #: Observations aggregated by year
-    YEAR = TimeFrequencyEnum.YEAR
+    YEAR = TimeFrequencyEnum.YEAR.value
 
     #: Observations aggregated by month
-    MONTH = TimeFrequencyEnum.MONTH
+    MONTH = TimeFrequencyEnum.MONTH.value
 
     #: Observations aggregated by day
-    DAY = TimeFrequencyEnum.DAY
+    DAY = TimeFrequencyEnum.DAY.value
 
     #: Observations aggregated by hour
-    HOUR = TimeFrequencyEnum.HOUR
+    HOUR = TimeFrequencyEnum.HOUR.value
 
     #: Observations aggregated by minute
-    MINUTE = TimeFrequencyEnum.MINUTE
+    MINUTE = TimeFrequencyEnum.MINUTE.value
 
     #: Observations aggregated by second
-    SECOND = TimeFrequencyEnum.SECOND
+    SECOND = TimeFrequencyEnum.SECOND.value
 
     #: Observations aggregated by no standard frequency, used for instantaneous values
-    NONE = TimeFrequencyEnum.NONE
+    NONE = TimeFrequencyEnum.NONE.value
 
 
 class FeatureTypeEnum(str, BaseEnum):

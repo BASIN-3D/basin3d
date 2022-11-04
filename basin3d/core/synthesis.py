@@ -21,40 +21,11 @@ from basin3d.core import monitor
 from basin3d.core.catalog import verify_query_param, verify_attr_type
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
-from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MessageLevelEnum, TimeFrequencyEnum
+from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MessageLevelEnum, AggregationDurationEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
 
 logger = monitor.get_logger(__name__)
-
-
-# def _synthesize_query_identifiers(values, id_prefix) -> List[str]:
-#     """
-#     Extract the ids from the specified query params
-#
-#     :param values:  the ids to synthesize
-#     :param id_prefix:  the datasource id prefix
-#     :return: The list of synthesizes identifiers
-#     """
-#     # Synthesize the ids (remove datasource id_prefix)
-#     if isinstance(values, str):
-#         values = values.split(",")
-#
-#     def extract_id(identifer):
-#         """
-#         Extract the datasource identifier from the broker identifier
-#         :param identifer:
-#         :return:
-#         """
-#         if identifer:
-#             site_list = identifer.split("-")
-#             identifer = identifer.replace("{}-".format(site_list[0]),
-#                                           "", 1)  # The datasource id prefix needs to be removed
-#         return identifer
-#
-#     return [extract_id(x) for x in
-#             values
-#             if x.startswith("{}-".format(id_prefix))]
 
 
 class MonitorMixin(object):
@@ -366,7 +337,7 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
                     if self._model_access.synthesis_model in plugin_views and \
                             hasattr(plugin_views[self._model_access.synthesis_model], "list"):
 
-                        # Now synthesize the query object
+                        # Now translate the query object
                         translated_query_params: QueryBase = self._model_access.synthesize_query(
                             plugin_views[self._model_access.synthesis_model],
                             self._synthesis_response.query)
@@ -377,7 +348,7 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
                             self._model_access_iterator = plugin_views[self._model_access.synthesis_model].list(
                                 query=translated_query_params)
                         else:
-                            self.warn("Translated query is not valid.")
+                            self.warn(f'Translated query for datasource {plugin.get_datasource().id} is not valid.')
 
                     else:
                         self.warn("Plugin view does not exist")
@@ -580,8 +551,9 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         :return: The query parameters
         """
 
-        # query at this point is still basin3d vocabulary
-        if query.aggregation_duration != TimeFrequencyEnum.NONE:
-            query.aggregation_duration = TimeFrequencyEnum.DAY
+        # only allow instantaneous data (NONE) or daily data (DAY) data
+        # NOTE: query at this point is still in BASIN-3D vocab
+        if query.aggregation_duration != AggregationDurationEnum.NONE:
+            query.aggregation_duration = AggregationDurationEnum.DAY
 
         return self.translate_query(plugin_access, query)

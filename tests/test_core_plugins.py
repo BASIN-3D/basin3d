@@ -102,22 +102,23 @@ def test_get_feature_type(feature_name, return_format, result):
      [{'level': 'ERROR', 'msg': 'DataSource not not found for id E-1234', 'where': None}],
      "monitoring_features",
      {"id": 'E-1234'}),
+    # USGS.MR
 
     ("basin3d.plugins.usgs.USGSDataSourcePlugin",
      [{'level': 'ERROR', 'msg': 'DataSource not not found for id E-1234', 'where': None}],
      "monitoring_features",
      {"id": 'E-1234'}),
-    # USGS.MR
+    # NoPluginViews.TVP
     ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin",
      [{'level': 'WARN', 'msg': 'Plugin view does not exist', 'where': ['NoPluginView', 'MeasurementTimeseriesTVPObservation']}],
      "measurement_timeseries_tvp_observations",
      {'start_date': '2019-10-01', 'observed_property_variables': ["Ca"], 'monitoring_features': ['NPV-region']}),
-    # NoPluginViews.TVP
+    # NoPluginViews.MF
     ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin",
      [{'level': 'WARN', 'msg': 'Plugin view does not exist', 'where': ['NoPluginView', 'MonitoringFeature']}],
      "monitoring_features",
      {'id': 'NPV-01'}),
-    # NoPluginViews.MF
+    # AlphaSource.TVP
     ("tests.testplugins.alpha.AlphaSourcePlugin",
      [{'level': 'WARN', 'msg': 'Synthesis generated warnings but they are in the wrong format', 'where': ['Alpha', 'MeasurementTimeseriesTVPObservation']}],
      "measurement_timeseries_tvp_observations",
