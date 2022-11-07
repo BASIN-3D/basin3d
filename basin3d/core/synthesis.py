@@ -18,7 +18,7 @@ import logging
 from typing import Iterator, List, Optional, Union
 
 from basin3d.core import monitor
-from basin3d.core.catalog import verify_query_param, verify_attr_type
+from basin3d.core.catalog import verify_query_param
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MessageLevelEnum, AggregationDurationEnum
@@ -510,12 +510,12 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *utc_offset:* float, Coordinate Universal Time offset in hours (offset in hours), e.g., +9
     * *feature_of_interest:* MonitoringFeature obj, feature on which the observation is being made
     * *feature_of_interest_type:* enum (FeatureTypes), feature type of the feature of interest
-    * *result_points:* list of TimeValuePair obj, observed values of the observed property being assessed
+    * *result:* dictionary of 2 lists: "value" contains TimeValuePair obj and "quality" the corresponding quality assessment per value, observed values and their quality for the observed property being assessed
     * *time_reference_position:* enum, position of timestamp in aggregated_duration (START, MIDDLE, END)
     * *aggregation_duration:* enum, time period represented by observation (YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, NONE)
     * *unit_of_measurement:* string, units in which the observation is reported
-    * *statistic:* enum, statistical property of the observation result (MEAN, MIN, MAX, TOTAL)
-    * *result_quality:* enum, quality assessment of the result (VALIDATED, UNVALIDATED, SUSPECTED, REJECTED, ESTIMATED)
+    * *statistic:* list, statistical properties of the observation result (MEAN, MIN, MAX, TOTAL)
+    * *result_quality:* list, quality assessment values contained in the result (VALIDATED, UNVALIDATED, SUSPECTED, REJECTED, ESTIMATED)
 
     **Filter** by the following attributes (?attribute=parameter&attribute=parameter&...):
 

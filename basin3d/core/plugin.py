@@ -117,7 +117,7 @@ class DataSourcePluginAccess:
 
     def get_compound_mapping_str(self):
         """
-        Get any compound mapping strings for the database
+        Get any compound mapping strings for the datasource
         :return: list, compound mapping strings
         """
         return self._catalog.find_compound_mappings(self.datasource.id)
