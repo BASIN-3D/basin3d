@@ -1,6 +1,25 @@
 Change Log
 **********
 
+Version 0.3.0
+#############
+This release has core improvements such as logging, error handling and data quality flag support.
+The USGS plugin was enhanced to return hi resolution data from the instantaneous values
+service.  The data synthesis function for getting timeseries data was moved to a
+new repository (https://github.com/BASIN-3D/basin3d-views).  Simplification make for
+installing development dependencies.
+
+  + Issue `#25 <https://github.com/BASIN-3D/basin3d/issues/23>`_: - Implements infrastructure to handling error messages from Datasource
+    plugins
+  + Issue `#83 <https://github.com/BASIN-3D/basin3d/issues/83>`_: - Separate USGS mock from integration tests.
+  + Issue `#90 <https://github.com/BASIN-3D/basin3d/issues/90>`_: - Logging improvements
+  + Issue `#95 <https://github.com/BASIN-3D/basin3d/issues/95>`_: - Add per data point quality flag
+  + Issue `#113 <https://github.com/BASIN-3D/basin3d/issues/113>`_: - Fixes documentation link in README.md
+  + Issue `#131 <https://github.com/BASIN-3D/basin3d/issues/131>`_: - Refactor get_timeseries data to support hi res
+  + Issue `#105 <https://github.com/BASIN-3D/basin3d/issues/105>`_: - Add USGS Instananeous Values to the USGS Plugin
+  + Issue `#140 <https://github.com/BASIN-3D/basin3d/issues/140>`_: - Use default_factory for OPV
+  + Issue `#122 <https://github.com/BASIN-3D/basin3d/issues/122>`_: - [Breaking Change] Separate out integration/view into a separate repo (hdf,panda,csv)
+
 Version 0.2.0
 ##############
 Project Updates:
