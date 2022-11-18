@@ -82,10 +82,10 @@ class QueryMonitoringFeature(QueryBase):
     """Query :class:`basin3d.core.models.MonitoringFeature`"""
     feature_type: Optional[FeatureTypeEnum] = Field(title="Feature Type",
                                                     description="Filter results by the specified feature type.")
-    monitoring_features: Optional[List[str]] = Field(title="Monitoring Features",
-                                                     description="Filter by the list of monitoring feature identifiers")
-    parent_features: Optional[List[str]] = Field(title="Parent Monitoring Features",
-                                                 description="Filter by the list of parent monitoring feature identifiers")
+    monitoring_feature: Optional[List[str]] = Field(title="Monitoring Features",
+                                                    description="Filter by the list of monitoring feature identifiers")
+    parent_feature: Optional[List[str]] = Field(title="Parent Monitoring Features",
+                                                description="Filter by the list of parent monitoring feature identifiers")
 
     def __init__(self, **data):
         """
@@ -94,8 +94,8 @@ class QueryMonitoringFeature(QueryBase):
         :param data: the data
         """
 
-        # convert strings to lists for some fields
-        for field in ["monitoring_features", "parent_features", "monitoringFeatures", "parentFeatures"]:
+        # convert strings to lists for some fields; the camel case is for Pydantic validation
+        for field in ["monitoring_feature", "monitoringFeature", "parent_feature", "parentFeature"]:
             if field in data and data[field] and isinstance(data[field], str):
                 data[field] = list([data[field]])
 
@@ -106,21 +106,21 @@ class QueryMonitoringFeature(QueryBase):
         super().__init__(**data)
 
     def get_prefixed_fields(self) -> list:
-        return ['monitoring_features', 'parent_features']
+        return ['monitoring_feature', 'parent_feature']
 
 
 class QueryMeasurementTimeseriesTVP(QueryBase):
     """Query :class:`basin3d.core.models.MeasurementTimeseriesTVP`"""
     # required
-    monitoring_features: List[str] = Field(min_items=1, title="Monitoring Features",
-                                           description="Filter by the list of monitoring feature identifiers")
-    observed_property_variables: List[str] = Field(min_items=1, title="Observed Property Variables",
-                                                   description="Filter by the list of observed property variables")
+    monitoring_feature: List[str] = Field(min_items=1, title="Monitoring Features",
+                                          description="Filter by the list of monitoring feature identifiers")
+    observed_property: List[str] = Field(min_items=1, title="Observed Property Variables",
+                                         description="Filter by the list of observed property variables")
     start_date: date = Field(title="Start Date", description="Filter by data taken on or after the start date")
 
     # optional
     aggregation_duration: AggregationDurationEnum = Field(default='DAY', title="Aggregation Duration",
-                                                    description="Filter by the specified aggregation duration or time frequency")
+                                                          description="Filter by the specified aggregation duration or time frequency")
     end_date: Optional[date] = Field(title="End Date", description="Filter by data taken on or before the end date")
     statistic: Optional[List[StatisticEnum]] = Field(title="Statistic",
                                                      description="Return specified statistics, if they exist.")
@@ -136,9 +136,9 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
         :param data: the data
         """
 
-        # convert strings to lists for some fields
-        for field in ["monitoring_features", "observed_property_variables", "monitoringFeatures",
-                      "observedPropertyVariables", "statistic", "result_quality", "sampling_medium"]:
+        # convert strings to lists for some fields; the camel case are for Pydantic validation (don't delete)
+        for field in ["monitoring_feature", "monitoringFeature", "observed_property", "observedProperty",
+                      "statistic", "result_quality", "sampling_medium"]:
             if field in data and data[field] and isinstance(data[field], str):
                 data[field] = list([data[field]])
 
@@ -159,10 +159,10 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
     def get_mapped_fields(self) -> list:
         # observed_property_variables is first b/c it is most likely to have compound mappings.
         # ToDo: check how order may affect translation (see core/synthesis)
-        return ['observed_property_variables', 'aggregation_duration', 'statistic', 'result_quality', 'sampling_medium']
+        return ['observed_property', 'aggregation_duration', 'statistic', 'result_quality', 'sampling_medium']
 
     def get_prefixed_fields(self) -> list:
-        return ['monitoring_features']
+        return ['monitoring_feature']
 
 
 class SynthesisMessage(BaseModel):

@@ -56,16 +56,16 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
     data: List[Any] = []
     quality: List[Any] = []
 
-    if query.monitoring_features == ['region']:
+    if query.monitoring_feature == ['region']:
         return StopIteration({"message": "FOO"})
 
     supported_monitoring_features = [f'{num}' for num in range(1, 5)]
 
-    if not any([loc_id in supported_monitoring_features for loc_id in query.monitoring_features]):
+    if not any([loc_id in supported_monitoring_features for loc_id in query.monitoring_feature]):
         return StopIteration({"message": "No data from data source matches monitoring features specified."})
 
     location_indices = []
-    for loc_id in query.monitoring_features:
+    for loc_id in query.monitoring_feature:
         if loc_id in supported_monitoring_features:
             location_indices.append(int(loc_id.split('-')[-1]))
 
@@ -92,7 +92,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
         observed_property_variable = observed_property_variables[num - 1]
         feature_id = f'A-{str(num - 1)}'
         if query:
-            if observed_property_variable not in query.observed_property_variables:
+            if observed_property_variable not in query.observed_property:
                 continue
             if query.statistic:
                 if statistics[num - 1] not in query.statistic:

@@ -18,7 +18,6 @@ import logging
 from typing import Iterator, List, Optional, Union
 
 from basin3d.core import monitor
-from basin3d.core.catalog import verify_query_param
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MessageLevelEnum, AggregationDurationEnum
@@ -130,7 +129,7 @@ class TranslatorMixin(object):
             # The order only matters relative to the individual compound mapping.
             for cm in compound_mappings:
                 cm_attrs = cm.split(MAPPING_DELIMITER)
-                cm_fields.extend([verify_query_param(cm_attr) for cm_attr in cm_attrs])
+                cm_fields.extend([cm_attr.lower() for cm_attr in cm_attrs])
             # first loop thru the compound mapping fields
             for cm in cm_fields:
                 # if the attribute is one of the mapped fields in this particular query
@@ -180,7 +179,7 @@ class TranslatorMixin(object):
                 compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper(), is_query=True)
                 # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
                 for compound_attr in compound_attrs:
-                    compound_attr = verify_query_param(compound_attr, is_query=True)
+                    compound_attr = compound_attr.lower()
                     setattr(query, compound_attr, None)
 
         # NOTE: always returns list for each attr b/c multiple mappings are possible.
@@ -466,7 +465,7 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
     * *name:* string, Feature name
     * *description:* string, Description of the feature
     * *feature_type:* sting, FeatureType: REGION, SUBREGION, BASIN, SUBBASIN, WATERSHED, SUBWATERSHED, SITE, PLOT, HORIZONTAL PATH, VERTICAL PATH, POINT
-    * *observed_property_variables:* list of observed variables made at the feature. Observed property variables are configured via the plugins.
+    * *observed_properties:* list of observed properties (variables) made at the feature. Observed properties are configured via the plugins.
     * *related_sampling_feature_complex:* list of related_sampling features. PARENT features are currently supported.
     * *shape:* string, Shape of the feature: POINT, CURVE, SURFACE, SOLID
     * *coordinates:* location of feature in absolute and/or representative datum
@@ -519,8 +518,8 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
 
     **Filter** by the following attributes (?attribute=parameter&attribute=parameter&...):
 
-    * *monitoring_features (required):* List of monitoring_features ids
-    * *observed_property_variables (required):* List of observed property variable ids
+    * *monitoring_feature (required):* List of monitoring_features ids
+    * *observed_property (required):* List of observed property variable ids
     * *start_date (required):* date YYYY-MM-DD
     * *end_date (optional):* date YYYY-MM-DD
     * *aggregation_duration (default: DAY):* enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|NONE)
@@ -540,8 +539,8 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         Synthesizes query parameters, if necessary
 
         Parameters Synthesized:
-          + monitoring_features
-          + observed_property_variables
+          + monitoring_feature
+          + observed_property
           + aggregation_duration (default: DAY)
           + statistic
           + quality_checked

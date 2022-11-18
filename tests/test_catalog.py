@@ -119,7 +119,7 @@ def test_gen_basin3d_variable_store(catalog, caplog):
         catalog._gen_variable_store()
 
     # KEEP this test last: it resets the variable file.
-    catalog.variable_filename = 'basin3d_observed_property_variables_vocabulary.csv'
+    catalog.variable_filename = 'basin3d_observed_property_vocabulary.csv'
     catalog.variable_dir = 'basin3d.data'
     catalog._gen_variable_store()
     assert catalog._get_observed_property('ACT') == ObservedProperty(
@@ -434,31 +434,31 @@ def test_find_attribute_mappings(caplog, plugins, query, expected_count, expecte
 @pytest.mark.parametrize(
     'attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs',
     # non-compound
-    [('statistic', 'MEAN', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['ACT'], start_date='2020-01-01', statistic=['MEAN']),
+    [('statistic', 'MEAN', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['ACT'], start_date='2020-01-01', statistic=['MEAN']),
       ['mean'], []),
      # non-compound-no-match
-     ('statistic', 'ESTIMATED', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['ACT'], start_date='2020-01-01', statistic=['MEAN']),
+     ('statistic', 'ESTIMATED', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['ACT'], start_date='2020-01-01', statistic=['MEAN']),
       ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "STATISTIC" and BASIN-3D vocab: ESTIMATED.']),
      # compound-simple_query
-     ('observed_property_variables', 'ACT', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['ACT'], start_date='2020-01-01'),
+     ('observed_property', 'ACT', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['ACT'], start_date='2020-01-01'),
       ['Acetate'], []),
      # compound-simple_query-multimap
-     ('observed_property_variables', 'Al', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Al'], start_date='2020-01-01'),
+     ('observed_property', 'Al', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Al'], start_date='2020-01-01'),
       ['Al', 'Aluminum'], []),
      # compound-compound_query-multimap
-     ('observed_property_variables', 'Al', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Al'], start_date='2020-01-01', sampling_medium=['WATER']),
+     ('observed_property', 'Al', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Al'], start_date='2020-01-01', sampling_medium=['WATER']),
       ['Al', 'Aluminum'], []),
      # compound-compound_query
-     ('observed_property_variables', 'Ag', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Ag'], start_date='2020-01-01', sampling_medium=['WATER']),
+     ('observed_property', 'Ag', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Ag'], start_date='2020-01-01', sampling_medium=['WATER']),
       ['Ag'], []),
      # compound-compound_query-no_compound_match
-     ('observed_property_variables', 'Al', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Al'], start_date='2020-01-01', sampling_medium=['GAS']),
+     ('observed_property', 'Al', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Al'], start_date='2020-01-01', sampling_medium=['GAS']),
       ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "OBSERVED_PROPERTY:SAMPLING_MEDIUM" and BASIN-3D vocab: Al:GAS.']),
      # compound-compound_query_lists
-     ('observed_property_variables', 'Ag', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Ag', 'Al'], start_date='2020-01-01', sampling_medium=['WATER', 'GAS']),
+     ('observed_property', 'Ag', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Ag', 'Al'], start_date='2020-01-01', sampling_medium=['WATER', 'GAS']),
       ['Ag', 'Ag_gas'], []),
      # compound-compound_query_no_match
-     ('observed_property_variables', 'Hg', QueryMeasurementTimeseriesTVP(monitoring_features=['A-1'], observed_property_variables=['Ag', 'Al', 'Hg'], start_date='2020-01-01'),
+     ('observed_property', 'Hg', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Ag', 'Al', 'Hg'], start_date='2020-01-01'),
       ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "OBSERVED_PROPERTY:SAMPLING_MEDIUM" and BASIN-3D vocab: Hg:.*.']),
      # non-compound_non-query-class
      ('statistic', 'MEAN', {'statistic': 'MEAN'}, ['mean'], []),
@@ -489,33 +489,6 @@ def test_find_datasource_vocab(caplog, attr_type, basin3d_vocab, basin3d_query, 
         log_msgs = [rec.message for rec in caplog.records]
         for msg in expected_msgs:
             assert msg in log_msgs
-
-
-@pytest.mark.parametrize('attr_type, expected_result',
-                         [('OBSERVED_PROPERTY', 'OBSERVED_PROPERTY'),
-                          ('OBSERVED_PROPERTY_VARIABLE', 'OBSERVED_PROPERTY'),
-                          ('OBSERVED_PROPERTY_VARIABLES', 'OBSERVED_PROPERTY'),
-                          ('foo', 'FOO')
-                          ],
-                         ids=['OP', 'OPV', 'OPVs', 'foo'])
-def test_verify_attr_type(attr_type, expected_result):
-    from basin3d.core.catalog import verify_attr_type
-    assert verify_attr_type(attr_type) == expected_result
-
-
-@pytest.mark.parametrize('query_var, is_query, expected_result',
-                         [('OBSERVED_PROPERTY', [False], 'observed_property_variable'),
-                          ('OBSERVED_PROPERTY', [True], 'observed_property_variables'),
-                          ('FOO', [], 'foo'),
-                          ('foo', [], 'foo')
-                          ],
-                         ids=['OP-False', 'OP-True', 'FOO', 'foo'])
-def test_verify_query_var(query_var, is_query, expected_result):
-    from basin3d.core.catalog import verify_query_param
-    if is_query:
-        assert verify_query_param(query_var, is_query[0]) == expected_result
-    else:
-        assert verify_query_param(query_var) == expected_result
 
 
 # catalog.find_compound_mapping_attributes (TinyDB)

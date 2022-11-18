@@ -979,7 +979,7 @@ class Feature(Base):
 
     @property
     def observed_properties(self) -> Union[List[MappedAttribute], List[str]]:
-        """List of observed property variables"""
+        """List of observed properties"""
         return self._observed_properties
 
     @observed_properties.setter

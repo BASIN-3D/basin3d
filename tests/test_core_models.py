@@ -106,7 +106,7 @@ def test_data_source_model(datasource):
     assert datasource.location == 'https://asource.foo/'
 
 
-def test_observed_property_variable_create(observed_property):
+def test_observed_property_create(observed_property):
     """ create the object and test attributes """
 
     assert observed_property.basin3d_vocab == 'FH2O'

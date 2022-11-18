@@ -80,8 +80,8 @@ def test_monitoring_features_found():
                                                                   'query': {'datasource': None,
                                                                             'feature_type': None,
                                                                             'is_valid_translated_query': None,
-                                                                            'monitoring_features': None,
-                                                                            'parent_features': None}}
+                                                                            'monitoring_feature': None,
+                                                                            'parent_feature': None}}
         assert isinstance(monitoring_featurues.synthesis_response.query, QueryMonitoringFeature)
 
         for mf in monitoring_featurues:
@@ -104,8 +104,8 @@ def test_monitoring_features_found():
                                                                   'query': {'datasource': None,
                                                                             'feature_type': None,
                                                                             'is_valid_translated_query': None,
-                                                                            'monitoring_features': None,
-                                                                            'parent_features': None}}
+                                                                            'monitoring_feature': None,
+                                                                            'parent_feature': None}}
 
         assert count == 2
     else:
@@ -126,15 +126,15 @@ def test_measurement_timeseries_tvp_observations_count():
 
     synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(
-        monitoring_features=['A-3'], observed_property_variables=['Al'], start_date='2016-02-01')
+        monitoring_feature=['A-3'], observed_property=['Al'], start_date='2016-02-01')
     if isinstance(measurement_timeseries_tvp_observations, DataSourceModelIterator):
         count = 0
         assert measurement_timeseries_tvp_observations.synthesis_response is not None
         assert measurement_timeseries_tvp_observations.synthesis_response.query is not None
         assert isinstance(measurement_timeseries_tvp_observations.synthesis_response.query,
                           QueryMeasurementTimeseriesTVP)
-        assert measurement_timeseries_tvp_observations.synthesis_response.query.monitoring_features == ['A-3']
-        assert measurement_timeseries_tvp_observations.synthesis_response.query.observed_property_variables == ['Al']
+        assert measurement_timeseries_tvp_observations.synthesis_response.query.monitoring_feature == ['A-3']
+        assert measurement_timeseries_tvp_observations.synthesis_response.query.observed_property == ['Al']
         assert measurement_timeseries_tvp_observations.synthesis_response.query.start_date == datetime.date(2016, 2, 1)
 
         for mf in measurement_timeseries_tvp_observations:

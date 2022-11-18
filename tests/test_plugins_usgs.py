@@ -44,8 +44,8 @@ def get_url_text(text, status=200):
 
 
 @pytest.mark.parametrize('additional_query_params',
-                         [({"monitoring_features": ["USGS-09110990", "USGS-09111250"], "observed_property_variables": []}),
-                          ({"observed_property_variables": ["RDC"]})],
+                         [({"monitoring_feature": ["USGS-09110990", "USGS-09111250"], "observed_property": []}),
+                          ({"observed_property": ["RDC"]})],
                          ids=['missing-variables', 'missing-monitoring_features'])
 def test_measurement_timeseries_tvp_observations_usgs_errors(additional_query_params, monkeypatch):
     """ Test USGS Timeseries data query"""
@@ -70,14 +70,14 @@ def test_measurement_timeseries_tvp_observations_usgs_errors(additional_query_pa
 @pytest.mark.parametrize('additional_filters, usgs_response, expected_results',
                          [
                           # all-good
-                          ({"monitoring_features": ["USGS-09110990", "USGS-09111250"], "observed_property_variables": ["RDC"], "result_quality": [ResultQualityEnum.VALIDATED]},
+                          ({"monitoring_feature": ["USGS-09110990", "USGS-09111250"], "observed_property": ["RDC"], "result_quality": [ResultQualityEnum.VALIDATED]},
                            "usgs_nwis_dv_p00060_l09110990_l09111250.json", {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED], "count": 2}),
                           # some-quality-filtered-data
-                          ({"monitoring_features": ["USGS-09110990"], "observed_property_variables": ["WT"], "result_quality": [ResultQualityEnum.UNVALIDATED]},
+                          ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["WT"], "result_quality": [ResultQualityEnum.UNVALIDATED]},
                            "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json",
                            {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.UNVALIDATED], "count": 1, "synthesis_msgs": ['09110000 - 00010: 2 timestamps did not match data quality query.']}),
                           # all-data-filtered
-                          ({"monitoring_features": ["USGS-09110990"], "observed_property_variables": ["WT"], "result_quality": [ResultQualityEnum.REJECTED]},
+                          ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["WT"], "result_quality": [ResultQualityEnum.REJECTED]},
                            "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json",
                            {"count": 0, "synthesis_msgs": []})
                          ],
@@ -164,7 +164,7 @@ def test_usgs_monitoring_feature2(query, feature_type, monkeypatch):
 
 
 @pytest.mark.parametrize("query, expected_count", [({"datasource": "USGS"}, 2889),
-                                                   ({"monitoring_features": ['USGS-02']}, 1),
+                                                   ({"monitoring_feature": ['USGS-02']}, 1),
                                                    ({"feature_type": "region"}, 21),
                                                    ({"feature_type": "subregion"}, 222),
                                                    ({"feature_type": "basin"}, 379),
@@ -175,8 +175,8 @@ def test_usgs_monitoring_feature2(query, feature_type, monkeypatch):
                                                    ({"feature_type": "plot"}, 0),
                                                    ({"feature_type": "vertical path"}, 0),
                                                    ({"feature_type": "horizontal path"}, 0),
-                                                   ({"parent_features": ['USGS-02']}, 118),
-                                                   ({"parent_features": ['USGS-0202'], "feature_type": "subbasin"}, 8)],
+                                                   ({"parent_feature": ['USGS-02']}, 118),
+                                                   ({"parent_feature": ['USGS-0202'], "feature_type": "subbasin"}, 8)],
                          ids=["all", "region_by_id", "region", "subregion", "basin", "subbasin", "watershed", "subwatershed",
                               "site", "plot", "vertical_path", "horizontal_path", "all_by_region", "subbasin_by_subregion"])
 def test_usgs_monitoring_features(query, expected_count, monkeypatch):
@@ -202,8 +202,7 @@ def test_usgs_monitoring_features(query, expected_count, monkeypatch):
     assert count == expected_count
 
 
-@pytest.mark.parametrize("query, expected_count", [
-    ({"parent_features": ['USGS-02020004'], "feature_type": "point"}, 52)],
+@pytest.mark.parametrize("query, expected_count", [({"parent_feature": ['USGS-02020004'], "feature_type": "point"}, 52)],
                          ids=["points_by_subbasin"])
 def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
     """Test USGS search by region  """
@@ -227,7 +226,7 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
     assert count == expected_count
 
 
-@pytest.mark.parametrize("query, expected_count", [({"monitoring_features": ["USGS-09129600"], "feature_type": "point"}, 1)],
+@pytest.mark.parametrize("query, expected_count", [({"monitoring_feature": ["USGS-09129600"], "feature_type": "point"}, 1)],
                          ids=["point_by_id"])
 def test_usgs_monitoring_features3(query, expected_count, monkeypatch):
     """Test USGS search by region  """
@@ -252,8 +251,8 @@ def test_usgs_monitoring_features3(query, expected_count, monkeypatch):
 
 
 @pytest.mark.parametrize("query, expected_count", [({"feature_type": "point"}, 0),
-                                                  ({"parent_features": ['USGS-020200'], "feature_type": "point"}, 0)],
-                        ids=["point", "invalid_points"])
+                                                   ({"parent_feature": ['USGS-020200'], "feature_type": "point"}, 0)],
+                         ids=["point", "invalid_points"])
 def test_usgs_monitoring_features_invalid_query(query, expected_count, monkeypatch):
     """Test USGS search by region  """
 

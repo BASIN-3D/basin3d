@@ -9,10 +9,10 @@ from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonito
 
 @pytest.mark.parametrize("params, error", [({}, False),
                                            ({"datasource": ["FOO"],
-                                             "monitoring_features": []}, False),
+                                             "monitoring_feature": []}, False),
                                            ({"datasource": ["FOO"],
-                                             "monitoring_features": ['bar', 'base'],
-                                             "parent_features": ['moo']}, False),
+                                             "monitoring_feature": ['bar', 'base'],
+                                             "parent_feature": ['moo']}, False),
                                            ({"feature_type": 'POINT'}, False),
                                            ({"feature_type": 'FOO'}, True),
                                            ({"datasource": 'FOO'}, False)],
@@ -23,7 +23,7 @@ def test_query_monitoring_feature(params, error):
     if not error:
         query = QueryMonitoringFeature(**params)
 
-        for p in ["datasource", "monitoring_features", "parent_features",
+        for p in ["datasource", "monitoring_feature", "parent_feature",
                   "feature_type"]:
 
             if p not in params:
@@ -40,56 +40,56 @@ def test_query_monitoring_feature(params, error):
                       ({}, True),
                       # monitoring-feature-invalid
                       ({"datasource": ["FOO"],
-                        "monitoring_features": [],
+                        "monitoring_feature": [],
                         "aggregation_duration": 'MONTH',
-                        "observed_property_variables":['FOO', 'BAR'],
+                        "observed_property":['FOO', 'BAR'],
                         "start_date": "2021-01-01"}, True),
-                      # observed-property-variables-missing
+                      # observed-property-missing
                       ({"datasource": ["FOO"],
-                        "monitoring_features": [],
+                        "monitoring_feature": [],
                         "aggregation_duration": 'MONTH',
                         "start_date": "2021-01-01"}, True),
                       # valid1
                       ({"datasource": ["FOO"],
-                        "monitoring_features": ['bar', 'base'],
+                        "monitoring_feature": ['bar', 'base'],
                         "aggregation_duration": 'MONTH',
-                        "observed_property_variables":['FOO', 'BAR'],
+                        "observed_property":['FOO', 'BAR'],
                         "start_date": "2021-01-01"}, False),
                       # aggregation-duration-invalid
                       ({"aggregation_duration": 'FOO',
-                        "monitoring_features": ['bar', 'base'],
-                        "observed_property_variables":['FOO', 'BAR'],
+                        "monitoring_feature": ['bar', 'base'],
+                        "observed_property":['FOO', 'BAR'],
                         "start_date": "2021-01-01"}, True),
                       # aggregation-duration-valid-none
                       ({"aggregation_duration": None,
-                        "monitoring_features": ['bar', 'base'],
-                        "observed_property_variables":['FOO', 'BAR'],
+                        "monitoring_feature": ['bar', 'base'],
+                        "observed_property":['FOO', 'BAR'],
                         "start_date": "2021-01-01"}, False),
                       # statistic-valid
                       ({"statistic": ['MEAN'],
-                        "monitoring_features": ['bar', 'base'],
+                        "monitoring_feature": ['bar', 'base'],
                         "aggregation_duration": 'MONTH',
-                        "observed_property_variables":['FOO', 'BAR'],
+                        "observed_property":['FOO', 'BAR'],
                         "start_date": "2021-01-01"}, False),
                       # result-quality-valid
                       ({"result_quality": ['VALIDATED'],
-                        "monitoring_features": ['bar', 'base'],
+                        "monitoring_feature": ['bar', 'base'],
                         "aggregation_duration": 'MONTH',
-                        "observed_property_variables":['FOO', 'BAR'],
+                        "observed_property":['FOO', 'BAR'],
                         "start_date": "2021-01-01"}, False),
                       # statistic-invalid
                       ({"statistic": ['FOO'],
-                        "monitoring_features": ['bar', 'base'],
+                        "monitoring_feature": ['bar', 'base'],
                         "aggregation_duration": 'MONTH',
-                        "observed_property_variables":['FOO', 'BAR'],
+                        "observed_property":['FOO', 'BAR'],
                         "start_date": "2021-01-01"}, True),
                       # result-quality-invalid
                       ({"result_quality": ['BAR'],
-                        "monitoring_features": ['bar', 'base'],
+                        "monitoring_feature": ['bar', 'base'],
                         "aggregation_duration": 'MONTH',
-                        "observed_property_variables":['FOO', 'BAR'],
+                        "observed_property":['FOO', 'BAR'],
                         "start_date": "2021-01-01"}, True)],
-    ids=["empty-invalid", "monitoring-feature-invalid", "observed-property-variables-missing", "valid1",
+    ids=["empty-invalid", "monitoring-feature-invalid", "observed-property-missing", "valid1",
          "aggregation-duration-invalid", "aggregation-duration-valid-none",
          "statistic-valid", "result-quality-valid", "statistic-invalid", "result-quality-invalid"])
 def test_query_measurement_timeseries_tvp(params, error):
@@ -97,7 +97,7 @@ def test_query_measurement_timeseries_tvp(params, error):
     if not error:
         query = QueryMeasurementTimeseriesTVP(**params)
 
-        for p in ["datasource", "aggregation_duration", "monitoring_features", "observed_property_variables",
+        for p in ["datasource", "aggregation_duration", "monitoring_feature", "observed_property",
                   "start_date", "end_date", "statistic", "result_quality"]:
 
             query_json = json.loads(query.json())

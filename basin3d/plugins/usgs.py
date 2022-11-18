@@ -116,7 +116,7 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
     if query.end_date:
         search_params.append(("endDT", query.end_date))
 
-    search_params.append(("parameterCd", ",".join([str(o) for o in query.observed_property_variables])))
+    search_params.append(("parameterCd", ",".join([str(o) for o in query.observed_property])))
 
     if query.statistic:
         # if aggregation duration is NONE (iv) and there is a query that has a stat param, clear the statistics list
@@ -132,12 +132,12 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
     else:
         search_params.append(("siteStatus", "all"))
 
-    if len(query.monitoring_features[0]) > 2:
+    if len(query.monitoring_feature[0]) > 2:
         # search for stations
-        search_params.append(("sites", ",".join(query.monitoring_features)))
+        search_params.append(("sites", ",".join(query.monitoring_feature)))
     else:
         # search for stations by specifying the huc
-        search_params.append(("huc", ",".join(query.monitoring_features)))
+        search_params.append(("huc", ",".join(query.monitoring_feature)))
 
     # look for station locations only
     search_params.append(("siteType", "ST"))
@@ -340,8 +340,8 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
             usgs_regions = []
             usgs_subbasins = []
             parent_features = []
-            if query.parent_features:
-                for value in query.parent_features:
+            if query.parent_feature:
+                for value in query.parent_feature:
                     parent_features.append(value)
                     if len(value) < 4:
                         usgs_regions.append(value)
@@ -390,16 +390,16 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
 
                     # Determine whether to yield the monitoring feature object
                     if monitoring_feature:
-                        if query.monitoring_features and json_obj['huc'] in query.monitoring_features:
+                        if query.monitoring_feature and json_obj['huc'] in query.monitoring_feature:
                             yield monitoring_feature
-                        elif not query.monitoring_features:
+                        elif not query.monitoring_feature:
                             yield monitoring_feature
 
             else:
                 base_url = '{}site/?{}={}&seriesCatalogOutput=true&outputDataTypeCd=iv,dv&siteStatus=all&format=rdb'
                 # Points by id: USGS calls these sites
-                if query.monitoring_features is not None:
-                    usgs_sites = ",".join(query.monitoring_features)
+                if query.monitoring_feature is not None:
+                    usgs_sites = ",".join(query.monitoring_feature)
                     url = base_url.format(self.datasource.location, 'sites', usgs_sites)
                 else:
                     # Point by subbasin: USGS calls subbasin as huc (instead of sites) to retrieve all subbasins
@@ -456,22 +456,22 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         """
 
         if len(query.id) == 2:
-            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.REGION)
+            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.REGION)
         elif len(query.id) == 4:
-            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.SUBREGION)
+            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.SUBREGION)
         elif len(query.id) == 6:
-            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.BASIN)
+            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.BASIN)
         elif len(query.id) == 8:
-            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.SUBBASIN)
+            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.SUBBASIN)
         else:
-            mf_query = QueryMonitoringFeature(monitoring_features=[query.id], feature_type=FeatureTypeEnum.POINT)
+            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.POINT)
 
         for o in self.list(query=mf_query):
             return o
 
         # An 8 character code can also be a point, Try that
         if len(query.id) == 8:
-            for o in self.list(query=QueryMonitoringFeature(monitoring_features=[query.id],
+            for o in self.list(query=QueryMonitoringFeature(monitoring_feature=[query.id],
                                                             feature_type=FeatureTypeEnum.POINT)):
                 return o
         return None
@@ -571,10 +571,10 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         """
         synthesis_messages = []
         feature_obj_dict = {}
-        if not query.monitoring_features:
+        if not query.monitoring_feature:
             return None
 
-        search_params = ",".join(query.monitoring_features)
+        search_params = ",".join(query.monitoring_feature)
 
         base_url = '{}site/?{}={}&seriesCatalogOutput=true&outputDataTypeCd=iv,dv&siteStatus=all&format=rdb'
         url = base_url.format(self.datasource.location, 'sites', search_params)

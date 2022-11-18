@@ -96,7 +96,7 @@ def test_get_feature_type(feature_name, return_format, result):
     ("tests.testplugins.plugin_error.ErrorSourcePlugin",
      [{'level': 'ERROR', 'msg': 'Unexpected Error(Exception): This is a find_measurement_timeseries_tvp_observations error', 'where': ['Error', 'MeasurementTimeseriesTVPObservation']}],
      "measurement_timeseries_tvp_observations",
-     {'start_date': '2019-10-01', 'observed_property_variables': ["Ag"], 'monitoring_features': ['E-region']}),
+     {'start_date': '2019-10-01', 'observed_property': ["Ag"], 'monitoring_feature': ['E-region']}),
     # AlphaSource.MF
     ("tests.testplugins.alpha.AlphaSourcePlugin",
      [{'level': 'ERROR', 'msg': 'DataSource not not found for id E-1234', 'where': None}],
@@ -112,7 +112,7 @@ def test_get_feature_type(feature_name, return_format, result):
     ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin",
      [{'level': 'WARN', 'msg': 'Plugin view does not exist', 'where': ['NoPluginView', 'MeasurementTimeseriesTVPObservation']}],
      "measurement_timeseries_tvp_observations",
-     {'start_date': '2019-10-01', 'observed_property_variables': ["Ca"], 'monitoring_features': ['NPV-region']}),
+     {'start_date': '2019-10-01', 'observed_property': ["Ca"], 'monitoring_feature': ['NPV-region']}),
     # NoPluginViews.MF
     ("tests.testplugins.no_plugin_views.NoPluginViewsPlugin",
      [{'level': 'WARN', 'msg': 'Plugin view does not exist', 'where': ['NoPluginView', 'MonitoringFeature']}],
@@ -122,7 +122,7 @@ def test_get_feature_type(feature_name, return_format, result):
     ("tests.testplugins.alpha.AlphaSourcePlugin",
      [{'level': 'WARN', 'msg': 'Synthesis generated warnings but they are in the wrong format', 'where': ['Alpha', 'MeasurementTimeseriesTVPObservation']}],
      "measurement_timeseries_tvp_observations",
-     {'start_date': '2019-10-01', 'observed_property_variables': ["Ag"], 'monitoring_features': ['A-region']}),
+     {'start_date': '2019-10-01', 'observed_property': ["Ag"], 'monitoring_feature': ['A-region']}),
     ],
     ids=["ErrorSource.MF", "ErrorSource.TVP", "AlphaSource.MF", "USGS.MR", "NoPluginViews.TVP", "NoPluginViews.MF", "AlphaSource.TVP"])
 def test_plugin_exceptions(plugin, messages, synthesis_call, synthesis_args):

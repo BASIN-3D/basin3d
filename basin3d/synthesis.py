@@ -27,7 +27,6 @@ synthesis.DataSynthesizer Functions
 * :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observation (Instantaneous and Daily Values supported) from USGS Monitoring features and observed property variables
 * :func:`DataSynthesizer.monitoring_features`- Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
 * :func:`DataSynthesizer.observed_properties`- Search for observed properties
-* :func:`DataSynthesizer.observed_property_variables`- Common names for observed property variables. An observed property variable defines what is being measured. Data source observed property variables are mapped to these synthesized observed property variables.
 
 ----------------------------------
 """
@@ -216,7 +215,7 @@ class DataSynthesizer:
 
         **Search for USGS points by parent (subbasin) monitoring features:**
 
-        >>> for mf in synthesizer.monitoring_features(feature_type='point',parent_features=['USGS-17040101']): # doctest: +ELLIPSIS
+        >>> for mf in synthesizer.monitoring_features(feature_type='point',parent_feature=['USGS-17040101']): # doctest: +ELLIPSIS
         ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
         USGS-13010000 [(-110.6647222, 44.1336111)]
         USGS-13010065 [(-110.6675, 44.09888889)]
@@ -276,7 +275,7 @@ class DataSynthesizer:
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
             >>> synthesizer = synthesis.register()
-            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=['USGS-09110990'],observed_property_variables=['RDC','WT'],start_date='2019-10-01',end_date='2019-10-30',aggregation_duration='DAY')
+            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=['USGS-09110990'],observed_property=['RDC','WT'],start_date='2019-10-01',end_date='2019-10-30',aggregation_duration='DAY')
             >>> for timeseries in timeseries:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
@@ -286,7 +285,7 @@ class DataSynthesizer:
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
             >>> synthesizer = synthesis.register()
-            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_features=["USGS-09110990", "USGS-09111250"],observed_property_variables=['RDC','WT'],start_date='2020-04-01',end_date='2020-04-30',aggregation_duration='NONE')
+            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=["USGS-09110990", "USGS-09111250"],observed_property=['RDC','WT'],start_date='2020-04-01',end_date='2020-04-30',aggregation_duration='NONE')
             >>> for timeseries in timeseries:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
