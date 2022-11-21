@@ -15,7 +15,7 @@
 
 
 """
-from itertools import repeat
+# from itertools import repeat
 from types import MethodType
 from typing import Dict
 
@@ -74,25 +74,25 @@ class DataSourcePluginAccess:
         """
         return self._catalog.find_attribute_mapping(self.datasource.id, attr_type, attr_vocab)
 
-    def get_datasource_mapped_attribute(self, attr_type, attr_vocab):
-        """
-        Get the `basin3d.models.MappedAttribute` object(s) for the specified attribute type and datasource attribute vocab(s)
-
-        :param attr_type: attribute type
-        :param attr_vocab: datasource attribute vocabulary
-        :return: a single or list of `basin3d.models.MappedAttribute` objects
-        """
-
-        def create_mapped_attribute(a_type, a_mapping):
-            return MappedAttribute(a_type, a_mapping)
-
-        if isinstance(attr_vocab, str):
-            attr_mapping = self.get_datasource_attribute_mapping(attr_type, attr_vocab)
-            return create_mapped_attribute(attr_type, attr_mapping)
-
-        elif isinstance(attr_vocab, list):
-            mapping_attrs = list(map(self.get_datasource_attribute_mapping, repeat(attr_type), attr_vocab))
-            return list(map(create_mapped_attribute, repeat(attr_type), mapping_attrs))
+    # def get_datasource_mapped_attribute(self, attr_type, attr_vocab):
+    #     """
+    #     Get the `basin3d.models.MappedAttribute` object(s) for the specified attribute type and datasource attribute vocab(s)
+    #
+    #     :param attr_type: attribute type
+    #     :param attr_vocab: datasource attribute vocabulary
+    #     :return: a single or list of `basin3d.models.MappedAttribute` objects
+    #     """
+    #
+    #     def create_mapped_attribute(a_type, a_mapping):
+    #         return MappedAttribute(a_type, a_mapping)
+    #
+    #     if isinstance(attr_vocab, str):
+    #         attr_mapping = self.get_datasource_attribute_mapping(attr_type, attr_vocab)
+    #         return create_mapped_attribute(attr_type, attr_mapping)
+    #
+    #     elif isinstance(attr_vocab, list):
+    #         mapping_attrs = list(map(self.get_datasource_attribute_mapping, repeat(attr_type), attr_vocab))
+    #         return list(map(create_mapped_attribute, repeat(attr_type), mapping_attrs))
 
     def get_attribute_mappings(self, attr_type=None, attr_vocab=None, from_basin3d=False):
         """
@@ -105,33 +105,33 @@ class DataSourcePluginAccess:
         """
         return self._catalog.find_attribute_mappings(self.datasource.id, attr_type, attr_vocab, from_basin3d)
 
-    def get_compound_mapping_attributes(self, attr_type, is_query=True):
-        """
-        Get other attributes if attr_type is part of compound mapping
+    # def get_compound_mapping_attributes(self, attr_type, is_query=True):
+    #     """
+    #     Get other attributes if attr_type is part of compound mapping
+    #
+    #     :param attr_type:
+    #     :param is_query:
+    #     :return:
+    #     """
+    #     return self._catalog.find_compound_mapping_attributes(self.datasource.id, attr_type, is_query=is_query)
 
-        :param attr_type:
-        :param is_query:
-        :return:
-        """
-        return self._catalog.find_compound_mapping_attributes(self.datasource.id, attr_type, is_query=is_query)
+    # def get_compound_mapping_str(self):
+    #     """
+    #     Get any compound mapping strings for the datasource
+    #     :return: list, compound mapping strings
+    #     """
+    #     return self._catalog.find_compound_mappings(self.datasource.id)
 
-    def get_compound_mapping_str(self):
-        """
-        Get any compound mapping strings for the datasource
-        :return: list, compound mapping strings
-        """
-        return self._catalog.find_compound_mappings(self.datasource.id)
-
-    def get_ds_vocab(self, attr_type, basin3d_vocab, query):
-        """
-        Convert given list of datasource vocabularies (per given attr_type) from the BASIN-3D vocabulary(ies) specified.
-
-        :param attr_type: str, attribute type
-        :param basin3d_vocab: str or list, BASIN-3D vocabularies
-        :param query: QueryBase or subclass or dict, full query
-        :return: list of datasource vocabularies
-        """
-        return self._catalog.find_datasource_vocab(self.datasource.id, attr_type, basin3d_vocab, query)
+    # def get_ds_vocab(self, attr_type, basin3d_vocab, query):
+    #     """
+    #     Convert given list of datasource vocabularies (per given attr_type) from the BASIN-3D vocabulary(ies) specified.
+    #
+    #     :param attr_type: str, attribute type
+    #     :param basin3d_vocab: str or list, BASIN-3D vocabularies
+    #     :param query: QueryBase or subclass or dict, full query
+    #     :return: list of datasource vocabularies
+    #     """
+    #     return self._catalog.find_datasource_vocab(self.datasource.id, attr_type, basin3d_vocab, query)
 
 
 def basin3d_plugin(cls):

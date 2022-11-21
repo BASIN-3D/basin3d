@@ -40,25 +40,25 @@ class CatalogBase:
         self.variable_dir = 'basin3d.data'
         self.variable_filename = variable_filename
 
-    @dataclass
-    class CompoundMapping:
-        """
-        Helper model to handle compound attribute mapping
-
-        Attributes:
-            - *attr_type:* a single attribute type that is part of the associated compound mapping, e.g. STATISTIC, RESULT_QUALITY, OBSERVED_PROPERTY
-            - *compound_mapping:* the compound mapping
-            - *datasource:* the datasource containing the compound mapping
-        """
-        attr_type: str  # e.g. OBSERVED_PROPERTY
-        compound_mapping: str  # e.g. OBSERVED_PROPERTY:SAMPLING_MEDIUM
-        datasource: DataSource = DataSource()
-
-        def __str__(self):
-            return self.__unicode__()
-
-        def __unicode__(self):
-            return self.compound_mapping
+    # @dataclass
+    # class CompoundMapping:
+    #     """
+    #     Helper model to handle compound attribute mapping
+    #
+    #     Attributes:
+    #         - *attr_type:* a single attribute type that is part of the associated compound mapping, e.g. STATISTIC, RESULT_QUALITY, OBSERVED_PROPERTY
+    #         - *compound_mapping:* the compound mapping
+    #         - *datasource:* the datasource containing the compound mapping
+    #     """
+    #     attr_type: str  # e.g. OBSERVED_PROPERTY
+    #     compound_mapping: str  # e.g. OBSERVED_PROPERTY:SAMPLING_MEDIUM
+    #     datasource: DataSource = DataSource()
+    #
+    #     def __str__(self):
+    #         return self.__unicode__()
+    #
+    #     def __unicode__(self):
+    #         return self.compound_mapping
 
     def initialize(self, plugin_list: list):
         """
@@ -157,24 +157,24 @@ class CatalogBase:
         """
         raise NotImplementedError
 
-    def _get_compound_mapping(self, datasource_id, attr_type, compound_mapping):
-        """
-
-        :param datasource_id:
-        :param attr_type:
-        :param compound_mapping:
-        :return:
-        """
-        raise NotImplementedError
-
-    def _find_compound_mapping(self, datasource_id, attr_type):
-        """
-
-        :param datasource_id:
-        :param attr_type:
-        :return:
-        """
-        raise NotImplementedError
+    # def _get_compound_mapping(self, datasource_id, attr_type, compound_mapping):
+    #     """
+    #
+    #     :param datasource_id:
+    #     :param attr_type:
+    #     :param compound_mapping:
+    #     :return:
+    #     """
+    #     raise NotImplementedError
+    #
+    # def _find_compound_mapping(self, datasource_id, attr_type):
+    #     """
+    #
+    #     :param datasource_id:
+    #     :param attr_type:
+    #     :return:
+    #     """
+    #     raise NotImplementedError
 
     def is_initialized(self) -> bool:
         """Has the catalog been initialized?"""
@@ -196,7 +196,7 @@ class CatalogBase:
         """
         raise NotImplementedError
 
-    def find_attribute_mapping(self, datasource_id, attr_type, attr_vocab) -> Optional[AttributeMapping]:
+    def find_datasource_attribute_mapping(self, datasource_id, attr_type, attr_vocab) -> Optional[AttributeMapping]:
         """
 
         :param datasource_id:
@@ -217,34 +217,34 @@ class CatalogBase:
         """
         raise NotImplementedError
 
-    def find_datasource_vocab(self, datasource_id, attr_type, attr_vocab, b3d_query):
-        """
+    # def find_datasource_vocab(self, datasource_id, attr_type, attr_vocab, b3d_query):
+    #     """
+    #
+    #     :param datasource_id:
+    #     :param attr_type:
+    #     :param attr_vocab:
+    #     :param b3d_query:
+    #     :return:
+    #     """
+    #     raise NotImplementedError
 
-        :param datasource_id:
-        :param attr_type:
-        :param attr_vocab:
-        :param b3d_query:
-        :return:
-        """
-        raise NotImplementedError
-
-    def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False) -> list:
-        """
-
-        :param datasource_id:
-        :param attr_type:
-        :param include_specified_type:
-        :return:
-        """
-        raise NotImplementedError
-
-    def find_compound_mappings(self, datasource_id: str) -> list:
-        """
-
-        :param datasource_id:
-        :return:
-        """
-        raise NotImplementedError
+    # def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False) -> list:
+    #     """
+    #
+    #     :param datasource_id:
+    #     :param attr_type:
+    #     :param include_specified_type:
+    #     :return:
+    #     """
+    #     raise NotImplementedError
+    #
+    # def find_compound_mappings(self, datasource_id: str) -> list:
+    #     """
+    #
+    #     :param datasource_id:
+    #     :return:
+    #     """
+    #     raise NotImplementedError
 
     # --------------------------------------
 
@@ -328,8 +328,8 @@ class CatalogBase:
                 raise CatalogException(
                     f'Plugin {plugin_id}: {filename} is not in correct format. Cannot create catalog.')
 
-            # get a set ready to collect the attribute types for unique compound mappings
-            compound_mappings = set()
+            # # get a set ready to collect the attribute types for unique compound mappings
+            # compound_mappings = set()
 
             # loop thru the file
             for row in reader:
@@ -383,18 +383,18 @@ class CatalogBase:
                 self._insert(attr_mapping)
                 logger.debug(f"{datasource.id}: Mapped {attr_type} {datasource_vocab} to {basin3d_vocab}")
 
-                # if the mapping is compound collect it for later parsing
-                if MAPPING_DELIMITER in attr_type:
-                    compound_mappings.add(attr_type)
+                # # if the mapping is compound collect it for later parsing
+                # if MAPPING_DELIMITER in attr_type:
+                #     compound_mappings.add(attr_type)
 
-        for compound_mapping in compound_mappings:
-            attrs = compound_mapping.split(MAPPING_DELIMITER)
-            for attr in attrs:
-                cm = CatalogBase.CompoundMapping(
-                    compound_mapping=compound_mapping,
-                    attr_type=attr,
-                    datasource=datasource)
-                self._insert(cm)
+        # for compound_mapping in compound_mappings:
+        #     attrs = compound_mapping.split(MAPPING_DELIMITER)
+        #     for attr in attrs:
+        #         cm = CatalogBase.CompoundMapping(
+        #             compound_mapping=compound_mapping,
+        #             attr_type=attr,
+        #             datasource=datasource)
+        #         self._insert(cm)
 
 
 class CatalogTinyDb(CatalogBase):
@@ -404,10 +404,10 @@ class CatalogTinyDb(CatalogBase):
 
         self.in_memory_db = None
         self.in_memory_db_attr = None
-        self.in_memory_db_cm = None
+        # self.in_memory_db_cm = None
         self._observed_properties: Dict[str, ObservedProperty] = {}
         self._attribute_mappings: Dict[str, AttributeMapping] = {}
-        self._compound_mapping: Dict[str, CatalogBase.CompoundMapping] = {}
+        # self._compound_mapping: Dict[str, CatalogBase.CompoundMapping] = {}
         self._datasources: Dict[str, DataSource] = {}
 
     def is_initialized(self) -> bool:
@@ -443,40 +443,40 @@ class CatalogTinyDb(CatalogBase):
         """
         return self._attribute_mappings.get(f'{datasource_id}-{attr_type}-{basin3d_vocab}-{datasource_vocab}', None)
 
-    def _get_compound_mapping(self, datasource_id, attr_type, compound_mapping) -> Optional[CatalogBase.CompoundMapping]:
-        """
-        Access a single compound mapping
-
-        :param datasource_id: str, the datasource identifier
-        :param attr_type: str, single attribute type
-        :param compound_mapping: str, compound mapping for attr_type
-        :return: a :class:`basin3d.catalog.CatalogBase.CompoundMapping` object
-        """
-        return self._compound_mapping.get(f'{datasource_id}-{attr_type}-{compound_mapping}', None)
-
-    def _find_compound_mapping(self, datasource_id, attr_type) -> Optional[CatalogBase.CompoundMapping]:
-        """
-        Get the compound mapping for the specified attr_type
-
-        :param datasource_id: datasource identifier
-        :param attr_type: attribute type
-        :return: a :class:`basin3d.catalog.CatalogBase.CompoundMapping` object
-        """
-        if self.in_memory_db_cm is None:
-            msg = 'Compound mapping database has not been initialized.'
-            logger.critical(msg)
-            raise CatalogException(msg)
-
-        from tinydb import Query
-        query = Query()
-
-        results = self.in_memory_db_cm.search((query.datasource_id == datasource_id) & (query.attr_type == attr_type.upper()))
-
-        if results:
-            # there should only be one result
-            return self._get_compound_mapping(**results[0])
-
-        return None
+    # def _get_compound_mapping(self, datasource_id, attr_type, compound_mapping) -> Optional[CatalogBase.CompoundMapping]:
+    #     """
+    #     Access a single compound mapping
+    #
+    #     :param datasource_id: str, the datasource identifier
+    #     :param attr_type: str, single attribute type
+    #     :param compound_mapping: str, compound mapping for attr_type
+    #     :return: a :class:`basin3d.catalog.CatalogBase.CompoundMapping` object
+    #     """
+    #     return self._compound_mapping.get(f'{datasource_id}-{attr_type}-{compound_mapping}', None)
+    #
+    # def _find_compound_mapping(self, datasource_id, attr_type) -> Optional[CatalogBase.CompoundMapping]:
+    #     """
+    #     Get the compound mapping for the specified attr_type
+    #
+    #     :param datasource_id: datasource identifier
+    #     :param attr_type: attribute type
+    #     :return: a :class:`basin3d.catalog.CatalogBase.CompoundMapping` object
+    #     """
+    #     if self.in_memory_db_cm is None:
+    #         msg = 'Compound mapping database has not been initialized.'
+    #         logger.critical(msg)
+    #         raise CatalogException(msg)
+    #
+    #     from tinydb import Query
+    #     query = Query()
+    #
+    #     results = self.in_memory_db_cm.search((query.datasource_id == datasource_id) & (query.attr_type == attr_type.upper()))
+    #
+    #     if results:
+    #         # there should only be one result
+    #         return self._get_compound_mapping(**results[0])
+    #
+    #     return None
 
     def find_observed_property(self, basin3d_vocab: str) -> Optional[ObservedProperty]:
         """
@@ -518,13 +518,13 @@ class CatalogTinyDb(CatalogBase):
                 else:
                     logger.warning(f'BASIN-3D does not support variable {b3d_vocab}')
 
-    def find_attribute_mapping(self, datasource_id: str, attr_type: str, attr_vocab: str) -> Optional[AttributeMapping]:
+    def find_datasource_attribute_mapping(self, datasource_id: str, attr_type: str, datasource_vocab: str) -> Optional[AttributeMapping]:
         """
         Find the datasource attribute vocabulary to BASIN-3D mapping given a specific datasource_id, attr_type, and datasource attr_vocab.
 
         :param: datasource_id: the datasource identifier
         :param: attr_type: attribute type
-        :param: attr_vocab: the attribute vocabulary; only datasource vocabulary currently supported
+        :param: datasource_vocab: the attribute vocabulary; only datasource vocabulary currently supported
         :return: a :class:`basin3d.models.AttributeMapping` object
         """
         if self.in_memory_db_attr is None:
@@ -536,18 +536,20 @@ class CatalogTinyDb(CatalogBase):
         query = Query()
 
         results = self.in_memory_db_attr.search(
-            (query.datasource_vocab == attr_vocab) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
-        basin3d_vocab = NO_MAPPING_TEXT
-        datasource_vocab = attr_vocab
+            (query.datasource_vocab == datasource_vocab) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
 
+        # Only one result should be returned. If so return it and all is good.
         if len(results) == 1:
             return self._get_attribute_mapping(**results[0])
+        # If not, deal with results:
+        # Case 1: more than one mapping for the datasource vocabulary. This should not happen. Raise an exception.
         elif len(results) > 1:
             error_msg = (f'More than one attribute mapping found for datasource vocab: "{datasource_vocab}" '
                          f'in datasource: "{datasource_id}". This should never happen.')
             logger.critical(error_msg)
             raise CatalogException(error_msg)
 
+        # Case 2: no mapping was found. Return an empty AttributeMapping object
         msg = f'No mapping was found for datasource vocab: "{datasource_vocab}" in datasource: "{datasource_id}".'
         datasource = self._get_datasource(datasource_id)
 
@@ -556,7 +558,7 @@ class CatalogTinyDb(CatalogBase):
             msg = f'No datasource was found for id "{datasource_id}".'
             logger.warning(msg)
 
-        return AttributeMapping(attr_type=attr_type, basin3d_vocab=basin3d_vocab, basin3d_desc=[],
+        return AttributeMapping(attr_type=attr_type, basin3d_vocab=NO_MAPPING_TEXT, basin3d_desc=[],
                                 datasource_vocab=datasource_vocab, datasource_desc=msg, datasource=datasource)
 
     def find_attribute_mappings(self, datasource_id: str = None, attr_type: str = None, attr_vocab: Union[str, List] = None,
@@ -578,7 +580,7 @@ class CatalogTinyDb(CatalogBase):
             raise CatalogException(msg)
 
         if attr_type and attr_type not in MappedAttributeEnum.values():
-            msg = f'"{attr_type}" is not an attribute type suppored by BASIN-3D.'
+            msg = f'"{attr_type}" is not an attribute type supported by BASIN-3D.'
             logger.critical(msg)
             raise CatalogException(msg)
 
@@ -587,17 +589,7 @@ class CatalogTinyDb(CatalogBase):
             logger.critical(msg)
             raise CatalogException(msg)
 
-        from tinydb import Query
-        query = Query()
-
-        attr_vocab_list = []
-        if attr_vocab:
-            if isinstance(attr_vocab, str):
-                attr_vocab = [attr_vocab]
-            elif not isinstance(attr_vocab, List):
-                raise CatalogException("attr_vocab must be a str or list")
-            attr_vocab_list = attr_vocab.copy()
-
+        # Function for TinyDB search
         def is_in(x, attr_vocabs=attr_vocab, is_from_basin3d=from_basin3d):
             if is_from_basin3d and MAPPING_DELIMITER in x:
                 x_elements = x.split(MAPPING_DELIMITER)
@@ -607,11 +599,24 @@ class CatalogTinyDb(CatalogBase):
             else:
                 return x in attr_vocabs
 
-        # none for all 3 query parameters --> get all mapped attributes back for all registered plugins
+        from tinydb import Query
+        query = Query()
+
+        # Set the attribute vocab list to track mappings not found
+        specified_attr_vocab_not_found = []
+        if attr_vocab:
+            if isinstance(attr_vocab, str):
+                attr_vocab = [attr_vocab]
+            elif not isinstance(attr_vocab, List):
+                raise CatalogException("attr_vocab must be a str or list")
+            specified_attr_vocab_not_found = attr_vocab.copy()
+
+        # If no query parameters --> get all mapped attributes back for all registered plugins
         if not datasource_id and not attr_vocab and not attr_type:
             # return all mapped attributes possible possible
             for attr_mapping in self._attribute_mappings.values():
                 yield attr_mapping
+        # Otherwise search depends on the set of parameters provided
         else:
             if not datasource_id:
                 if attr_type and attr_vocab and from_basin3d:
@@ -625,27 +630,29 @@ class CatalogTinyDb(CatalogBase):
                 else:
                     results = self.in_memory_db_attr.search(query.attr_type.search(attr_type))
 
+            # Returns all possible attributes for a data source
             elif not attr_type and not attr_vocab:
-                # This returns all possible attributes for a data source
                 results = self.in_memory_db_attr.search(query.datasource_id == datasource_id)
 
+            # Returns all attributes for a data source and attribute type
             elif not attr_vocab:
-                # Returns all attributes for a data source and attribute type
                 results = self.in_memory_db_attr.search((query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
 
+            # Return mappings if only the datasource and attr_vocab are specified.
             elif not attr_type:
                 if from_basin3d:
                     results = self.in_memory_db_attr.search((query.basin3d_vocab.test(is_in)) & (query.datasource_id == datasource_id))
                 else:
                     results = self.in_memory_db_attr.search((query.datasource_vocab.test(is_in)) & (query.datasource_id == datasource_id))
 
+            # Finally, all parameters specified:
+            # Convert from BASIN-3D to DataSource variable name
             elif from_basin3d:
-                # Convert from BASIN-3D to DataSource variable name
                 results = self.in_memory_db_attr.search(
                     (query.basin3d_vocab.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
 
+            # Convert from DataSource variable name to BASIN-3D
             else:
-                # Convert from DataSource variable name to BASIN-3D
                 results = self.in_memory_db_attr.search(
                     (query.datasource_vocab.test(is_in)) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
 
@@ -653,26 +660,32 @@ class CatalogTinyDb(CatalogBase):
             attr_map: Optional[AttributeMapping]
             for r in results:
                 attr_map = self._get_attribute_mapping(**r)
+
+                # if AttributeMapping is not found: THIS SHOULD NEVER HAPPEN.
                 if attr_map is None:
                     logger.error(f'AttributeMapping not found given database search results. THIS SHOULD NEVER HAPPPEN.')
                     continue
 
+                # If attr_vocab was specified, track what was found for the datasource
                 if attr_vocab:
                     vocabs = [attr_map.datasource_vocab]
                     if from_basin3d:
                         vocabs = attr_map.basin3d_vocab.split(MAPPING_DELIMITER)
 
+                    # look for it in the specified vocabs, remove it from the not found list
                     for vocab in vocabs:
                         try:
-                            idx = attr_vocab_list.index(vocab)
-                            attr_vocab_list.pop(idx)
+                            idx = specified_attr_vocab_not_found.index(vocab)
+                            specified_attr_vocab_not_found.pop(idx)
                         except ValueError:
                             pass
 
+                # yield the AttributeMapping
                 yield attr_map
 
-            if attr_vocab_list:
-                attr_vocab_text = ', '.join(attr_vocab_list)
+            # If any specified attr_vocabs were not found, add info messages
+            if specified_attr_vocab_not_found:
+                attr_vocab_text = ', '.join(specified_attr_vocab_not_found)
                 attr_vocab_source = 'datasource'
                 if from_basin3d:
                     attr_vocab_source = 'BASIN-3D'
@@ -688,156 +701,156 @@ class CatalogTinyDb(CatalogBase):
 
             return StopIteration(catalog_messages)
 
-    def find_datasource_vocab(self, datasource_id: str, attr_type: str, basin3d_vocab: Union[str, list], b3d_query) -> list:
-        """
-        Find the datasource vocabulary(ies) for the specified datasource, attribute type, BASIN-3D vocabulary, and full query that may specify other attributes.
-        Because multiple datasource vocabularies can be mapped to the same BASIN-3D vocabulary, the return is a list of the datasource vocabs.
+    # def find_datasource_vocab(self, datasource_id: str, attr_type: str, basin3d_vocab: Union[str, list], b3d_query) -> list:
+    #     """
+    #     Find the datasource vocabulary(ies) for the specified datasource, attribute type, BASIN-3D vocabulary, and full query that may specify other attributes.
+    #     Because multiple datasource vocabularies can be mapped to the same BASIN-3D vocabulary, the return is a list of the datasource vocabs.
+    #
+    #     :param datasource_id: the datasource identifier
+    #     :param attr_type: the attribute type
+    #     :param basin3d_vocab: the BASIN-3D vocabulary
+    #     :param b3d_query: either a QueryBase class or subclass object, or a dictionary
+    #     :return: list of the datasource vocabularies
+    #     """
+    #     if self.in_memory_db_attr is None:
+    #         msg = 'Attribute Store has not been initialized.'
+    #         logger.critical(msg)
+    #         raise CatalogException(msg)
+    #
+    #     from tinydb import Query
+    #     query = Query()
+    #
+    #     # convert attr_type to the form in the database if necessary. e.g. OBSERVED_PROPERTIES --> OBSERVED_PROPERTY
+    #     attr_type = attr_type.upper()
+    #
+    #     # is the attr_type part of a compound mapping?
+    #     compound_mapping = self._find_compound_mapping(datasource_id, attr_type)
+    #
+    #     b3d_vocab_combo_str = [basin3d_vocab]
+    #
+    #     # if compound_mapping, find all the relevant value combos given the query
+    #     if compound_mapping:
+    #         compound_mapping_attrs = compound_mapping.compound_mapping  # e.g. OPV
+    #         b3d_vocab_filter_lists = []  # list to hold lists of specified filters, one for each attr
+    #
+    #         # loop thru each of the compound mapping attributes, build a list of lists of query combos
+    #         for attr in compound_mapping_attrs.split(MAPPING_DELIMITER):
+    #             attr_value = None
+    #
+    #             # by default: match any number of characters excepting a new line for the attribute
+    #             # replace this value below if a value for the attribute is specified in the query
+    #             filter_values = ['.*']
+    #             # if the attr is the attr_type, set the filter to the specified vocab
+    #             if attr == attr_type:
+    #                 filter_values = [basin3d_vocab]
+    #             elif issubclass(b3d_query.__class__, QueryBase) and hasattr(b3d_query, attr.lower()):
+    #                 attr_value = getattr(b3d_query, attr.lower())
+    #             elif isinstance(b3d_query, dict) and attr.lower() in b3d_query.keys():
+    #                 attr_value = b3d_query.get(attr.lower())
+    #
+    #             # if there is a value, replace the default value
+    #             if attr_value:
+    #                 filter_values = attr_value
+    #                 # if the values are a str, change it to a list
+    #                 if isinstance(attr_value, str):
+    #                     filter_values = attr_value.split(',')
+    #
+    #             # append the filter list to the main list
+    #             b3d_vocab_filter_lists.append(filter_values)
+    #
+    #         # create a list of sets contain the combinations of filter options for each attr
+    #         b3d_vocab_combo_sets = list(product(*b3d_vocab_filter_lists))
+    #
+    #         # change each set into a str for search
+    #         b3d_vocab_combo_str = [MAPPING_DELIMITER.join(v) for v in b3d_vocab_combo_sets]
+    #
+    #         # change the attr_type to the compound mapping str
+    #         attr_type = compound_mapping_attrs
+    #
+    #     ds_vocab = []
+    #     no_match_list = []
+    #
+    #     # Loop thru the list of vocabulary string combos to search the attribute mapping database
+    #     for basin3d_vocab_str in b3d_vocab_combo_str:
+    #         query_results = self.in_memory_db_attr.search(
+    #             (query.datasource_id == datasource_id) & (query.attr_type == attr_type) & (query.basin3d_vocab.matches(basin3d_vocab_str)))
+    #         if query_results:
+    #             for qr in query_results:
+    #
+    #                 # pop the datasource_desc without altering the restuls to find the attribute mapping
+    #                 qr_copy = qr.copy()
+    #                 qr_copy.pop('datasource_desc')
+    #
+    #                 attr_mapping = self._get_attribute_mapping(**qr_copy)
+    #                 if attr_mapping is not None:
+    #                     ds_vocab.append(attr_mapping.datasource_vocab)
+    #                     continue
+    #
+    #         # if not result for the combo, add it to the no_match_list
+    #         no_match_list.append(basin3d_vocab_str)
+    #
+    #     if not ds_vocab:
+    #         ds_vocab = [NO_MAPPING_TEXT]
+    #
+    #     if no_match_list:
+    #         logger.info(f'Datasource "{datasource_id}" did not have matches for attr_type "{attr_type}" and BASIN-3D vocab: {", ".join(no_match_list)}.')
+    #
+    #     return ds_vocab
 
-        :param datasource_id: the datasource identifier
-        :param attr_type: the attribute type
-        :param basin3d_vocab: the BASIN-3D vocabulary
-        :param b3d_query: either a QueryBase class or subclass object, or a dictionary
-        :return: list of the datasource vocabularies
-        """
-        if self.in_memory_db_attr is None:
-            msg = 'Attribute Store has not been initialized.'
-            logger.critical(msg)
-            raise CatalogException(msg)
+    # def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False, is_query=False) -> list:
+    #     """
+    #     Return the attributes if attr_type is part of a compound mapping
+    #
+    #     :param datasource_id: the datasource identifier
+    #     :param attr_type: the attribute type
+    #     :param include_specified_type: bool, True = include in the return the specified attr_type. False: return the other attribute types that are part of the compound mapping.
+    #     :return: list of attributes in the compound mapping
+    #     """
+    #     if self.in_memory_db_cm is None:
+    #         msg = 'Compound mapping database has not been initialized.'
+    #         logger.critical(msg)
+    #         raise CatalogException(msg)
+    #
+    #     from tinydb import Query
+    #     query = Query()
+    #
+    #     attr_type = attr_type.upper()
+    #     results = self.in_memory_db_cm.search((query.datasource_id == datasource_id) & (query.compound_mapping.matches(attr_type)))
+    #
+    #     attr_types = []
+    #     for r in results:
+    #         compound_attr_type = getattr(self._get_compound_mapping(**r), 'attr_type')
+    #         if not include_specified_type and compound_attr_type == attr_type:
+    #             continue
+    #         if is_query:
+    #             compound_attr_type = compound_attr_type.lower()
+    #         attr_types.append(compound_attr_type)
+    #
+    #     return attr_types
 
-        from tinydb import Query
-        query = Query()
-
-        # convert attr_type to the form in the database if necessary. e.g. OBSERVED_PROPERTIES --> OBSERVED_PROPERTY
-        attr_type = attr_type.upper()
-
-        # is the attr_type part of a compound mapping?
-        compound_mapping = self._find_compound_mapping(datasource_id, attr_type)
-
-        b3d_vocab_combo_str = [basin3d_vocab]
-
-        # if compound_mapping, find all the relevant value combos given the query
-        if compound_mapping:
-            compound_mapping_attrs = compound_mapping.compound_mapping  # e.g. OPV
-            b3d_vocab_filter_lists = []  # list to hold lists of specified filters, one for each attr
-
-            # loop thru each of the compound mapping attributes, build a list of lists of query combos
-            for attr in compound_mapping_attrs.split(MAPPING_DELIMITER):
-                attr_value = None
-
-                # by default: match any number of characters excepting a new line for the attribute
-                # replace this value below if a value for the attribute is specified in the query
-                filter_values = ['.*']
-                # if the attr is the attr_type, set the filter to the specified vocab
-                if attr == attr_type:
-                    filter_values = [basin3d_vocab]
-                elif issubclass(b3d_query.__class__, QueryBase) and hasattr(b3d_query, attr.lower()):
-                    attr_value = getattr(b3d_query, attr.lower())
-                elif isinstance(b3d_query, dict) and attr.lower() in b3d_query.keys():
-                    attr_value = b3d_query.get(attr.lower())
-
-                # if there is a value, replace the default value
-                if attr_value:
-                    filter_values = attr_value
-                    # if the values are a str, change it to a list
-                    if isinstance(attr_value, str):
-                        filter_values = attr_value.split(',')
-
-                # append the filter list to the main list
-                b3d_vocab_filter_lists.append(filter_values)
-
-            # create a list of sets contain the combinations of filter options for each attr
-            b3d_vocab_combo_sets = list(product(*b3d_vocab_filter_lists))
-
-            # change each set into a str for search
-            b3d_vocab_combo_str = [MAPPING_DELIMITER.join(v) for v in b3d_vocab_combo_sets]
-
-            # change the attr_type to the compound mapping str
-            attr_type = compound_mapping_attrs
-
-        ds_vocab = []
-        no_match_list = []
-
-        # Loop thru the list of vocabulary string combos to search the attribute mapping database
-        for basin3d_vocab_str in b3d_vocab_combo_str:
-            query_results = self.in_memory_db_attr.search(
-                (query.datasource_id == datasource_id) & (query.attr_type == attr_type) & (query.basin3d_vocab.matches(basin3d_vocab_str)))
-            if query_results:
-                for qr in query_results:
-
-                    # pop the datasource_desc without altering the restuls to find the attribute mapping
-                    qr_copy = qr.copy()
-                    qr_copy.pop('datasource_desc')
-
-                    attr_mapping = self._get_attribute_mapping(**qr_copy)
-                    if attr_mapping is not None:
-                        ds_vocab.append(attr_mapping.datasource_vocab)
-                        continue
-
-            # if not result for the combo, add it to the no_match_list
-            no_match_list.append(basin3d_vocab_str)
-
-        if not ds_vocab:
-            ds_vocab = [NO_MAPPING_TEXT]
-
-        if no_match_list:
-            logger.info(f'Datasource "{datasource_id}" did not have matches for attr_type "{attr_type}" and BASIN-3D vocab: {", ".join(no_match_list)}.')
-
-        return ds_vocab
-
-    def find_compound_mapping_attributes(self, datasource_id, attr_type, include_specified_type=False, is_query=False) -> list:
-        """
-        Return the attributes if attr_type is part of a compound mapping
-
-        :param datasource_id: the datasource identifier
-        :param attr_type: the attribute type
-        :param include_specified_type: bool, True = include in the return the specified attr_type. False: return the other attribute types that are part of the compound mapping.
-        :return: list of attributes in the compound mapping
-        """
-        if self.in_memory_db_cm is None:
-            msg = 'Compound mapping database has not been initialized.'
-            logger.critical(msg)
-            raise CatalogException(msg)
-
-        from tinydb import Query
-        query = Query()
-
-        attr_type = attr_type.upper()
-        results = self.in_memory_db_cm.search((query.datasource_id == datasource_id) & (query.compound_mapping.matches(attr_type)))
-
-        attr_types = []
-        for r in results:
-            compound_attr_type = getattr(self._get_compound_mapping(**r), 'attr_type')
-            if not include_specified_type and compound_attr_type == attr_type:
-                continue
-            if is_query:
-                compound_attr_type = compound_attr_type.lower()
-            attr_types.append(compound_attr_type)
-
-        return attr_types
-
-    def find_compound_mappings(self, datasource_id: str) -> list:
-        """
-        List any compound mappings for the specified datasource
-        :param datasource_id:
-        :return: list of :class:`CatalogBase.CompoundMapping`
-        """
-        if self.in_memory_db_cm is None:
-            msg = 'Compound mapping database has not been initialized.'
-            logger.critical(msg)
-            raise CatalogException(msg)
-
-        from tinydb import Query
-        query = Query()
-
-        compound_mappings = set()
-
-        results = self.in_memory_db_cm.search((query.datasource_id == datasource_id))
-
-        for r in results:
-            compound_mapping = self._get_compound_mapping(**r)
-            compound_mappings.add(compound_mapping.compound_mapping)
-
-        return list(compound_mappings)
+    # def find_compound_mappings(self, datasource_id: str) -> list:
+    #     """
+    #     List any compound mappings for the specified datasource
+    #     :param datasource_id:
+    #     :return: list of :class:`CatalogBase.CompoundMapping`
+    #     """
+    #     if self.in_memory_db_cm is None:
+    #         msg = 'Compound mapping database has not been initialized.'
+    #         logger.critical(msg)
+    #         raise CatalogException(msg)
+    #
+    #     from tinydb import Query
+    #     query = Query()
+    #
+    #     compound_mappings = set()
+    #
+    #     results = self.in_memory_db_cm.search((query.datasource_id == datasource_id))
+    #
+    #     for r in results:
+    #         compound_mapping = self._get_compound_mapping(**r)
+    #         compound_mappings.add(compound_mapping.compound_mapping)
+    #
+    #     return list(compound_mappings)
 
     def _init_catalog(self):
         """
@@ -851,8 +864,8 @@ class CatalogTinyDb(CatalogBase):
         self.in_memory_db = TinyDB(storage=MemoryStorage)
         self.in_memory_db_attr = self.in_memory_db.table('attr')
         self.in_memory_db_attr.truncate()
-        self.in_memory_db_cm = self.in_memory_db.table('compound_mappings')
-        self.in_memory_db_cm.truncate()
+        # self.in_memory_db_cm = self.in_memory_db.table('compound_mappings')
+        # self.in_memory_db_cm.truncate()
 
     def _insert(self, record):
         """
@@ -871,13 +884,13 @@ class CatalogTinyDb(CatalogBase):
                                                'basin3d_desc': record.basin3d_desc,
                                                'datasource_vocab': record.datasource_vocab,
                                                'datasource_desc': record.datasource_desc, })
-            elif isinstance(record, CatalogBase.CompoundMapping):
-                key = f'{record.datasource.id}-{record.attr_type}-{record.compound_mapping}'
-                logger.debug(key)
-                self._compound_mapping[key] = record
-                self.in_memory_db_cm.insert({'datasource_id': record.datasource.id,
-                                             'attr_type': record.attr_type,
-                                             'compound_mapping': record.compound_mapping, })
+            # elif isinstance(record, CatalogBase.CompoundMapping):
+            #     key = f'{record.datasource.id}-{record.attr_type}-{record.compound_mapping}'
+            #     logger.debug(key)
+            #     self._compound_mapping[key] = record
+            #     self.in_memory_db_cm.insert({'datasource_id': record.datasource.id,
+            #                                  'attr_type': record.attr_type,
+            #                                  'compound_mapping': record.compound_mapping, })
             elif isinstance(record, DataSource):
                 self._datasources[record.id] = record
         else:
