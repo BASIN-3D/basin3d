@@ -25,6 +25,7 @@ import json
 
 from collections import namedtuple
 from dataclasses import dataclass, field
+from itertools import repeat
 from numbers import Number
 from typing import List, Optional, Union
 
@@ -280,6 +281,30 @@ class Base(JSONSerializable):
 
         self.__setattr__ = __setattr__
         self.__delattr__ = __delattr__
+
+    def _create_mapped_attributes(self, attr_type, attr_mappings):
+        """
+
+        :param attr_type:
+        :param attr_mappings:
+        :return:
+        """
+
+        def create_mapped_attribute(a_type, a_mapping):
+            return MappedAttribute(a_type, a_mapping)
+
+        if isinstance(attr_mappings, list) and attr_mappings:
+            return list(map(create_mapped_attribute, repeat(attr_type), attr_mappings))
+
+        elif attr_mappings:
+            return create_mapped_attribute(attr_type, attr_mappings)
+
+    def _translate_mapped_attributes(self, plugin_access, mapped_attrs, **kwargs):
+        translated_attrs = translate_attributes(plugin_access, mapped_attrs, **kwargs)
+        for attr in mapped_attrs:
+            if attr in translated_attrs.keys() and translated_attrs[attr]:
+                translated_attrs[attr] = self._create_mapped_attributes(attr.upper(), translated_attrs[attr])
+        return translated_attrs
 
     @property
     def datasource_ids(self):
@@ -923,8 +948,8 @@ class Feature(Base):
         if self.observed_properties:
             if not isinstance(self.observed_properties, list):
                 logger.warning("observed_properties parameter not in expected list format")
-            self.observed_properties = plugin_access.get_datasource_mapped_attribute(
-                attr_type='OBSERVED_PROPERTY', attr_vocab=self.observed_properties)
+            self.observed_properties = self._create_mapped_attributes('OBSERVED_PROPERTY', get_datasource_mapped_attribute(
+                plugin_access, attr_type='OBSERVED_PROPERTY', datasource_vocab=self.observed_properties))
         else:
             self.observed_properties = None
 
@@ -1274,7 +1299,7 @@ class Observation(Base):
     def _translate_attributes(self, plugin_access, **kwargs):
         # ToDo: see note with TimeseriesTVPObservation
         mapped_attrs = ('observed_property', 'result_quality')
-        return translate_attributes(plugin_access, mapped_attrs, **kwargs)
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)
 
     @property
     def id(self) -> str:
@@ -1433,7 +1458,8 @@ class ResultListTVP(Base):
         # translate quality
         # ToDo: figure out how to handle quality v result_quality discrepancy
         if 'quality' in kwargs and kwargs['quality']:
-            kwargs['quality'] = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
+            attr_mappings = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
+            kwargs['quality'] = self._create_mapped_attributes('RESULT_QUALITY', attr_mappings)
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
@@ -1499,7 +1525,8 @@ class ResultPointFloat(Base):
         # translate quality
         # ToDo: figure out how to handle quality v result_quality discrepancy
         if 'quality' in kwargs and kwargs['quality']:
-            kwargs['quality'] = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
+            attr_mappings = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
+            kwargs['quality'] = self._create_mapped_attributes('RESULT_QUALITY', attr_mappings)
 
         # Initialize after the attributes have been set
         super().__init__(None, **kwargs)
@@ -1578,4 +1605,4 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
         # ToDo: Introspect which attributes are MappedAttributes. Cannot do this easily b/c using @property decorator.
         # For a simple dataclass, typing.get_type_hints would work. As properties, the fget for each property can be introspected with typing.get_type_hints
         mapped_attrs = ('observed_property', 'statistic', 'aggregation_duration', 'result_quality', 'sampling_medium')
-        return translate_attributes(plugin_access, mapped_attrs, **kwargs)
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)

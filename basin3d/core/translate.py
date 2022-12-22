@@ -17,7 +17,6 @@ from itertools import product, repeat
 from typing import Optional, Union
 
 from basin3d.core import monitor
-from basin3d.core.models import MappedAttribute
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 
@@ -50,27 +49,22 @@ def translate_attributes(plugin_access, mapped_attrs, **kwargs):
 
 def get_datasource_mapped_attribute(plugin_access, attr_type, datasource_vocab):
     """
-            Get the `basin3d.models.MappedAttribute` object(s) for the specified attribute type and datasource attribute vocab(s)
+    Get the `basin3d.models.MappedAttribute` object(s) for the specified attribute type and datasource attribute vocab(s)
 
-            :param plugin_access: plugin_access
-            :param attr_type: attribute type
-            :param datasource_vocab: datasource attribute vocabulary
-            :return: a single or list of `basin3d.models.MappedAttribute` objects
-            """
-
-    def create_mapped_attribute(a_type, a_mapping):
-        return MappedAttribute(a_type, a_mapping)
+    :param plugin_access: plugin_access
+    :param attr_type: attribute type
+    :param datasource_vocab: datasource attribute vocabulary
+    :return: a single or list of `basin3d.models.MappedAttribute` objects
+    """
 
     if isinstance(datasource_vocab, str):
-        attr_mapping = plugin_access.get_datasource_attribute_mapping(attr_type, datasource_vocab)
-        return create_mapped_attribute(attr_type, attr_mapping)
+        return plugin_access.get_datasource_attribute_mapping(attr_type, datasource_vocab)
 
     elif isinstance(datasource_vocab, list):
-        mapping_attrs = list(map(plugin_access.get_datasource_attribute_mapping, repeat(attr_type), datasource_vocab))
-        return list(map(create_mapped_attribute, repeat(attr_type), mapping_attrs))
+        return list(map(plugin_access.get_datasource_attribute_mapping, repeat(attr_type), datasource_vocab))
 
 
-def get_attr_type_strs_in_compound_mappings(plugin_access) -> list:
+def get_attr_types_in_compound_mappings(plugin_access) -> list:
     """
     Get all the compound mappings for a datasource if any exist
 
@@ -79,7 +73,7 @@ def get_attr_type_strs_in_compound_mappings(plugin_access) -> list:
     """
     compound_mapping_attrs = set()
 
-    attr_mapping_iterator = plugin_access.get_attribute_mappings(datasource_id=plugin_access.datasource.id)
+    attr_mapping_iterator = plugin_access.get_compound_attribute_mappings()
 
     for attr_mapping in attr_mapping_iterator:
         if MAPPING_DELIMITER in attr_mapping.attr_type:
@@ -98,10 +92,10 @@ def get_attr_type_if_compound_mapping(plugin_access, attr_type: str) -> Optional
     """
     compound_mapping_str = None
     attr_type = attr_type.upper()
-    attr_mapping_iterator = plugin_access.get_attribute_mappings(plugin_access.datasource.id, attr_type)
+    attr_mapping_iterator = plugin_access.get_attribute_mappings(attr_type=attr_type)
 
     # look at the first element returned if there is one
-    for idx, attr_mapping in enumerate(attr_mapping_iterator):
+    for attr_mapping in attr_mapping_iterator:
         if MAPPING_DELIMITER in attr_mapping.attr_type:
             compound_mapping_str = attr_mapping.attr_type
         # only need to look at the first attribute mapping returned
@@ -188,15 +182,17 @@ def translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab: 
         # change each set into a str for search
         b3d_vocab_combo_str = [MAPPING_DELIMITER.join(v) for v in b3d_vocab_combo_sets]
 
+        # DELETE (probably)
         # change the attr_type to the compound mapping str
-        attr_type = compound_mapping_attrs
+        # attr_type = compound_mapping_attrs
 
     ds_vocab = []
     no_match_list = []
 
     # Loop thru the list of vocabulary string combos to search the attribute mapping database
     for basin3d_vocab_str in b3d_vocab_combo_str:
-        results_iterator = plugin_access.get_attribute_mappings(plugin_access.datasource.id, attr_type, basin3d_vocab_str, from_basin3d=True)
+        results_iterator = plugin_access.get_attribute_mappings(attr_type=attr_type,
+                                                                attr_vocab=basin3d_vocab_str, from_basin3d=True)
         query_results = []
 
         # there may be more than one datasource variable mapped to the specified BASIN-3D vocab
@@ -256,7 +252,7 @@ class TranslatorMixin(object):
         query_mapped_fields_ordered = []
 
         # get list of compound mappings if any
-        compound_mappings = get_datasource_compound_attr_mappings(plugin_access)
+        compound_mappings = get_attr_types_in_compound_mappings(plugin_access)
 
         # If there are compound mappings...
         if compound_mappings:
@@ -312,7 +308,7 @@ class TranslatorMixin(object):
                 setattr(query, attr, ds_vocab)
 
                 # look up whether the attr is part of a compound mapping
-                compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper(), is_query=True)
+                compound_attrs = get_single_attr_types_in_compound_mappings(plugin_access, attr)
                 # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
                 for compound_attr in compound_attrs:
                     compound_attr = compound_attr.lower()

@@ -72,7 +72,7 @@ class DataSourcePluginAccess:
         :param attr_vocab: datasource attribute vocabulary
         :return: a `basin3d.models.AttributeMapping` object
         """
-        return self._catalog.find_attribute_mapping(self.datasource.id, attr_type, attr_vocab)
+        return self._catalog.find_datasource_attribute_mapping(self.datasource.id, attr_type, attr_vocab)
 
     # def get_datasource_mapped_attribute(self, attr_type, attr_vocab):
     #     """
@@ -105,15 +105,15 @@ class DataSourcePluginAccess:
         """
         return self._catalog.find_attribute_mappings(self.datasource.id, attr_type, attr_vocab, from_basin3d)
 
-    # def get_compound_mapping_attributes(self, attr_type, is_query=True):
-    #     """
-    #     Get other attributes if attr_type is part of compound mapping
-    #
-    #     :param attr_type:
-    #     :param is_query:
-    #     :return:
-    #     """
-    #     return self._catalog.find_compound_mapping_attributes(self.datasource.id, attr_type, is_query=is_query)
+    def get_compound_attribute_mappings(self):
+        """
+        Get other attributes if attr_type is part of compound mapping
+
+        :param attr_type:
+        :param is_query:
+        :return:
+        """
+        return self._catalog.find_compound_attribute_mappings(self.datasource.id)
 
     # def get_compound_mapping_str(self):
     #     """

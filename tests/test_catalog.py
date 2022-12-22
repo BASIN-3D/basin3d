@@ -66,17 +66,17 @@ def catalog(monkeypatch):
 # ********* The catalog is only first created in the test_create_catalog function below.
 
 # CompoundMapping model (catalogBASE)
-def test_compound_mapping_model():
-    from basin3d.core.catalog import CatalogBase
-
-    catalog = CatalogBase()
-    datasource = get_datasource_from_id('Alpha', 'A')
-    compound_mapping = catalog.CompoundMapping(attr_type='TEST',
-                                               compound_mapping='TEST:TEST',
-                                               datasource=datasource)
-    assert compound_mapping.attr_type == 'TEST'
-    assert compound_mapping.compound_mapping == 'TEST:TEST'
-    assert compound_mapping.datasource == datasource
+# def test_compound_mapping_model():
+#     from basin3d.core.catalog import CatalogBase
+#
+#     catalog = CatalogBase()
+#     datasource = get_datasource_from_id('Alpha', 'A')
+#     compound_mapping = catalog.CompoundMapping(attr_type='TEST',
+#                                                compound_mapping='TEST:TEST',
+#                                                datasource=datasource)
+#     assert compound_mapping.attr_type == 'TEST'
+#     assert compound_mapping.compound_mapping == 'TEST:TEST'
+#     assert compound_mapping.datasource == datasource
 
 
 # _get_attribute_enum (catalogBASE)
@@ -166,21 +166,7 @@ def test_not_initialized_errors(caplog):
     caplog.clear()
     del log_msgs
     with pytest.raises(CatalogException):
-        new_catalog._find_compound_mapping('Foo', 'FOO')
-    log_msgs = [rec.message for rec in caplog.records]
-    assert 'Compound mapping database has not been initialized.' in log_msgs
-
-    caplog.clear()
-    del log_msgs
-    with pytest.raises(CatalogException):
-        new_catalog.find_compound_mappings('Foo')
-    log_msgs = [rec.message for rec in caplog.records]
-    assert 'Compound mapping database has not been initialized.' in log_msgs
-
-    caplog.clear()
-    del log_msgs
-    with pytest.raises(CatalogException):
-        new_catalog.find_attribute_mapping('Foo', 'FOO', 'Foo')
+        new_catalog.find_datasource_attribute_mapping('Foo', 'FOO', 'Foo')
     log_msgs = [rec.message for rec in caplog.records]
     assert 'Attribute Store has not been initialized.' in log_msgs
 
@@ -196,16 +182,11 @@ def test_not_initialized_errors(caplog):
     caplog.clear()
     del log_msgs
     with pytest.raises(CatalogException):
-        new_catalog.find_datasource_vocab('Foo', 'FOO', 'Foo', {})
+        test_gen = new_catalog.find_attribute_mappings()
+        for attr_map in test_gen:
+            pass
     log_msgs = [rec.message for rec in caplog.records]
     assert 'Attribute Store has not been initialized.' in log_msgs
-
-    caplog.clear()
-    del log_msgs
-    with pytest.raises(CatalogException):
-        new_catalog.find_compound_mapping_attributes('Foo', 'FOO')
-    log_msgs = [rec.message for rec in caplog.records]
-    assert 'Compound mapping database has not been initialized.' in log_msgs
 
 
 def test_find_observed_properties(caplog, catalog):
@@ -259,7 +240,7 @@ def test_process_plugin_attr_mapping(catalog, caplog):
 @pytest.mark.parametrize("plugins, query, expected",
                          # Wrong-plugin-inititalized
                          [([usgs.USGSDataSourcePlugin],
-                           {'datasource_id': 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'ACT'},
+                           {'datasource_id': 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': 'ACT'},
                            AttributeMapping(
                                attr_type='OBSERVED_PROPERTY',
                                basin3d_vocab='NOT_SUPPORTED',
@@ -270,7 +251,7 @@ def test_process_plugin_attr_mapping(catalog, caplog):
                            ),
                           # USGS
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
-                           {'datasource_id': 'USGS', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': '00095'},
+                           {'datasource_id': 'USGS', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': '00095'},
                            AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
                                             basin3d_vocab='SC:WATER',
                                             basin3d_desc=[ObservedProperty(basin3d_vocab='SC', full_name='Specific Conductance (SC)',
@@ -283,7 +264,7 @@ def test_process_plugin_attr_mapping(catalog, caplog):
                            ),
                           # Alpha
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
-                           {'datasource_id': 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Acetate'},
+                           {'datasource_id': 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': 'Acetate'},
                            AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
                                             basin3d_vocab='ACT:WATER',
                                             basin3d_desc=[ObservedProperty(basin3d_vocab='ACT', full_name='Acetate (CH3COO)', categories=['Biogeochemistry', 'Anions'], units='mM'),
@@ -294,7 +275,7 @@ def test_process_plugin_attr_mapping(catalog, caplog):
                            ),
                           # Bad-DataSource
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
-                           {'datasource_id': 'FOO', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Acetate'},
+                           {'datasource_id': 'FOO', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': 'Acetate'},
                            AttributeMapping(attr_type='OBSERVED_PROPERTY',
                                             basin3d_vocab='NOT_SUPPORTED',
                                             basin3d_desc=[],
@@ -304,13 +285,13 @@ def test_process_plugin_attr_mapping(catalog, caplog):
                            )
                           ],
                          ids=['Wrong-plugin-initialized', 'USGS', 'Alpha', 'Bad-DataSource'])
-def test_find_attribute_mapping(plugins, query, expected):
+def test_find_datasource_attribute_mapping(plugins, query, expected):
     """ Test attribute mapping """
     from basin3d.core.catalog import CatalogTinyDb
     catalog = CatalogTinyDb()
     catalog.initialize([p(catalog) for p in plugins])
 
-    attribute_mapping = catalog.find_attribute_mapping(**query)
+    attribute_mapping = catalog.find_datasource_attribute_mapping(**query)
     assert attribute_mapping == expected
 
 
@@ -429,82 +410,20 @@ def test_find_attribute_mappings(caplog, plugins, query, expected_count, expecte
                 pass
 
 
-# catalog.find_datasource_vocab (TinyDB)
-# ToDo: add test for triple compound mapping
-@pytest.mark.parametrize(
-    'attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs',
-    # non-compound
-    [('statistic', 'MEAN', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['ACT'], start_date='2020-01-01', statistic=['MEAN']),
-      ['mean'], []),
-     # non-compound-no-match
-     ('statistic', 'ESTIMATED', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['ACT'], start_date='2020-01-01', statistic=['MEAN']),
-      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "STATISTIC" and BASIN-3D vocab: ESTIMATED.']),
-     # compound-simple_query
-     ('observed_property', 'ACT', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['ACT'], start_date='2020-01-01'),
-      ['Acetate'], []),
-     # compound-simple_query-multimap
-     ('observed_property', 'Al', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Al'], start_date='2020-01-01'),
-      ['Al', 'Aluminum'], []),
-     # compound-compound_query-multimap
-     ('observed_property', 'Al', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Al'], start_date='2020-01-01', sampling_medium=['WATER']),
-      ['Al', 'Aluminum'], []),
-     # compound-compound_query
-     ('observed_property', 'Ag', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Ag'], start_date='2020-01-01', sampling_medium=['WATER']),
-      ['Ag'], []),
-     # compound-compound_query-no_compound_match
-     ('observed_property', 'Al', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Al'], start_date='2020-01-01', sampling_medium=['GAS']),
-      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "OBSERVED_PROPERTY:SAMPLING_MEDIUM" and BASIN-3D vocab: Al:GAS.']),
-     # compound-compound_query_lists
-     ('observed_property', 'Ag', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Ag', 'Al'], start_date='2020-01-01', sampling_medium=['WATER', 'GAS']),
-      ['Ag', 'Ag_gas'], []),
-     # compound-compound_query_no_match
-     ('observed_property', 'Hg', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Ag', 'Al', 'Hg'], start_date='2020-01-01'),
-      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "OBSERVED_PROPERTY:SAMPLING_MEDIUM" and BASIN-3D vocab: Hg:.*.']),
-     # non-compound_non-query-class
-     ('statistic', 'MEAN', {'statistic': 'MEAN'}, ['mean'], []),
-     # compound-simple_query_non-query-class
-     ('observed_property', 'ACT', {'observed_property': 'ACT'}, ['Acetate'], []),
-     # compound-compound_query_non-query-class-lists
-     ('observed_property', 'Ag', {'observed_property': ['Ag'], 'sampling_medium': ['WATER']}, ['Ag'], []),
-     # compound_non-query-class_str-value
-     ('observed_property', 'Ag', {'observed_property': 'Ag'}, ['Ag', 'Ag_gas'], []),
-     ],
-    ids=['non-compound', 'non-compound-no-match', 'compound-simple_query', 'compound-simple_query-multimap',
-         'compound-compound_query-multimap', 'compound-compound_query', 'compound-compound_query-no_compound_match',
-         'compound-compound_query_lists', 'compound-compound_query_no_match',
-         'non-compound_non-query-class', 'compound-simple_query_non-query-class',
-         'compound-compound_query_non-query-class-lists', 'compound_non-query-class_str-value'])
-def test_find_datasource_vocab(caplog, attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs):
-    caplog.set_level(logging.INFO)
-
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
-    catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
-    caplog.clear()
-
-    results = catalog.find_datasource_vocab('Alpha', attr_type, basin3d_vocab, basin3d_query)
-    assert sorted(results) == sorted(expected_results)
-
-    if expected_msgs:
-        log_msgs = [rec.message for rec in caplog.records]
-        for msg in expected_msgs:
-            assert msg in log_msgs
-
-
-# catalog.find_compound_mapping_attributes (TinyDB)
-@pytest.mark.parametrize('datasource_id, attr_type, include_specified_type, expected_results',
-                         [('Alpha', 'OBSERVED_PROPERTY', False, ['SAMPLING_MEDIUM']),
-                          ('Alpha', 'OBSERVED_PROPERTY', True, ['SAMPLING_MEDIUM', 'OBSERVED_PROPERTY']),
-                          ('Alpha', 'FOO', False, []),
-                          ],
-                         ids=['compound-other', 'compound-both', 'non-compound'])
-def test_find_compound_mapping_attributes(datasource_id, attr_type, include_specified_type, expected_results):
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
-    catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
-
-    if include_specified_type:
-        results = catalog.find_compound_mapping_attributes(datasource_id, attr_type, include_specified_type)
-    else:
-        results = catalog.find_compound_mapping_attributes(datasource_id, attr_type)
-    assert sorted(results) == sorted(expected_results)
+# # catalog.find_compound_mapping_attributes (TinyDB)
+# @pytest.mark.parametrize('datasource_id, attr_type, include_specified_type, expected_results',
+#                          [('Alpha', 'OBSERVED_PROPERTY', False, ['SAMPLING_MEDIUM']),
+#                           ('Alpha', 'OBSERVED_PROPERTY', True, ['SAMPLING_MEDIUM', 'OBSERVED_PROPERTY']),
+#                           ('Alpha', 'FOO', False, []),
+#                           ],
+#                          ids=['compound-other', 'compound-both', 'non-compound'])
+# def test_find_compound_mapping_attributes(datasource_id, attr_type, include_specified_type, expected_results):
+#     from basin3d.core.catalog import CatalogTinyDb
+#     catalog = CatalogTinyDb()
+#     catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
+#
+#     if include_specified_type:
+#         results = catalog.find_compound_mapping_attributes(datasource_id, attr_type, include_specified_type)
+#     else:
+#         results = catalog.find_compound_mapping_attributes(datasource_id, attr_type)
+#     assert sorted(results) == sorted(expected_results)

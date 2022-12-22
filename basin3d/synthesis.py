@@ -182,7 +182,7 @@ class DataSynthesizer:
 
         :return: iterator of :class:`AttributeMapping` objects
         """
-        return self._catalog.find_attribute_mappings(datasource_id, attr_type, attr_vocab, from_basin3d)
+        return self._catalog.find_attribute_mappings(datasource_id=datasource_id, attr_type=attr_type, attr_vocab=attr_vocab, from_basin3d=from_basin3d)
 
     def monitoring_features(self, query: Union[QueryById, QueryMonitoringFeature] = None, **kwargs) -> Union[
             DataSourceModelIterator, SynthesisResponse]:

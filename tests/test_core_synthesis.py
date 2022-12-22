@@ -1,5 +1,4 @@
 import pytest
-import datetime
 
 from basin3d.core.models import DataSource
 from basin3d.core.plugin import DataSourcePluginAccess
