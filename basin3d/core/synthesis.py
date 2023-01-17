@@ -23,7 +23,7 @@ from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
 from basin3d.core.schema.enum import MessageLevelEnum, AggregationDurationEnum
 from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
-from basin3d.core.translate import TranslatorMixin
+from basin3d.core.translate import translate_query
 
 logger = monitor.get_logger(__name__)
 
@@ -86,180 +86,6 @@ class MonitorMixin(object):
         """
         return self.log(message, MessageLevelEnum.CRITICAL, where)
 
-
-# class TranslatorMixin(object):
-#     """
-#     Adds translator functionality to data source access
-#     """
-#
-#     def translate_query(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
-#         """
-#         Main translator method that calls individual methods
-#         :param plugin_access: plugin access
-#         :param query: query to be translated
-#         :return: translated query
-#         """
-#         translated_query = query.copy()
-#         self.translate_mapped_query_attrs(plugin_access, translated_query)
-#         self.translate_prefixed_query_attrs(plugin_access, translated_query)
-#         is_valid_translated_query = self.is_translated_query_valid(plugin_access.datasource.id, query, translated_query)
-#
-#         if is_valid_translated_query:
-#             translated_query.is_valid_translated_query = is_valid_translated_query
-#             self.clean_query(translated_query)
-#
-#         return translated_query
-#
-#     @staticmethod
-#     def _order_mapped_fields(plugin_access, query_mapped_fields):
-#         """
-#
-#         :param plugin_access:
-#         :param query_mapped_fields:
-#         :return:
-#         """
-#         query_mapped_fields_ordered = []
-#
-#         # get list of compound mappings if any
-#         compound_mappings = plugin_access.get_compound_mapping_str()
-#
-#         # If there are compound mappings...
-#         if compound_mappings:
-#             cm_fields = []
-#             # Split up the compound mappings, preserving the order of the attributes as specified in the plugin mapping file.
-#             # The order only matters relative to the individual compound mapping.
-#             for cm in compound_mappings:
-#                 cm_attrs = cm.split(MAPPING_DELIMITER)
-#                 cm_fields.extend([cm_attr.lower() for cm_attr in cm_attrs])
-#             # first loop thru the compound mapping fields
-#             for cm in cm_fields:
-#                 # if the attribute is one of the mapped fields in this particular query
-#                 if cm in query_mapped_fields:
-#                     # add it to the ordered list
-#                     query_mapped_fields_ordered.append(cm)
-#                     # then remove it from the mapped field list
-#                     query_mapped_fields.pop(query_mapped_fields.index(cm))
-#             # then, add any remaining non-compound fields
-#             query_mapped_fields_ordered.extend(query_mapped_fields)
-#         else:
-#             # if there are no compound mappings, then the order doesn't matter, just copy the mapped field list.
-#             query_mapped_fields_ordered = query_mapped_fields
-#
-#         return query_mapped_fields_ordered
-#
-#     def translate_mapped_query_attrs(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
-#         """
-#         Translation functionality
-#         """
-#         query_mapped_fields = query.get_mapped_fields()
-#
-#         # if there are no mapped fields, return the query as is.
-#         if not query_mapped_fields:
-#             return query
-#
-#         # order the query fields by any compound attributes
-#         query_mapped_fields_ordered = self._order_mapped_fields(plugin_access, query_mapped_fields)
-#
-#         for attr in query_mapped_fields_ordered:
-#             # if the attribute is specified, proceed to translate it
-#             # NOTE: looking in the translated_query which is mutable. As the translation occurs, translated query fields may change
-#             #       and the if statement may have different values for a given field during the loop.
-#             if getattr(query, attr):
-#                 b3d_vocab = getattr(query, attr)
-#
-#                 if isinstance(b3d_vocab, str):
-#                     ds_vocab = plugin_access.get_ds_vocab(attr.upper(), b3d_vocab, query)
-#                 else:
-#                     ds_vocab = []
-#                     for b3d_value in b3d_vocab:
-#                         # handle multiple values returned
-#                         ds_vocab.extend(plugin_access.get_ds_vocab(attr.upper(), b3d_value, query))
-#                 setattr(query, attr, ds_vocab)
-#
-#                 # look up whether the attr is part of a compound mapping
-#                 compound_attrs = plugin_access.get_compound_mapping_attributes(attr.upper(), is_query=True)
-#                 # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
-#                 for compound_attr in compound_attrs:
-#                     compound_attr = compound_attr.lower()
-#                     setattr(query, compound_attr, None)
-#
-#         # NOTE: always returns list for each attr b/c multiple mappings are possible.
-#         return query
-#
-#     @staticmethod
-#     def translate_prefixed_query_attrs(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
-#         """
-#
-#         :param plugin_access:
-#         :param query:
-#         :return:
-#         """
-#         def extract_id(identifer):
-#             """
-#             Extract the datasource identifier from the broker identifier
-#             :param identifer:
-#             :return:
-#             """
-#             if identifer:
-#                 site_list = identifer.split("-")
-#                 identifer = identifer.replace("{}-".format(site_list[0]), "", 1)  # The datasource id prefix needs to be removed
-#             return identifer
-#
-#         id_prefix = plugin_access.datasource.id_prefix
-#
-#         for attr in query.get_prefixed_fields():
-#             attr_value = getattr(query, attr)
-#             if attr_value:
-#                 if isinstance(attr_value, str):
-#                     attr_value = attr_value.split(",")
-#
-#                 translated_values = [extract_id(x) for x in attr_value if x.startswith("{}-".format(id_prefix))]
-#
-#                 setattr(query, attr, translated_values)
-#
-#         return query
-#
-#     @staticmethod
-#     def is_translated_query_valid(datasource_id, query, translated_query) -> Optional[bool]:
-#         # loop thru kwargs
-#         for attr in query.get_mapped_fields():
-#             translated_attr_value = getattr(translated_query, attr)
-#             b3d_attr_value = getattr(query, attr)
-#             if isinstance(b3d_attr_value, list):
-#                 b3d_attr_value = ', '.join(b3d_attr_value)
-#             if translated_attr_value and isinstance(translated_attr_value, list):
-#                 # if list and all of list == NOT_SUPPORTED, False
-#                 if all([x == NO_MAPPING_TEXT for x in translated_attr_value]):
-#                     logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with values: {b3d_attr_value}.')
-#                     return False
-#             elif translated_attr_value and isinstance(translated_attr_value, str):
-#                 # if single NOT_SUPPORTED, False
-#                 if translated_attr_value == NO_MAPPING_TEXT:
-#                     logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with value: {b3d_attr_value}.')
-#                     return False
-#             elif translated_attr_value:
-#                 logger.warning(
-#                     f'Translated query for datasource {datasource_id} cannot be assessed. Translated value for {attr} is not expected type.')
-#                 return None
-#         return True
-#
-#     @staticmethod
-#     def clean_query(translated_query: QueryBase) -> QueryBase:
-#         """
-#         Remove any NOT_SUPPORTED translations
-#         :param translated_query:
-#         :return:
-#         """
-#         for attr in translated_query.get_mapped_fields():
-#             attr_value = getattr(translated_query, attr)
-#             if attr_value and isinstance(attr_value, list):
-#                 clean_list = [val for val in attr_value if val != NO_MAPPING_TEXT]
-#                 unique_list = list(set(clean_list))
-#                 setattr(translated_query, attr, unique_list)
-#             elif attr_value and attr_value == NO_MAPPING_TEXT:
-#                 setattr(translated_query, attr, None)
-#         return translated_query
-#
 
 class DataSourceModelIterator(MonitorMixin, Iterator):
     """
@@ -374,7 +200,7 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
             self._synthesis_response.messages.append(synthesis_message)
 
 
-class DataSourceModelAccess(MonitorMixin, TranslatorMixin):
+class DataSourceModelAccess(MonitorMixin):
     """
     Base class for DataSource model access.
     """
@@ -493,7 +319,7 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
         :param plugin_access: The plugin view to synthesize query params for
         :return: The synthesized query information
         """
-        return self.translate_query(plugin_access, query)
+        return translate_query(plugin_access, query)
 
 
 class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
@@ -556,4 +382,4 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         if query.aggregation_duration != AggregationDurationEnum.NONE:
             query.aggregation_duration = AggregationDurationEnum.DAY
 
-        return self.translate_query(plugin_access, query)
+        return translate_query(plugin_access, query)

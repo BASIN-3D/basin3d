@@ -24,47 +24,24 @@ from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTime
 logger = monitor.get_logger(__name__)
 
 
-def translate_attributes(plugin_access, mapped_attrs, **kwargs):
-    """Helper method to translate datasource vocabularies to BASIN-3D vocabularies via MappedAttributes"""
-
-    # copy the kwargs be able to loop thru the original while modifying the actual for compound mappings
-    kwargs_orig = kwargs.copy()
-
-    for attr in mapped_attrs:
-        if attr in kwargs_orig:
-            datasource_vocab = kwargs[attr]
-            attr_mapping = get_datasource_mapped_attribute(plugin_access, attr_type=attr.upper(), datasource_vocab=datasource_vocab)
-            kwargs[attr] = attr_mapping
-
-            # If the attr is part of a compound mapping and the compound attr is not part of the kwargs, set it.
-            cm_attrs = get_single_attr_types_in_compound_mappings(plugin_access, attr)
-            if cm_attrs:
-                for cm_attr in cm_attrs:
-                    if cm_attr.lower() not in kwargs:
-                        cm_attr_mapping = get_datasource_mapped_attribute(plugin_access, attr_type=cm_attr.upper(), datasource_vocab=datasource_vocab)
-                        kwargs[cm_attr.lower()] = cm_attr_mapping
-
-    return kwargs
-
-
-def get_datasource_mapped_attribute(plugin_access, attr_type, datasource_vocab):
+def _clean_query(translated_query: QueryBase) -> QueryBase:
     """
-    Get the `basin3d.models.MappedAttribute` object(s) for the specified attribute type and datasource attribute vocab(s)
-
-    :param plugin_access: plugin_access
-    :param attr_type: attribute type
-    :param datasource_vocab: datasource attribute vocabulary
-    :return: a single or list of `basin3d.models.MappedAttribute` objects
+    Remove any NOT_SUPPORTED translations
+    :param translated_query:
+    :return:
     """
+    for attr in translated_query.get_mapped_fields():
+        attr_value = getattr(translated_query, attr)
+        if attr_value and isinstance(attr_value, list):
+            clean_list = [val for val in attr_value if val != NO_MAPPING_TEXT]
+            unique_list = list(set(clean_list))
+            setattr(translated_query, attr, unique_list)
+        elif attr_value and attr_value == NO_MAPPING_TEXT:
+            setattr(translated_query, attr, None)
+    return translated_query
 
-    if isinstance(datasource_vocab, str):
-        return plugin_access.get_datasource_attribute_mapping(attr_type, datasource_vocab)
 
-    elif isinstance(datasource_vocab, list):
-        return list(map(plugin_access.get_datasource_attribute_mapping, repeat(attr_type), datasource_vocab))
-
-
-def get_attr_types_in_compound_mappings(plugin_access) -> list:
+def _get_attr_types_in_compound_mappings(plugin_access) -> list:
     """
     Get all the compound mappings for a datasource if any exist
 
@@ -82,7 +59,7 @@ def get_attr_types_in_compound_mappings(plugin_access) -> list:
     return list(compound_mapping_attrs)
 
 
-def get_attr_type_if_compound_mapping(plugin_access, attr_type: str) -> Optional[str]:
+def _get_attr_type_if_compound_mapping(plugin_access, attr_type: str) -> Optional[str]:
     """
     Return the compound attr_type str if the specified attr_type is part of a compound_mapping
 
@@ -104,7 +81,7 @@ def get_attr_type_if_compound_mapping(plugin_access, attr_type: str) -> Optional
     return compound_mapping_str
 
 
-def get_single_attr_types_in_compound_mappings(plugin_access, attr_type: str, include_specified_type: bool = False) -> list:
+def _get_single_attr_types_in_compound_mappings(plugin_access, attr_type: str, include_specified_type: bool = False) -> list:
     """
     Return the attributes if attr_type is part of a compound mapping
 
@@ -115,7 +92,7 @@ def get_single_attr_types_in_compound_mappings(plugin_access, attr_type: str, in
 
     compound_mapping_attrs = []
 
-    compound_mapping_str = get_attr_type_if_compound_mapping(plugin_access, attr_type)
+    compound_mapping_str = _get_attr_type_if_compound_mapping(plugin_access, attr_type)
 
     if not compound_mapping_str:
         return compound_mapping_attrs
@@ -128,7 +105,141 @@ def get_single_attr_types_in_compound_mappings(plugin_access, attr_type: str, in
     return compound_mapping_attrs
 
 
-def translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab: Union[str, list], b3d_query) -> list:
+def _is_translated_query_valid(datasource_id, query, translated_query) -> Optional[bool]:
+    # loop thru kwargs
+    for attr in query.get_mapped_fields():
+        translated_attr_value = getattr(translated_query, attr)
+        b3d_attr_value = getattr(query, attr)
+        if isinstance(b3d_attr_value, list):
+            b3d_attr_value = ', '.join(b3d_attr_value)
+        if translated_attr_value and isinstance(translated_attr_value, list):
+            # if list and all of list == NOT_SUPPORTED, False
+            if all([x == NO_MAPPING_TEXT for x in translated_attr_value]):
+                logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with values: {b3d_attr_value}.')
+                return False
+        elif translated_attr_value and isinstance(translated_attr_value, str):
+            # if single NOT_SUPPORTED, False
+            if translated_attr_value == NO_MAPPING_TEXT:
+                logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with value: {b3d_attr_value}.')
+                return False
+        elif translated_attr_value:
+            logger.warning(
+                f'Translated query for datasource {datasource_id} cannot be assessed. Translated value for {attr} is not expected type.')
+            return None
+    return True
+
+
+def _order_mapped_fields(plugin_access, query_mapped_fields):
+    """
+
+    :param plugin_access:
+    :param query_mapped_fields:
+    :return:
+    """
+    query_mapped_fields_ordered = []
+
+    # get list of compound mappings if any
+    compound_mappings = _get_attr_types_in_compound_mappings(plugin_access)
+
+    # If there are compound mappings...
+    if compound_mappings:
+        cm_fields = []
+        # Split up the compound mappings, preserving the order of the attributes as specified in the plugin mapping file.
+        # The order only matters relative to the individual compound mapping.
+        for cm in compound_mappings:
+            cm_attrs = cm.split(MAPPING_DELIMITER)
+            cm_fields.extend([cm_attr.lower() for cm_attr in cm_attrs])
+        # first loop thru the compound mapping fields
+        for cm in cm_fields:
+            # if the attribute is one of the mapped fields in this particular query
+            if cm in query_mapped_fields:
+                # add it to the ordered list
+                query_mapped_fields_ordered.append(cm)
+                # then remove it from the mapped field list
+                query_mapped_fields.pop(query_mapped_fields.index(cm))
+        # then, add any remaining non-compound fields
+        query_mapped_fields_ordered.extend(query_mapped_fields)
+    else:
+        # if there are no compound mappings, then the order doesn't matter, just copy the mapped field list.
+        query_mapped_fields_ordered = query_mapped_fields
+
+    return query_mapped_fields_ordered
+
+
+def _translate_mapped_query_attrs(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+    """
+    Translation functionality
+    """
+    query_mapped_fields = query.get_mapped_fields()
+
+    # if there are no mapped fields, return the query as is.
+    if not query_mapped_fields:
+        return query
+
+    # order the query fields by any compound attributes
+    query_mapped_fields_ordered = self._order_mapped_fields(plugin_access, query_mapped_fields)
+
+    for attr in query_mapped_fields_ordered:
+        # if the attribute is specified, proceed to translate it
+        # NOTE: looking in the translated_query which is mutable. As the translation occurs, translated query fields may change
+        #       and the if statement may have different values for a given field during the loop.
+        if getattr(query, attr):
+            b3d_vocab = getattr(query, attr)
+
+            if isinstance(b3d_vocab, str):
+                ds_vocab = _translate_to_datasource_vocab(plugin_access, attr.upper(), b3d_vocab, query)
+            else:
+                ds_vocab = []
+                for b3d_value in b3d_vocab:
+                    # handle multiple values returned
+                    ds_vocab.extend(_translate_to_datasource_vocab(plugin_access, attr.upper(), b3d_value, query))
+            setattr(query, attr, ds_vocab)
+
+            # look up whether the attr is part of a compound mapping
+            compound_attrs = _get_single_attr_types_in_compound_mappings(plugin_access, attr)
+            # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
+            for compound_attr in compound_attrs:
+                compound_attr = compound_attr.lower()
+                setattr(query, compound_attr, None)
+
+    # NOTE: always returns list for each attr b/c multiple mappings are possible.
+    return query
+
+
+def _translate_prefixed_query_attrs(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+    """
+
+    :param plugin_access:
+    :param query:
+    :return:
+    """
+    def extract_id(identifer):
+        """
+        Extract the datasource identifier from the broker identifier
+        :param identifer:
+        :return:
+        """
+        if identifer:
+            site_list = identifer.split("-")
+            identifer = identifer.replace("{}-".format(site_list[0]), "", 1)  # The datasource id prefix needs to be removed
+        return identifer
+
+    id_prefix = plugin_access.datasource.id_prefix
+
+    for attr in query.get_prefixed_fields():
+        attr_value = getattr(query, attr)
+        if attr_value:
+            if isinstance(attr_value, str):
+                attr_value = attr_value.split(",")
+
+            translated_values = [extract_id(x) for x in attr_value if x.startswith("{}-".format(id_prefix))]
+
+            setattr(query, attr, translated_values)
+
+    return query
+
+
+def _translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab: Union[str, list], b3d_query) -> list:
     """
     Find the datasource vocabulary(ies) for the specified datasource, attribute type, BASIN-3D vocabulary, and full query that may specify other attributes.
     Because multiple datasource vocabularies can be mapped to the same BASIN-3D vocabulary, the return is a list of the datasource vocabs.
@@ -143,7 +254,7 @@ def translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab: 
     attr_type = attr_type.upper()
 
     # is the attr_type part of a compound mapping?
-    compound_mapping_attrs = get_single_attr_types_in_compound_mappings(plugin_access, attr_type, include_specified_type=True)
+    compound_mapping_attrs = _get_single_attr_types_in_compound_mappings(plugin_access, attr_type, include_specified_type=True)
 
     b3d_vocab_combo_str = [basin3d_vocab]
 
@@ -218,175 +329,60 @@ def translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab: 
     return ds_vocab
 
 
-class TranslatorMixin(object):
+def get_datasource_mapped_attribute(plugin_access, attr_type, datasource_vocab):
     """
-    Adds translator functionality to data source access
+    Get the `basin3d.models.MappedAttribute` object(s) for the specified attribute type and datasource attribute vocab(s)
+
+    :param plugin_access: plugin_access
+    :param attr_type: attribute type
+    :param datasource_vocab: datasource attribute vocabulary
+    :return: a single or list of `basin3d.models.MappedAttribute` objects
     """
 
-    def translate_query(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
-        """
-        Main translator method that calls individual methods
-        :param plugin_access: plugin access
-        :param query: query to be translated
-        :return: translated query
-        """
-        translated_query = query.copy()
-        self.translate_mapped_query_attrs(plugin_access, translated_query)
-        self.translate_prefixed_query_attrs(plugin_access, translated_query)
-        is_valid_translated_query = self.is_translated_query_valid(plugin_access.datasource.id, query, translated_query)
+    if isinstance(datasource_vocab, str):
+        return plugin_access.get_datasource_attribute_mapping(attr_type, datasource_vocab)
 
-        if is_valid_translated_query:
-            translated_query.is_valid_translated_query = is_valid_translated_query
-            self.clean_query(translated_query)
+    elif isinstance(datasource_vocab, list):
+        return list(map(plugin_access.get_datasource_attribute_mapping, repeat(attr_type), datasource_vocab))
 
-        return translated_query
 
-    @staticmethod
-    def _order_mapped_fields(plugin_access, query_mapped_fields):
-        """
+def translate_attributes(plugin_access, mapped_attrs, **kwargs):
+    """Helper method to translate datasource vocabularies to BASIN-3D vocabularies via MappedAttributes"""
 
-        :param plugin_access:
-        :param query_mapped_fields:
-        :return:
-        """
-        query_mapped_fields_ordered = []
+    # copy the kwargs be able to loop thru the original while modifying the actual for compound mappings
+    kwargs_orig = kwargs.copy()
 
-        # get list of compound mappings if any
-        compound_mappings = get_attr_types_in_compound_mappings(plugin_access)
+    for attr in mapped_attrs:
+        if attr in kwargs_orig:
+            datasource_vocab = kwargs[attr]
+            attr_mapping = get_datasource_mapped_attribute(plugin_access, attr_type=attr.upper(), datasource_vocab=datasource_vocab)
+            kwargs[attr] = attr_mapping
 
-        # If there are compound mappings...
-        if compound_mappings:
-            cm_fields = []
-            # Split up the compound mappings, preserving the order of the attributes as specified in the plugin mapping file.
-            # The order only matters relative to the individual compound mapping.
-            for cm in compound_mappings:
-                cm_attrs = cm.split(MAPPING_DELIMITER)
-                cm_fields.extend([cm_attr.lower() for cm_attr in cm_attrs])
-            # first loop thru the compound mapping fields
-            for cm in cm_fields:
-                # if the attribute is one of the mapped fields in this particular query
-                if cm in query_mapped_fields:
-                    # add it to the ordered list
-                    query_mapped_fields_ordered.append(cm)
-                    # then remove it from the mapped field list
-                    query_mapped_fields.pop(query_mapped_fields.index(cm))
-            # then, add any remaining non-compound fields
-            query_mapped_fields_ordered.extend(query_mapped_fields)
-        else:
-            # if there are no compound mappings, then the order doesn't matter, just copy the mapped field list.
-            query_mapped_fields_ordered = query_mapped_fields
+            # If the attr is part of a compound mapping and the compound attr is not part of the kwargs, set it.
+            cm_attrs = _get_single_attr_types_in_compound_mappings(plugin_access, attr)
+            if cm_attrs:
+                for cm_attr in cm_attrs:
+                    if cm_attr.lower() not in kwargs:
+                        cm_attr_mapping = get_datasource_mapped_attribute(plugin_access, attr_type=cm_attr.upper(), datasource_vocab=datasource_vocab)
+                        kwargs[cm_attr.lower()] = cm_attr_mapping
 
-        return query_mapped_fields_ordered
+    return kwargs
 
-    def translate_mapped_query_attrs(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
-        """
-        Translation functionality
-        """
-        query_mapped_fields = query.get_mapped_fields()
 
-        # if there are no mapped fields, return the query as is.
-        if not query_mapped_fields:
-            return query
+def translate_query(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+    """
+    Main translator method that calls individual methods
+    :param plugin_access: plugin access
+    :param query: query to be translated
+    :return: translated query
+    """
+    translated_query = query.copy()
+    _translate_mapped_query_attrs(plugin_access, translated_query)
+    _translate_prefixed_query_attrs(plugin_access, translated_query)
+    is_valid_translated_query = _is_translated_query_valid(plugin_access.datasource.id, query, translated_query)
 
-        # order the query fields by any compound attributes
-        query_mapped_fields_ordered = self._order_mapped_fields(plugin_access, query_mapped_fields)
+    if is_valid_translated_query:
+        translated_query.is_valid_translated_query = is_valid_translated_query
+        _clean_query(translated_query)
 
-        for attr in query_mapped_fields_ordered:
-            # if the attribute is specified, proceed to translate it
-            # NOTE: looking in the translated_query which is mutable. As the translation occurs, translated query fields may change
-            #       and the if statement may have different values for a given field during the loop.
-            if getattr(query, attr):
-                b3d_vocab = getattr(query, attr)
-
-                if isinstance(b3d_vocab, str):
-                    ds_vocab = translate_to_datasource_vocab(plugin_access, attr.upper(), b3d_vocab, query)
-                else:
-                    ds_vocab = []
-                    for b3d_value in b3d_vocab:
-                        # handle multiple values returned
-                        ds_vocab.extend(translate_to_datasource_vocab(plugin_access, attr.upper(), b3d_value, query))
-                setattr(query, attr, ds_vocab)
-
-                # look up whether the attr is part of a compound mapping
-                compound_attrs = get_single_attr_types_in_compound_mappings(plugin_access, attr)
-                # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
-                for compound_attr in compound_attrs:
-                    compound_attr = compound_attr.lower()
-                    setattr(query, compound_attr, None)
-
-        # NOTE: always returns list for each attr b/c multiple mappings are possible.
-        return query
-
-    @staticmethod
-    def translate_prefixed_query_attrs(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
-        """
-
-        :param plugin_access:
-        :param query:
-        :return:
-        """
-        def extract_id(identifer):
-            """
-            Extract the datasource identifier from the broker identifier
-            :param identifer:
-            :return:
-            """
-            if identifer:
-                site_list = identifer.split("-")
-                identifer = identifer.replace("{}-".format(site_list[0]), "", 1)  # The datasource id prefix needs to be removed
-            return identifer
-
-        id_prefix = plugin_access.datasource.id_prefix
-
-        for attr in query.get_prefixed_fields():
-            attr_value = getattr(query, attr)
-            if attr_value:
-                if isinstance(attr_value, str):
-                    attr_value = attr_value.split(",")
-
-                translated_values = [extract_id(x) for x in attr_value if x.startswith("{}-".format(id_prefix))]
-
-                setattr(query, attr, translated_values)
-
-        return query
-
-    @staticmethod
-    def is_translated_query_valid(datasource_id, query, translated_query) -> Optional[bool]:
-        # loop thru kwargs
-        for attr in query.get_mapped_fields():
-            translated_attr_value = getattr(translated_query, attr)
-            b3d_attr_value = getattr(query, attr)
-            if isinstance(b3d_attr_value, list):
-                b3d_attr_value = ', '.join(b3d_attr_value)
-            if translated_attr_value and isinstance(translated_attr_value, list):
-                # if list and all of list == NOT_SUPPORTED, False
-                if all([x == NO_MAPPING_TEXT for x in translated_attr_value]):
-                    logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with values: {b3d_attr_value}.')
-                    return False
-            elif translated_attr_value and isinstance(translated_attr_value, str):
-                # if single NOT_SUPPORTED, False
-                if translated_attr_value == NO_MAPPING_TEXT:
-                    logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with value: {b3d_attr_value}.')
-                    return False
-            elif translated_attr_value:
-                logger.warning(
-                    f'Translated query for datasource {datasource_id} cannot be assessed. Translated value for {attr} is not expected type.')
-                return None
-        return True
-
-    @staticmethod
-    def clean_query(translated_query: QueryBase) -> QueryBase:
-        """
-        Remove any NOT_SUPPORTED translations
-        :param translated_query:
-        :return:
-        """
-        for attr in translated_query.get_mapped_fields():
-            attr_value = getattr(translated_query, attr)
-            if attr_value and isinstance(attr_value, list):
-                clean_list = [val for val in attr_value if val != NO_MAPPING_TEXT]
-                unique_list = list(set(clean_list))
-                setattr(translated_query, attr, unique_list)
-            elif attr_value and attr_value == NO_MAPPING_TEXT:
-                setattr(translated_query, attr, None)
-        return translated_query
+    return translated_query

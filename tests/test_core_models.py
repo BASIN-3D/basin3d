@@ -329,7 +329,7 @@ def test_measurement_timeseries_tvp_observation_create(
         statistic='mean',
         result=ResultListTVP(plugin_access=plugin_access_alpha,
                              value=[TimeValuePair('201802030100', '5.32')],
-                             quality=['VALIDATED']),
+                             result_quality=['VALIDATED']),
         unit_of_measurement='m'
     )
 
@@ -354,5 +354,5 @@ def test_measurement_timeseries_tvp_observation_create(
     assert obs01.unit_of_measurement == 'm'
     assert obs01.datasource.id == 'Alpha'
     assert obs01.result.value[0] == TimeValuePair('201802030100', '5.32')
-    assert obs01.result.quality[0] == mapped_attribute_result_quality_validated
+    assert obs01.result.result_quality[0] == mapped_attribute_result_quality_validated
 

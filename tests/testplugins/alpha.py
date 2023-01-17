@@ -168,7 +168,7 @@ def find_measurement_timeseries_tvp_observations(self, query: QueryMeasurementTi
             result_quality=result_qualities,
             time_reference_position=None,
             statistic=statistics[num - 1],
-            result=ResultListTVP(plugin_access=self, value=result_value, quality=result_value_quality)
+            result=ResultListTVP(plugin_access=self, value=result_value, result_quality=result_value_quality)
         )
 
     return StopIteration(synthesis_messages)

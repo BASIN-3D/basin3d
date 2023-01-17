@@ -534,16 +534,6 @@ class CatalogTinyDb(CatalogBase):
             logger.critical(msg)
             raise CatalogException(msg)
 
-        # Function for TinyDB search
-        def is_in(x, attr_vocabs=attr_vocab, is_from_basin3d=from_basin3d):
-            if is_from_basin3d and MAPPING_DELIMITER in x:
-                x_elements = x.split(MAPPING_DELIMITER)
-                for x_element in x_elements:
-                    if x_element in attr_vocabs:
-                        return True
-            else:
-                return x in attr_vocabs
-
         from tinydb import Query
         query = Query()
 
@@ -555,6 +545,16 @@ class CatalogTinyDb(CatalogBase):
             elif not isinstance(attr_vocab, List):
                 raise CatalogException("attr_vocab must be a str or list")
             specified_attr_vocab_not_found = attr_vocab.copy()
+
+        # Function for TinyDB search
+        def is_in(x, attr_vocabs=attr_vocab, is_from_basin3d=from_basin3d):
+            if is_from_basin3d and MAPPING_DELIMITER in x:
+                x_elements = x.split(MAPPING_DELIMITER)
+                for x_element in x_elements:
+                    if x_element in attr_vocabs:
+                        return True
+            else:
+                return x in attr_vocabs
 
         # If no query parameters --> get all mapped attributes back for all registered plugins
         if not datasource_id and not attr_vocab and not attr_type:

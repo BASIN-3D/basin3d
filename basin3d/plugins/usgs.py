@@ -690,7 +690,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 feature_of_interest_type=FeatureTypeEnum.POINT,
                 feature_of_interest=monitoring_feature,
                 utc_offset=int(timezone_offset.split(":")[0]),
-                result=ResultListTVP(plugin_access=self, value=result_TVPs, quality=result_TVP_quality),
+                result=ResultListTVP(plugin_access=self, value=result_TVPs, result_quality=result_TVP_quality),
                 observed_property=parameter,
                 result_quality=list(result_quality),
                 aggregation_duration=query.aggregation_duration[0],

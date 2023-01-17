@@ -1453,16 +1453,21 @@ class ResultListTVP(Base):
     """
     def __init__(self, plugin_access, **kwargs):
         self._value: List['TimeValuePair'] = []
-        self._quality: List['MappedAttribute'] = []
+        self._result_quality: List['MappedAttribute'] = []
 
         # translate quality
-        # ToDo: figure out how to handle quality v result_quality discrepancy
-        if 'quality' in kwargs and kwargs['quality']:
-            attr_mappings = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
-            kwargs['quality'] = self._create_mapped_attributes('RESULT_QUALITY', attr_mappings)
+        kwargs = self._translate_attributes(plugin_access, **kwargs)
+        # if 'quality' in kwargs and kwargs['quality']:
+        #     attr_mappings = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
+        #     kwargs['quality'] = self._create_mapped_attributes('RESULT_QUALITY', attr_mappings)
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        # ToDo: see note with TimeseriesTVPObservation
+        mapped_attrs = ('result_quality', )
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)
 
     @property
     def value(self) -> List['TimeValuePair']:
@@ -1474,13 +1479,13 @@ class ResultListTVP(Base):
         self._value = value
 
     @property
-    def quality(self) -> List['MappedAttribute']:
+    def result_quality(self) -> List['MappedAttribute']:
         """Result that was measured"""
-        return self._quality
+        return self._result_quality
 
-    @quality.setter
-    def quality(self, value: List['MappedAttribute']):
-        self._quality = value
+    @result_quality.setter
+    def result_quality(self, value: List['MappedAttribute']):
+        self._result_quality = value
 
 
 class MeasurementTimeseriesTVPResultMixin(object):
@@ -1520,16 +1525,21 @@ class ResultPointFloat(Base):
     """
     def __init__(self, plugin_access, **kwargs):
         self._value: float = None
-        self._quality: 'MappedAttribute' = None
+        self._result_quality: 'MappedAttribute' = None
 
         # translate quality
-        # ToDo: figure out how to handle quality v result_quality discrepancy
-        if 'quality' in kwargs and kwargs['quality']:
-            attr_mappings = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
-            kwargs['quality'] = self._create_mapped_attributes('RESULT_QUALITY', attr_mappings)
+        kwargs = self._translate_attributes(plugin_access, **kwargs)
+        # if 'quality' in kwargs and kwargs['quality']:
+        #     attr_mappings = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
+        #     kwargs['quality'] = self._create_mapped_attributes('RESULT_QUALITY', attr_mappings)
 
         # Initialize after the attributes have been set
         super().__init__(None, **kwargs)
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        # ToDo: see note with TimeseriesTVPObservation
+        mapped_attrs = ('result_quality', )
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)
 
     @property
     def value(self) -> float:
@@ -1541,13 +1551,13 @@ class ResultPointFloat(Base):
         self._value = value
 
     @property
-    def quality(self) -> 'MappedAttribute':
+    def result_quality(self) -> 'MappedAttribute':
         """Result that was measured"""
         return self._quality
 
-    @quality.setter
+    @result_quality.setter
     def quality(self, value: 'MappedAttribute'):
-        self._quality = value
+        self._result_quality = value
 
 
 class MeasurementResultMixin(object):
