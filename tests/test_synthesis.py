@@ -148,7 +148,7 @@ def test_measurement_timeseries_tvp_observations_count():
 @pytest.mark.parametrize("plugins, query, expected_count",
                          [(['basin3d.plugins.usgs.USGSDataSourcePlugin'], {}, 53),
                           (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'USGS'}, 53),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha'}, 13),
+                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha'}, 14),
                           (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha', 'attr_type': 'OBSERVED_PROPERTY'}, 6),
                           (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': ['Ag']}, 1),
                           (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': ['Ag'], 'from_basin3d': True}, 2),

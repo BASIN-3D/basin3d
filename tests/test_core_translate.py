@@ -1,12 +1,24 @@
 import logging
 import pytest
 
-import basin3d.core.translate as translate
+from basin3d.core import translate
+from basin3d.core.models import DataSource
+from basin3d.core.plugin import DataSourcePluginAccess
 from basin3d.core.schema.enum import NO_MAPPING_TEXT
 from basin3d.core.schema.query import QueryMonitoringFeature, QueryMeasurementTimeseriesTVP
-import tests.testplugins.alpha as alpha
+from tests.testplugins import alpha
 
-# catalog.find_datasource_vocab (TinyDB)
+
+@pytest.fixture
+def alpha_plugin_access():
+    from basin3d.core.catalog import CatalogTinyDb
+    catalog = CatalogTinyDb()
+    catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
+    alpha_ds = DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/')
+
+    return DataSourcePluginAccess(alpha_ds, catalog)
+
+
 # ToDo: add test for triple compound mapping
 @pytest.mark.parametrize(
     'attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs',
@@ -15,7 +27,7 @@ import tests.testplugins.alpha as alpha
       ['mean'], []),
      # non-compound-no-match
      ('statistic', 'ESTIMATED', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['ACT'], start_date='2020-01-01', statistic=['MEAN']),
-      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "STATISTIC" and BASIN-3D vocab: ESTIMATED.']),
+      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type STATISTIC and BASIN-3D vocab ESTIMATED.']),
      # compound-simple_query
      ('observed_property', 'ACT', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['ACT'], start_date='2020-01-01'),
       ['Acetate'], []),
@@ -30,13 +42,13 @@ import tests.testplugins.alpha as alpha
       ['Ag'], []),
      # compound-compound_query-no_compound_match
      ('observed_property', 'Al', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Al'], start_date='2020-01-01', sampling_medium=['GAS']),
-      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "OBSERVED_PROPERTY:SAMPLING_MEDIUM" and BASIN-3D vocab: Al:GAS.']),
+      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type OBSERVED_PROPERTY:SAMPLING_MEDIUM and BASIN-3D vocab Al:GAS.']),
      # compound-compound_query_lists
      ('observed_property', 'Ag', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Ag', 'Al'], start_date='2020-01-01', sampling_medium=['WATER', 'GAS']),
       ['Ag', 'Ag_gas'], []),
      # compound-compound_query_no_match
      ('observed_property', 'Hg', QueryMeasurementTimeseriesTVP(monitoring_feature=['A-1'], observed_property=['Ag', 'Al', 'Hg'], start_date='2020-01-01'),
-      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type "OBSERVED_PROPERTY:SAMPLING_MEDIUM" and BASIN-3D vocab: Hg:.*.']),
+      ['NOT_SUPPORTED'], ['Datasource "Alpha" did not have matches for attr_type OBSERVED_PROPERTY:SAMPLING_MEDIUM and BASIN-3D vocab Hg:.*.']),
      # non-compound_non-query-class
      ('statistic', 'MEAN', {'statistic': 'MEAN'}, ['mean'], []),
      # compound-simple_query_non-query-class
@@ -51,15 +63,15 @@ import tests.testplugins.alpha as alpha
          'compound-compound_query_lists', 'compound-compound_query_no_match',
          'non-compound_non-query-class', 'compound-simple_query_non-query-class',
          'compound-compound_query_non-query-class-lists', 'compound_non-query-class_str-value'])
-def test_find_datasource_vocab(caplog, attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs):
+def test_find_datasource_vocab(alpha_plugin_access, caplog, attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs):
     caplog.set_level(logging.INFO)
 
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
-    catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
+    # from basin3d.core.catalog import CatalogTinyDb
+    # catalog = CatalogTinyDb()
+    # catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
     caplog.clear()
 
-    results = catalog.find_datasource_vocab('Alpha', attr_type, basin3d_vocab, basin3d_query)
+    results = translate._translate_to_datasource_vocab(alpha_plugin_access, attr_type, basin3d_vocab, basin3d_query)
     assert sorted(results) == sorted(expected_results)
 
     if expected_msgs:
@@ -89,8 +101,12 @@ def test_find_datasource_vocab(caplog, attr_type, basin3d_vocab, basin3d_query, 
                           (QueryMeasurementTimeseriesTVP(observed_property=['Ag', 'RDC'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            QueryMeasurementTimeseriesTVP(observed_property=['Ag', 'Ag_gas', NO_MAPPING_TEXT], start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY']}),
+                          # multi-mapped
+                          (QueryMeasurementTimeseriesTVP(observed_property=['Al'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Aluminum', 'Al'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           {'aggregation_duration': ['DAY']}),
                           ],
-                         ids=['single-compound', 'both-compound', 'single-compound+non-compound', 'not_supported', 'not_supported-opv'])
+                         ids=['single-compound', 'both-compound', 'single-compound+non-compound', 'not_supported', 'not_supported-opv', 'multi-mapped'])
 def test_translator_translate_mapped_query_attrs(alpha_plugin_access, query, expected_results, set_transformed_attr):
     results = translate._translate_mapped_query_attrs(alpha_plugin_access, query)
     for attr, value in set_transformed_attr.items():

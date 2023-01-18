@@ -16,15 +16,13 @@
 """
 import csv
 from basin3d.core import monitor
-from dataclasses import dataclass
-from itertools import product
 from importlib import resources
 from inspect import getmodule
+import re
 from string import whitespace
 from typing import Dict, Iterator, List, Optional, Union
 
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MappedAttributeEnum, set_mapped_attribute_enum_type
-from basin3d.core.schema.query import QueryBase
 from basin3d.core.models import DataSource, AttributeMapping, ObservedProperty
 
 logger = monitor.get_logger(__name__)
@@ -214,15 +212,6 @@ class CatalogBase:
         :param attr_vocab:
         :param from_basin3d:
         :return:
-        """
-        raise NotImplementedError
-
-    def find_compound_attribute_mappings(self, datasource_id) -> Iterator[AttributeMapping]:
-        """
-        Return a datasource's compound attribute mappings
-
-        :param datasource_id: the datasource identifier
-        :return: list of attribute mappings
         """
         raise NotImplementedError
 
@@ -548,13 +537,12 @@ class CatalogTinyDb(CatalogBase):
 
         # Function for TinyDB search
         def is_in(x, attr_vocabs=attr_vocab, is_from_basin3d=from_basin3d):
-            if is_from_basin3d and MAPPING_DELIMITER in x:
-                x_elements = x.split(MAPPING_DELIMITER)
-                for x_element in x_elements:
-                    if x_element in attr_vocabs:
-                        return True
-            else:
-                return x in attr_vocabs
+            for a_vocab in attr_vocabs:
+                if is_from_basin3d and re.match(a_vocab, x):
+                    return True
+                elif not is_from_basin3d and re.fullmatch(a_vocab, x):
+                    return True
+            return False
 
         # If no query parameters --> get all mapped attributes back for all registered plugins
         if not datasource_id and not attr_vocab and not attr_type:
@@ -645,38 +633,6 @@ class CatalogTinyDb(CatalogBase):
                 catalog_messages.append(msg)
 
             return StopIteration(catalog_messages)
-
-    def find_compound_attribute_mappings(self, datasource_id: None) -> Iterator[AttributeMapping]:
-        """
-        Return a datasource's compound attribute mappings or all compound attribute mappings if no datasource specified
-
-        :param datasource_id: the datasource identifier
-        :return: list of attribute mappings
-        """
-
-        if self.in_memory_db_attr is None:
-            msg = 'Attribute Store has not been initialized.'
-            logger.critical(msg)
-            raise CatalogException(msg)
-
-        from tinydb import Query
-        query = Query()
-
-        if datasource_id:
-            results = self.in_memory_db_attr.search((query.datasource_id == datasource_id) & (query.attr_type.matches(MAPPING_DELIMITER)))
-        else:
-            results = self.in_memory_db_attr.search((query.attr_type.matches(MAPPING_DELIMITER)))
-
-        attr_map: Optional[AttributeMapping]
-        for r in results:
-            attr_map = self._get_attribute_mapping(**r)
-
-            # if AttributeMapping is not found: THIS SHOULD NEVER HAPPEN.
-            if attr_map is None:
-                logger.error(f'AttributeMapping not found given database search results. THIS SHOULD NEVER HAPPEN.')
-                continue
-
-            yield attr_map
 
     def _init_catalog(self):
         """

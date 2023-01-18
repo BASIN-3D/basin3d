@@ -15,7 +15,7 @@
 
 """
 import logging
-from typing import Iterator, List, Optional, Union
+from typing import Iterator, List, Optional
 
 from basin3d.core import monitor
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature

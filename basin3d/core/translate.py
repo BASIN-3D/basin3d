@@ -14,7 +14,7 @@
 """
 
 from itertools import product, repeat
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from basin3d.core import monitor
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT
@@ -50,7 +50,7 @@ def _get_attr_types_in_compound_mappings(plugin_access) -> list:
     """
     compound_mapping_attrs = set()
 
-    attr_mapping_iterator = plugin_access.get_compound_attribute_mappings()
+    attr_mapping_iterator = plugin_access.get_attribute_mappings()
 
     for attr_mapping in attr_mapping_iterator:
         if MAPPING_DELIMITER in attr_mapping.attr_type:
@@ -90,7 +90,7 @@ def _get_single_attr_types_in_compound_mappings(plugin_access, attr_type: str, i
     :return: list of attributes in the compound mapping
     """
 
-    compound_mapping_attrs = []
+    compound_mapping_attrs: List[str] = []
 
     compound_mapping_str = _get_attr_type_if_compound_mapping(plugin_access, attr_type)
 
@@ -98,7 +98,7 @@ def _get_single_attr_types_in_compound_mappings(plugin_access, attr_type: str, i
         return compound_mapping_attrs
 
     for attr in compound_mapping_str.split(MAPPING_DELIMITER):
-        if attr == attr_type and not include_specified_type:
+        if attr == attr_type.upper() and not include_specified_type:
             continue
         compound_mapping_attrs.append(attr)
 
@@ -166,7 +166,7 @@ def _order_mapped_fields(plugin_access, query_mapped_fields):
     return query_mapped_fields_ordered
 
 
-def _translate_mapped_query_attrs(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+def _translate_mapped_query_attrs(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
     """
     Translation functionality
     """
@@ -177,7 +177,7 @@ def _translate_mapped_query_attrs(self, plugin_access, query: Union[QueryMeasure
         return query
 
     # order the query fields by any compound attributes
-    query_mapped_fields_ordered = self._order_mapped_fields(plugin_access, query_mapped_fields)
+    query_mapped_fields_ordered = _order_mapped_fields(plugin_access, query_mapped_fields)
 
     for attr in query_mapped_fields_ordered:
         # if the attribute is specified, proceed to translate it
@@ -199,8 +199,7 @@ def _translate_mapped_query_attrs(self, plugin_access, query: Union[QueryMeasure
             compound_attrs = _get_single_attr_types_in_compound_mappings(plugin_access, attr)
             # if so: for any compound attrs, clear out the values in the synthesized query b/c search needs to be done on the coupled datasource_vocab
             for compound_attr in compound_attrs:
-                compound_attr = compound_attr.lower()
-                setattr(query, compound_attr, None)
+                setattr(query, compound_attr.lower(), None)
 
     # NOTE: always returns list for each attr b/c multiple mappings are possible.
     return query
@@ -239,7 +238,7 @@ def _translate_prefixed_query_attrs(plugin_access, query: Union[QueryMeasurement
     return query
 
 
-def _translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab: Union[str, list], b3d_query) -> list:
+def _translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab: str, b3d_query) -> list:
     """
     Find the datasource vocabulary(ies) for the specified datasource, attribute type, BASIN-3D vocabulary, and full query that may specify other attributes.
     Because multiple datasource vocabularies can be mapped to the same BASIN-3D vocabulary, the return is a list of the datasource vocabs.
@@ -250,7 +249,7 @@ def _translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab:
     :param b3d_query: either a QueryBase class or subclass object, or a dictionary
     :return: list of the datasource vocabularies
     """
-    # convert attr_type to the form in the database if necessary. e.g. OBSERVED_PROPERTIES --> OBSERVED_PROPERTY
+    # convert attr_type to uppercase
     attr_type = attr_type.upper()
 
     # is the attr_type part of a compound mapping?
@@ -268,7 +267,7 @@ def _translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab:
 
             # by default: match any number of characters excepting a new line for the attribute
             # replace this value below if a value for the attribute is specified in the query
-            filter_values = ['.*']
+            filter_values: List[str] = ['.*']
             # if the attr is the attr_type, set the filter to the specified vocab
             if attr == attr_type:
                 filter_values = [basin3d_vocab]
@@ -297,8 +296,8 @@ def _translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab:
         # change the attr_type to the compound mapping str
         # attr_type = compound_mapping_attrs
 
-    ds_vocab = []
-    no_match_list = []
+    ds_vocab: List[str] = []
+    no_match_list: List[str] = []
 
     # Loop thru the list of vocabulary string combos to search the attribute mapping database
     for basin3d_vocab_str in b3d_vocab_combo_str:
@@ -323,8 +322,10 @@ def _translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab:
         ds_vocab = [NO_MAPPING_TEXT]
 
     if no_match_list:
+        if compound_mapping_attrs:
+            attr_type = ':'.join(compound_mapping_attrs)
         logger.info(f'Datasource "{plugin_access.datasource.id}" did not have matches for attr_type '
-                    f'"{attr_type}" and BASIN-3D vocab: {", ".join(no_match_list)}.')
+                    f'{attr_type} and BASIN-3D vocab {", ".join(no_match_list)}.')
 
     return ds_vocab
 
@@ -369,7 +370,7 @@ def translate_attributes(plugin_access, mapped_attrs, **kwargs):
     return kwargs
 
 
-def translate_query(self, plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+def translate_query(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
     """
     Main translator method that calls individual methods
     :param plugin_access: plugin access

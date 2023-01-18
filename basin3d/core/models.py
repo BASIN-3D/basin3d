@@ -1553,10 +1553,10 @@ class ResultPointFloat(Base):
     @property
     def result_quality(self) -> 'MappedAttribute':
         """Result that was measured"""
-        return self._quality
+        return self._result_quality
 
     @result_quality.setter
-    def quality(self, value: 'MappedAttribute'):
+    def result_quality(self, value: 'MappedAttribute'):
         self._result_quality = value
 
 

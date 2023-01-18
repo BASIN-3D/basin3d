@@ -309,10 +309,10 @@ def test_find_datasource_attribute_mapping(plugins, query, expected):
                                              datasource_desc='Mercury, water, filtered, nanograms per liter',
                                              datasource=DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/', credentials={}))],
                            []),
-                          # datasource_id--Alpha
-                          ([alpha.AlphaSourcePlugin], {'datasource_id': 'Alpha'}, 13, [], []),
+                          # datasource_id-only-Alpha-all
+                          ([alpha.AlphaSourcePlugin], {'datasource_id': 'Alpha'}, 14, [], []),
                           # no-params
-                          ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {}, 66, [], []),
+                          ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {}, 67, [], []),
                           # ds_id-attr_type-Alpha-STATISTIC
                           ([alpha.AlphaSourcePlugin], {'datasource_id': 'Alpha', 'attr_type': 'STATISTIC'}, 3, [], []),
                           # ds_id-attr_type-attr_vocab--Alpha-STATISTIC-mean
@@ -347,7 +347,7 @@ def test_find_datasource_attribute_mapping(plugins, query, expected):
                                              datasource=DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/', credentials={}))],
                            []),
                           # attr_type--AGGREGATION_TYPE
-                          ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {'attr_type': 'AGGREGATION_DURATION'}, 3, [], []),
+                          ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {'attr_type': 'AGGREGATION_DURATION'}, 4, [], []),
                           # attr_vocab--Aluminum
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {'attr_vocab': 'Aluminum'}, 1, [], []),
                           # attr_vocab-from_basin3d--Al
