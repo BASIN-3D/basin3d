@@ -7,8 +7,7 @@ from tinydb import TinyDB
 from basin3d.core.catalog import CatalogException
 from basin3d.core.models import DataSource, ObservedProperty, AttributeMapping
 from basin3d.core.schema.enum import SamplingMediumEnum, StatisticEnum
-from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP
-from tests.testplugins import alpha
+from tests.testplugins import alpha, complexmap
 from basin3d.plugins import usgs
 
 log = logging.Logger(__name__)
@@ -65,29 +64,12 @@ def catalog(monkeypatch):
 # ********* ORDER of tests matters!! see comments
 # ********* The catalog is only first created in the test_create_catalog function below.
 
-# CompoundMapping model (catalogBASE)
-# def test_compound_mapping_model():
-#     from basin3d.core.catalog import CatalogBase
-#
-#     catalog = CatalogBase()
-#     datasource = get_datasource_from_id('Alpha', 'A')
-#     compound_mapping = catalog.CompoundMapping(attr_type='TEST',
-#                                                compound_mapping='TEST:TEST',
-#                                                datasource=datasource)
-#     assert compound_mapping.attr_type == 'TEST'
-#     assert compound_mapping.compound_mapping == 'TEST:TEST'
-#     assert compound_mapping.datasource == datasource
-
-
 # _get_attribute_enum (catalogBASE)
 def test_get_attribute_enum():
     from basin3d.core.catalog import CatalogBase
     catalog = CatalogBase()
     assert catalog._get_attribute_enum('WATER', SamplingMediumEnum) == SamplingMediumEnum.WATER
     assert catalog._get_attribute_enum('FOO', SamplingMediumEnum) is None
-
-# ToDo: Think about outcomes of logic
-# ToDo: see if can resolve datasource vs datasource_id arguments
 
 
 @pytest.mark.parametrize("plugins", [(["foo"]), [Mock()]])
@@ -273,6 +255,17 @@ def test_process_plugin_attr_mapping(catalog, caplog):
                                             datasource_desc='acetate',
                                             datasource=DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/', credentials={}))
                            ),
+                          # Complexmap
+                          ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin, complexmap.ComplexmapSourcePlugin],
+                           {'datasource_id': 'Complexmap', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': 'Mean Al'},
+                           AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM:STATISTIC',
+                                            basin3d_vocab='Al:WATER:MEAN',
+                                            basin3d_desc=[ObservedProperty(basin3d_vocab='Al', full_name='Aluminum (Al)', categories=['Biogeochemistry', 'Trace elements'], units='mg/L'),
+                                                          SamplingMediumEnum.WATER, StatisticEnum.MEAN],
+                                            datasource_vocab='Mean Al',
+                                            datasource_desc='aluminum (Al) concentration in water',
+                                            datasource=DataSource(id='Complexmap', name='Complexmap', id_prefix='C', location='https://asource.foo/', credentials={}))
+                           ),
                           # Bad-DataSource
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
                            {'datasource_id': 'FOO', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': 'Acetate'},
@@ -284,7 +277,7 @@ def test_process_plugin_attr_mapping(catalog, caplog):
                                             datasource=DataSource())
                            )
                           ],
-                         ids=['Wrong-plugin-initialized', 'USGS', 'Alpha', 'Bad-DataSource'])
+                         ids=['Wrong-plugin-initialized', 'USGS', 'Alpha', 'Complexmap', 'Bad-DataSource'])
 def test_find_datasource_attribute_mapping(plugins, query, expected):
     """ Test attribute mapping """
     from basin3d.core.catalog import CatalogTinyDb
@@ -295,6 +288,15 @@ def test_find_datasource_attribute_mapping(plugins, query, expected):
     assert attribute_mapping == expected
 
 
+# currently these are the implemented uses:
+# -- BASIN-3D vocab to datasource vocab:
+#    -- fully specified: e.g. Al:WATER:MAX
+#    -- with wildcard: e.g. one or more attribute is specified but not all: Al:WATER:.*
+#    -- partially specified: e.g. OBSERVED_PROPERTY = Al for compound vocabs like Al:WATER:MAX (note partial specification may not be beginning text)
+#    -- could be a list or a single BASIN-3D vocab. Note: Result is ALWAYS a list
+# -- datasource vocab to BASIN-3D
+#    -- single datasource vocab (with attr_type specified) with expected single BASIN-3D
+# -- all mappings: to find complex mappings
 # catalog.find_attribute_mappings (TinyDB)
 @pytest.mark.parametrize('plugins, query, expected_count, expected_list, expected_msg',
                          # ds_id-attr_type-attr_vocab-from_basin3d--USGS-OBSERVED_PROPERTY-Hg--compound
@@ -370,14 +372,28 @@ def test_find_datasource_attribute_mapping(plugins, query, expected):
                            ['No attribute mappings found for specified parameters: datasource id = "None", attribute type = "OBSERVED_PROPERTY", datasource vocabularies: Hg.']),
                           # No-results-from_basin3d
                           ([alpha.AlphaSourcePlugin], {'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Hg', 'from_basin3d': True}, 0, [],
-                           ['No attribute mappings found for specified parameters: datasource id = "None", attribute type = "OBSERVED_PROPERTY", BASIN-3D vocabularies: Hg.'])
+                           ['No attribute mappings found for specified parameters: datasource id = "None", attribute type = "OBSERVED_PROPERTY", BASIN-3D vocabularies: Hg.']),
+                          # complexmap-attr_vocabs-from_basin3d--ACT,Al
+                          ([complexmap.ComplexmapSourcePlugin], {'attr_vocab': ['Al', 'ACT'], 'from_basin3d': True}, 5, [], []),
+                          # complexmap-attr_vocabs-wildcard-from_basin3d--Al
+                          ([complexmap.ComplexmapSourcePlugin], {'attr_vocab': ['Al:.*:.*'], 'from_basin3d': True}, 3, [], []),
+                          # complexmap-attr_vocab-Al
+                          ([complexmap.ComplexmapSourcePlugin], {'attr_vocab': ['Mean Al']}, 1, [], []),
+                          # complexmap-attr_vocab-bothAl
+                          ([complexmap.ComplexmapSourcePlugin], {'attr_vocab': ['Mean Al', 'Mean Aluminum']}, 2, [], []),
+                          # complexmap-attr_vocabs-single-wildcard-from_basin3d--Al
+                          ([complexmap.ComplexmapSourcePlugin], {'attr_vocab': ['Al:.*:MEAN', 'Al:.*:MAX'], 'from_basin3d': True}, 2, [], []),
+                          # complexmap-attr_type-attr_vocabs-from_basin3d--MEAN, MAX
+                          ([complexmap.ComplexmapSourcePlugin], {'attr_type': 'STATISTIC', 'attr_vocab': ['MEAN', 'MAX'], 'from_basin3d': True}, 5, [], []),
                          ],
                          ids=['USGS-from_basin3d', 'datasource_id-only-Alpha-all', 'no-params-ALL', 'ds_id-attr_type-Alpha-STATISTIC',
                               'ds_id-attr_type-attr_vocab--Alpha-STATISTIC-mean', 'ds_id-attr_type_attr_vocab-from_basin3d--Alpha-STATISTIC-MEAN',
                               'ds_id-attr_vocab--Alpha-mean', 'ds_id-attr_vocab-from_basin3d--Alpha-MEAN', 'attr_type_attr_vocab--STATISTIC-mean',
                               'attr_type_attr_vocab-from_basin3d--STATISTIC-MEAN', 'attr_type--AGGREGATION_TYPE', 'attr_vocab--Aluminum',
                               'attr_vocab-from_basin3d--Al', 'attr_vocabs--Aluminum-Acetate', 'attr_vocabs-from_basin3d--ACT-Al',
-                              'attr_vocabs-some_bad--Aluminum-Acetate-Foo', 'BAD-ds_id', 'BAD-attr_type', 'BAD-attr_vocab_type', 'No-results', 'No-results-from_basin3d'])
+                              'attr_vocabs-some_bad--Aluminum-Acetate-Foo', 'BAD-ds_id', 'BAD-attr_type', 'BAD-attr_vocab_type', 'No-results', 'No-results-from_basin3d',
+                              'complexmap-attr_vocabs-from_basin3d', 'complexmap-attr_vocabs-wildcard-from_basin3d', 'complexmap-attr_vocab-Al', 'complexmap-attr_vocab-bothAl',
+                              'complexmap-attr_vocabs-single-wildcard-from_basin3d', 'complexmap-attr_type-attr_vocabs-from_basin3d'])
 def test_find_attribute_mappings(caplog, plugins, query, expected_count, expected_list, expected_msg):
     """ Test attribute mapping """
     caplog.set_level(logging.INFO)
@@ -408,22 +424,3 @@ def test_find_attribute_mappings(caplog, plugins, query, expected_count, expecte
         with pytest.raises(CatalogException):
             for attr_mapping in attribute_mappings:
                 pass
-
-
-# # catalog.find_compound_mapping_attributes (TinyDB)
-# @pytest.mark.parametrize('datasource_id, attr_type, include_specified_type, expected_results',
-#                          [('Alpha', 'OBSERVED_PROPERTY', False, ['SAMPLING_MEDIUM']),
-#                           ('Alpha', 'OBSERVED_PROPERTY', True, ['SAMPLING_MEDIUM', 'OBSERVED_PROPERTY']),
-#                           ('Alpha', 'FOO', False, []),
-#                           ],
-#                          ids=['compound-other', 'compound-both', 'non-compound'])
-# def test_find_compound_mapping_attributes(datasource_id, attr_type, include_specified_type, expected_results):
-#     from basin3d.core.catalog import CatalogTinyDb
-#     catalog = CatalogTinyDb()
-#     catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
-#
-#     if include_specified_type:
-#         results = catalog.find_compound_mapping_attributes(datasource_id, attr_type, include_specified_type)
-#     else:
-#         results = catalog.find_compound_mapping_attributes(datasource_id, attr_type)
-#     assert sorted(results) == sorted(expected_results)

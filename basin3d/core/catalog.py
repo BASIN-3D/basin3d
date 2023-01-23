@@ -38,26 +38,6 @@ class CatalogBase:
         self.variable_dir = 'basin3d.data'
         self.variable_filename = variable_filename
 
-    # @dataclass
-    # class CompoundMapping:
-    #     """
-    #     Helper model to handle compound attribute mapping
-    #
-    #     Attributes:
-    #         - *attr_type:* a single attribute type that is part of the associated compound mapping, e.g. STATISTIC, RESULT_QUALITY, OBSERVED_PROPERTY
-    #         - *compound_mapping:* the compound mapping
-    #         - *datasource:* the datasource containing the compound mapping
-    #     """
-    #     attr_type: str  # e.g. OBSERVED_PROPERTY
-    #     compound_mapping: str  # e.g. OBSERVED_PROPERTY:SAMPLING_MEDIUM
-    #     datasource: DataSource = DataSource()
-    #
-    #     def __str__(self):
-    #         return self.__unicode__()
-    #
-    #     def __unicode__(self):
-    #         return self.compound_mapping
-
     def initialize(self, plugin_list: list):
         """
 
@@ -154,25 +134,6 @@ class CatalogBase:
         :return:
         """
         raise NotImplementedError
-
-    # def _get_compound_mapping(self, datasource_id, attr_type, compound_mapping):
-    #     """
-    #
-    #     :param datasource_id:
-    #     :param attr_type:
-    #     :param compound_mapping:
-    #     :return:
-    #     """
-    #     raise NotImplementedError
-    #
-    # def _find_compound_mapping(self, datasource_id, attr_type):
-    #     """
-    #
-    #     :param datasource_id:
-    #     :param attr_type:
-    #     :return:
-    #     """
-    #     raise NotImplementedError
 
     def is_initialized(self) -> bool:
         """Has the catalog been initialized?"""
@@ -297,9 +258,6 @@ class CatalogBase:
                 raise CatalogException(
                     f'Plugin {plugin_id}: {filename} is not in correct format. Cannot create catalog.')
 
-            # # get a set ready to collect the attribute types for unique compound mappings
-            # compound_mappings = set()
-
             # loop thru the file
             for row in reader:
                 attr_type = row[fields[0]]
@@ -352,19 +310,6 @@ class CatalogBase:
                 self._insert(attr_mapping)
                 logger.debug(f"{datasource.id}: Mapped {attr_type} {datasource_vocab} to {basin3d_vocab}")
 
-                # # if the mapping is compound collect it for later parsing
-                # if MAPPING_DELIMITER in attr_type:
-                #     compound_mappings.add(attr_type)
-
-        # for compound_mapping in compound_mappings:
-        #     attrs = compound_mapping.split(MAPPING_DELIMITER)
-        #     for attr in attrs:
-        #         cm = CatalogBase.CompoundMapping(
-        #             compound_mapping=compound_mapping,
-        #             attr_type=attr,
-        #             datasource=datasource)
-        #         self._insert(cm)
-
 
 class CatalogTinyDb(CatalogBase):
 
@@ -373,10 +318,8 @@ class CatalogTinyDb(CatalogBase):
 
         self.in_memory_db = None
         self.in_memory_db_attr = None
-        # self.in_memory_db_cm = None
         self._observed_properties: Dict[str, ObservedProperty] = {}
         self._attribute_mappings: Dict[str, AttributeMapping] = {}
-        # self._compound_mapping: Dict[str, CatalogBase.CompoundMapping] = {}
         self._datasources: Dict[str, DataSource] = {}
 
     def is_initialized(self) -> bool:
@@ -538,7 +481,7 @@ class CatalogTinyDb(CatalogBase):
         # Function for TinyDB search
         def is_in(x, attr_vocabs=attr_vocab, is_from_basin3d=from_basin3d):
             for a_vocab in attr_vocabs:
-                if is_from_basin3d and re.match(a_vocab, x):
+                if is_from_basin3d and re.search(a_vocab, x):
                     return True
                 elif not is_from_basin3d and re.fullmatch(a_vocab, x):
                     return True
@@ -646,8 +589,6 @@ class CatalogTinyDb(CatalogBase):
         self.in_memory_db = TinyDB(storage=MemoryStorage)
         self.in_memory_db_attr = self.in_memory_db.table('attr')
         self.in_memory_db_attr.truncate()
-        # self.in_memory_db_cm = self.in_memory_db.table('compound_mappings')
-        # self.in_memory_db_cm.truncate()
 
     def _insert(self, record):
         """
@@ -666,13 +607,6 @@ class CatalogTinyDb(CatalogBase):
                                                'basin3d_desc': record.basin3d_desc,
                                                'datasource_vocab': record.datasource_vocab,
                                                'datasource_desc': record.datasource_desc, })
-            # elif isinstance(record, CatalogBase.CompoundMapping):
-            #     key = f'{record.datasource.id}-{record.attr_type}-{record.compound_mapping}'
-            #     logger.debug(key)
-            #     self._compound_mapping[key] = record
-            #     self.in_memory_db_cm.insert({'datasource_id': record.datasource.id,
-            #                                  'attr_type': record.attr_type,
-            #                                  'compound_mapping': record.compound_mapping, })
             elif isinstance(record, DataSource):
                 self._datasources[record.id] = record
         else:

@@ -15,13 +15,12 @@
 
 
 """
-# from itertools import repeat
 from types import MethodType
 from typing import Dict
 
 from basin3d.core import monitor
 from basin3d.core.catalog import CatalogTinyDb
-from basin3d.core.models import DataSource, MappedAttribute
+from basin3d.core.models import DataSource
 from basin3d.core.schema.enum import FeatureTypeEnum
 
 logger = monitor.get_logger(__name__)

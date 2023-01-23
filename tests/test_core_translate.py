@@ -6,7 +6,7 @@ from basin3d.core.models import DataSource
 from basin3d.core.plugin import DataSourcePluginAccess
 from basin3d.core.schema.enum import NO_MAPPING_TEXT
 from basin3d.core.schema.query import QueryMonitoringFeature, QueryMeasurementTimeseriesTVP
-from tests.testplugins import alpha
+from tests.testplugins import alpha, complexmap
 
 
 @pytest.fixture
@@ -17,6 +17,16 @@ def alpha_plugin_access():
     alpha_ds = DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/')
 
     return DataSourcePluginAccess(alpha_ds, catalog)
+
+
+@pytest.fixture
+def complex_plugin_access():
+    from basin3d.core.catalog import CatalogTinyDb
+    catalog = CatalogTinyDb()
+    catalog.initialize([p(catalog) for p in [complexmap.ComplexmapSourcePlugin]])
+    complex_ds = DataSource(id='Complexmap', name='Complexmap', id_prefix='C', location='https://asource.foo/')
+
+    return DataSourcePluginAccess(complex_ds, catalog)
 
 
 # ToDo: add test for triple compound mapping
@@ -65,10 +75,6 @@ def alpha_plugin_access():
          'compound-compound_query_non-query-class-lists', 'compound_non-query-class_str-value'])
 def test_find_datasource_vocab(alpha_plugin_access, caplog, attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs):
     caplog.set_level(logging.INFO)
-
-    # from basin3d.core.catalog import CatalogTinyDb
-    # catalog = CatalogTinyDb()
-    # catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
     caplog.clear()
 
     results = translate._translate_to_datasource_vocab(alpha_plugin_access, attr_type, basin3d_vocab, basin3d_query)
@@ -80,35 +86,74 @@ def test_find_datasource_vocab(alpha_plugin_access, caplog, attr_type, basin3d_v
             assert msg in log_msgs
 
 
-@pytest.mark.parametrize('query, expected_results, set_transformed_attr',
-                         # single-compound
-                         [(QueryMeasurementTimeseriesTVP(observed_property=['Ag'], start_date='2019-01-01', monitoring_feature=['A-3']),
+@pytest.mark.parametrize('ds, query, expected_results, set_transformed_attr',
+                         [
+                          # single-compound
+                          ('Alpha',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Ag'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            QueryMeasurementTimeseriesTVP(observed_property=['Ag', 'Ag_gas'], sampling_medium=None, start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY']}),
                           # both-compound
-                          (QueryMeasurementTimeseriesTVP(observed_property=['Ag'], sampling_medium=['GAS'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                          ('Alpha',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Ag'], sampling_medium=['GAS'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            QueryMeasurementTimeseriesTVP(observed_property=['Ag_gas'], sampling_medium=None, start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY']}),
                           # single-compound+non-compound
-                          (QueryMeasurementTimeseriesTVP(observed_property=['Ag'], statistic=['MEAN'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                          ('Alpha',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Ag'], statistic=['MEAN'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            QueryMeasurementTimeseriesTVP(observed_property=['Ag', 'Ag_gas'], statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY'], 'statistic': ['mean']}),
                           # not_supported
-                          (QueryMeasurementTimeseriesTVP(observed_property=['Ag'], statistic=['INSTANT'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                          ('Alpha',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Ag'], statistic=['INSTANT'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            QueryMeasurementTimeseriesTVP(observed_property=['Ag', 'Ag_gas'], statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY'], 'statistic': [NO_MAPPING_TEXT]}),
                           # not_supported-opv
-                          (QueryMeasurementTimeseriesTVP(observed_property=['Ag', 'RDC'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                          ('Alpha',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Ag', 'RDC'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            QueryMeasurementTimeseriesTVP(observed_property=['Ag', 'Ag_gas', NO_MAPPING_TEXT], start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY']}),
                           # multi-mapped
-                          (QueryMeasurementTimeseriesTVP(observed_property=['Al'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                          ('Alpha',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Al'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            QueryMeasurementTimeseriesTVP(observed_property=['Aluminum', 'Al'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY']}),
+                          # multi-mapped-complex
+                          ('Alpha',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Al'], sampling_medium=['WATER'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Aluminum', 'Al'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           {'aggregation_duration': ['DAY']}),
+                          # complex-single-compound
+                          ('Complexmap',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Ag'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Mean Ag', 'Min Ag_gas'], sampling_medium=None, statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
+                           {'aggregation_duration': ['DAY']}),
+                          # complex-two-compound
+                          ('Complexmap',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Ag'], sampling_medium=['GAS'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Min Ag_gas'], sampling_medium=None, statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
+                           {'aggregation_duration': ['DAY']}),
+                          # complex-other-two-compound
+                          ('Complexmap',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Al'], statistic=['MEAN'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Mean Aluminum', 'Mean Al'], sampling_medium=None, statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
+                           {'aggregation_duration': ['DAY']}),
+                          # complex-all-compound
+                          ('Complexmap',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Ag'], sampling_medium=['GAS'], statistic=['MIN'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Min Ag_gas'], sampling_medium=None, statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
+                           {'aggregation_duration': ['DAY']}),
+                          # complex-all-compound-no-mapping
+                          ('Complexmap',
+                           QueryMeasurementTimeseriesTVP(observed_property=['Ag'], sampling_medium=['WATER'], statistic=['MIN'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=[NO_MAPPING_TEXT], sampling_medium=None, statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
+                           {'aggregation_duration': ['DAY']}),
                           ],
-                         ids=['single-compound', 'both-compound', 'single-compound+non-compound', 'not_supported', 'not_supported-opv', 'multi-mapped'])
-def test_translator_translate_mapped_query_attrs(alpha_plugin_access, query, expected_results, set_transformed_attr):
-    results = translate._translate_mapped_query_attrs(alpha_plugin_access, query)
+                         ids=['single-compound', 'both-compound', 'single-compound+non-compound', 'not_supported', 'not_supported-opv', 'multi-mapped', 'multi-mapped-complex',
+                              'complex-single-compound', 'complex-two-compound', 'complex-other-two-compound', 'complex-all-compound', 'complex-all-compound-no-mapping'])
+def test_translator_translate_mapped_query_attrs(alpha_plugin_access, complex_plugin_access, ds, query, expected_results, set_transformed_attr):
+    plugin_access = complex_plugin_access if ds == 'Complexmap' else alpha_plugin_access
+    results = translate._translate_mapped_query_attrs(plugin_access, query)
     for attr, value in set_transformed_attr.items():
         setattr(expected_results, attr, value)
     assert results == expected_results

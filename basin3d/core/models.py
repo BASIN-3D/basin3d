@@ -37,30 +37,6 @@ from basin3d.core.types import SpatialSamplingShapes
 logger = monitor.get_logger(__name__)
 
 
-# def translate_attributes(plugin_access, mapped_attrs, **kwargs):
-#     """Helper method to translate datasource vocabularies to BASIN-3D vocabularies via MappedAttributes"""
-#
-#     # copy the kwargs be able to loop thru the original while modifying the actual for compound mappings
-#     kwargs_orig = kwargs.copy()
-#
-#     for attr in mapped_attrs:
-#         if attr in kwargs_orig:
-#             datasource_vocab = kwargs[attr]
-#             attr_mapping = plugin_access.get_datasource_mapped_attribute(attr_type=attr.upper(), attr_vocab=datasource_vocab)
-#             kwargs[attr] = attr_mapping
-#
-#             # If the attr is part of a compound mapping and the compound attr is not part of the kwargs, set it.
-#             cm_attrs = plugin_access.get_compound_mapping_attributes(attr)
-#             if cm_attrs:
-#                 for cm_attr in cm_attrs:
-#                     if cm_attr.lower() not in kwargs:
-#                         cm_attr_mapping = plugin_access.get_datasource_mapped_attribute(attr_type=cm_attr.upper(),
-#                                                                                         attr_vocab=datasource_vocab)
-#                         kwargs[cm_attr.lower()] = cm_attr_mapping
-#
-#     return kwargs
-
-
 class JSONSerializable:
     """
     Make a Data class serializable to json
@@ -1457,9 +1433,6 @@ class ResultListTVP(Base):
 
         # translate quality
         kwargs = self._translate_attributes(plugin_access, **kwargs)
-        # if 'quality' in kwargs and kwargs['quality']:
-        #     attr_mappings = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
-        #     kwargs['quality'] = self._create_mapped_attributes('RESULT_QUALITY', attr_mappings)
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
@@ -1529,9 +1502,6 @@ class ResultPointFloat(Base):
 
         # translate quality
         kwargs = self._translate_attributes(plugin_access, **kwargs)
-        # if 'quality' in kwargs and kwargs['quality']:
-        #     attr_mappings = get_datasource_mapped_attribute(plugin_access, attr_type='RESULT_QUALITY', datasource_vocab=kwargs['quality'])
-        #     kwargs['quality'] = self._create_mapped_attributes('RESULT_QUALITY', attr_mappings)
 
         # Initialize after the attributes have been set
         super().__init__(None, **kwargs)

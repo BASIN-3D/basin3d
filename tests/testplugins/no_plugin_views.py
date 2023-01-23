@@ -1,12 +1,6 @@
 import logging
-from typing import Any, List
 
-from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, DepthCoordinate, \
-    GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
-    RepresentativeCoordinate, SpatialSamplingShapes, VerticalCoordinate
 from basin3d.core.plugin import DataSourcePluginPoint, basin3d_plugin, basin3d_plugin_access
-from basin3d.core.schema.enum import FeatureTypeEnum, TimeFrequencyEnum
-from basin3d.core.schema.query import QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 
 logger = logging.getLogger(__name__)
 

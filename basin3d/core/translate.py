@@ -292,10 +292,6 @@ def _translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab:
         # change each set into a str for search
         b3d_vocab_combo_str = [MAPPING_DELIMITER.join(v) for v in b3d_vocab_combo_sets]
 
-        # DELETE (probably)
-        # change the attr_type to the compound mapping str
-        # attr_type = compound_mapping_attrs
-
     ds_vocab: List[str] = []
     no_match_list: List[str] = []
 
