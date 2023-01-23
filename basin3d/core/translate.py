@@ -1,6 +1,6 @@
 """
 `basin3d.core.translate`
-*********************
+************************
 
 .. currentmodule:: basin3d.core.translate
 
@@ -27,8 +27,9 @@ logger = monitor.get_logger(__name__)
 def _clean_query(translated_query: QueryBase) -> QueryBase:
     """
     Remove any NOT_SUPPORTED translations
-    :param translated_query:
-    :return:
+
+    :param translated_query: the translated query that may have NOT_SUPPORTED translation results
+    :return: cleaned query that has all NOT_SUPPORTED translations removed
     """
     for attr in translated_query.get_mapped_fields():
         attr_value = getattr(translated_query, attr)
@@ -106,6 +107,15 @@ def _get_single_attr_types_in_compound_mappings(plugin_access, attr_type: str, i
 
 
 def _is_translated_query_valid(datasource_id, query, translated_query) -> Optional[bool]:
+    """
+    Determine if the translated query is valid. A valid translated query has at least one datasoure vocabulary
+    for any query field that was supecified (i.e., with a BASIN-3D vocab)
+
+    :param datasource_id: the datasource id
+    :param query: the original query
+    :param translated_query: the translated query
+    :return: boolean (True = valid translated query, False = invalid translated query) or None (translated query could not be assessed)
+    """
     # loop thru kwargs
     for attr in query.get_mapped_fields():
         translated_attr_value = getattr(translated_query, attr)
@@ -131,6 +141,7 @@ def _is_translated_query_valid(datasource_id, query, translated_query) -> Option
 
 def _order_mapped_fields(plugin_access, query_mapped_fields):
     """
+    Order the mapped fields according to the order of the attributes in any compound mappings. And then handle the rest of the mappings.
 
     :param plugin_access:
     :param query_mapped_fields:
@@ -201,7 +212,7 @@ def _translate_mapped_query_attrs(plugin_access, query: Union[QueryMeasurementTi
             for compound_attr in compound_attrs:
                 setattr(query, compound_attr.lower(), None)
 
-    # NOTE: always returns list for each attr b/c multiple mappings are possible.
+    # NOTE: always returns list for each mapped attr b/c multiple datasource vocab can be mapped to a single BASIN-3D vocab.
     return query
 
 
@@ -328,12 +339,12 @@ def _translate_to_datasource_vocab(plugin_access, attr_type: str, basin3d_vocab:
 
 def get_datasource_mapped_attribute(plugin_access, attr_type, datasource_vocab):
     """
-    Get the `basin3d.models.MappedAttribute` object(s) for the specified attribute type and datasource attribute vocab(s)
+    Get the :class:`basin3d.core.models.MappedAttribute` object(s) for the specified attribute type and datasource attribute vocab(s)
 
     :param plugin_access: plugin_access
     :param attr_type: attribute type
     :param datasource_vocab: datasource attribute vocabulary
-    :return: a single or list of `basin3d.models.MappedAttribute` objects
+    :return: a single or list of `basin3d.core.models.MappedAttribute` objects
     """
 
     if isinstance(datasource_vocab, str):
@@ -344,7 +355,17 @@ def get_datasource_mapped_attribute(plugin_access, attr_type, datasource_vocab):
 
 
 def translate_attributes(plugin_access, mapped_attrs, **kwargs):
-    """Helper method to translate datasource vocabularies to BASIN-3D vocabularies via MappedAttributes"""
+    """
+    Translate datasource vocabularies to BASIN-3D vocabularies via
+    :class:`basin3d.core.models.AttributeMapping` objects specified in the datasource plugin
+    for specified model attributes (i.e., those that have mappings).
+    This function is used by data model objects during object creation. See :class:`basin3d.core.models`.
+
+    :param plugin_access: plugin_access
+    :param mapped_attrs: a model's mapped attributes
+    :param kwargs: the full set of a model's attributes
+    :return: kwargs: the model's attributes, including the translated attributes
+    """
 
     # copy the kwargs be able to loop thru the original while modifying the actual for compound mappings
     kwargs_orig = kwargs.copy()
@@ -368,10 +389,11 @@ def translate_attributes(plugin_access, mapped_attrs, **kwargs):
 
 def translate_query(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
     """
-    Main translator method that calls individual methods
+    Translate BASIN-3D vocabulary specified in a query to the datasource vocabularies defined by :class:`basin3d.core.models.AttributeMapping` objects specified in the datasource plugin.
+
     :param plugin_access: plugin access
     :param query: query to be translated
-    :return: translated query
+    :return: translated query as a :class:`basin3d.core.schema.query.QueryBase` object
     """
     translated_query = query.copy()
     _translate_mapped_query_attrs(plugin_access, translated_query)

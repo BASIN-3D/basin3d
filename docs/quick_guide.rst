@@ -23,13 +23,19 @@ Register a Synthesizer
 
 
 Get a List of Locations for a Data Source
-------------------------------------------------
+-----------------------------------------
 .. autofunction:: basin3d.synthesis.DataSynthesizer.monitoring_features
     :noindex:
 
 
+Get a List of Attribute Mappings for a Data Source
+--------------------------------------------------
+.. autofunction:: basin3d.synthesis.DataSynthesizer.attribute_mappings
+    :noindex:
+
+
 Get a List of Variables Supported by a BASIN-3D
-------------------------------------------------------------
+-----------------------------------------------
 .. autofunction:: basin3d.synthesis.DataSynthesizer.observed_properties
     :noindex:
 
