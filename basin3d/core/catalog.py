@@ -401,7 +401,7 @@ class CatalogTinyDb(CatalogBase):
 
         :param: datasource_id: the datasource identifier
         :param: attr_type: attribute type
-        :param: datasource_vocab: the attribute vocabulary; only datasource vocabulary currently supported
+        :param: datasource_vocab: the datasource attribute vocabulary
         :return: a :class:`basin3d.models.AttributeMapping` object
         """
         if self.in_memory_db_attr is None:
@@ -412,6 +412,7 @@ class CatalogTinyDb(CatalogBase):
         from tinydb import Query
         query = Query()
 
+        # attr_type is search to accommodate compound mappings
         results = self.in_memory_db_attr.search(
             (query.datasource_vocab == datasource_vocab) & (query.datasource_id == datasource_id) & (query.attr_type.search(attr_type)))
 
@@ -441,11 +442,16 @@ class CatalogTinyDb(CatalogBase):
     def find_attribute_mappings(self, datasource_id: str = None, attr_type: str = None, attr_vocab: Union[str, List] = None,
                                 from_basin3d: bool = False) -> Iterator[AttributeMapping]:
         """
-        Find the list of attribute mappings given the specified fields. If no fields are specified, all registered attribute mappings will be returned.
+        Find the list of attribute mappings given the specified fields.
+        Exact matches are returned (see attr_vocab formats below for BASIN-3D vocab nuances).
+        If no fields are specified, all registered attribute mappings will be returned.
 
         :param datasource_id: the datasource identifier
         :param attr_type: the attribute type
-        :param attr_vocab:  the attribute vocabulary
+        :param attr_vocab: the attribute vocabulary, the formats are one of the following:
+                           1) datasource vocab that is a complete vocab
+                           2) BASIN-3D vocab that is a complete vocab for a given attr_type regardless if it is compound or not.
+                           3) BASIN-3D vocab that is compound and fully specified for each attr_type either with the complete vocab or with wildcards.
         :param from_basin3d: boolean that says whether the attr_vocab is a BASIN-3D vocabulary. If not, then this a datasource vocabulary.
         :return: generator that yields :class:`basin3d.models.AttributeMapping` objects
         """
@@ -481,10 +487,21 @@ class CatalogTinyDb(CatalogBase):
         # Function for TinyDB search
         def is_in(x, attr_vocabs=attr_vocab, is_from_basin3d=from_basin3d):
             for a_vocab in attr_vocabs:
-                if is_from_basin3d and re.search(a_vocab, x):
+                # if attr_vocabs is datasource vocab(s)
+                # OR attr_vocabs is BASIN-3D vocab(s) AND they have the compound mapping delimiter (i.e., it has : and possibly wildcards)
+                # AND it is a fullmatch
+                if (not is_from_basin3d or (is_from_basin3d and MAPPING_DELIMITER in a_vocab)) and re.fullmatch(a_vocab, x):
                     return True
-                elif not is_from_basin3d and re.fullmatch(a_vocab, x):
-                    return True
+                # if attr_vocabs is BASIN-3D vocab(s) and they do not have the compound mapping delimiter,
+                # then match exactly for the individual attr_type components.
+                # e.g. attr_vocabs = ['MAX', 'MIN'] and the mapping is compound e.g. x = 'Al:WATER:MAX'
+                # re.search does not work here b/c of a case like OBSERVED_PROPERPTY variables TEMP:AIR and SONIC_TEMP:AIR,
+                # in which a attr_vocab of ['TEMP'] would return both instead on just TEMP:AIR.
+                # A general search would need to be handled differently.
+                elif is_from_basin3d and MAPPING_DELIMITER not in a_vocab:
+                    for x_vocab in x.split(MAPPING_DELIMITER):
+                        if x_vocab == a_vocab:
+                            return True
             return False
 
         # If no query parameters --> get all mapped attributes back for all registered plugins

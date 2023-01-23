@@ -348,6 +348,8 @@ def test_find_datasource_attribute_mapping(plugins, query, expected):
                                              datasource_desc='', basin3d_desc=[StatisticEnum.MEAN],
                                              datasource=DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/', credentials={}))],
                            []),
+                          # ds_id-attr_type_attr_vocab-from_basin3d-similar-vocab--USGS-RESULT_QUALITY
+                          ([usgs.USGSDataSourcePlugin], {'datasource_id': 'USGS', 'attr_type': 'RESULT_QUALITY', 'attr_vocab': ['ESTIMATED', 'VALIDATED'], 'from_basin3d': True}, 3, [], []),
                           # attr_type--AGGREGATION_TYPE
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {'attr_type': 'AGGREGATION_DURATION'}, 4, [], []),
                           # attr_vocab--Aluminum
@@ -389,7 +391,7 @@ def test_find_datasource_attribute_mapping(plugins, query, expected):
                          ids=['USGS-from_basin3d', 'datasource_id-only-Alpha-all', 'no-params-ALL', 'ds_id-attr_type-Alpha-STATISTIC',
                               'ds_id-attr_type-attr_vocab--Alpha-STATISTIC-mean', 'ds_id-attr_type_attr_vocab-from_basin3d--Alpha-STATISTIC-MEAN',
                               'ds_id-attr_vocab--Alpha-mean', 'ds_id-attr_vocab-from_basin3d--Alpha-MEAN', 'attr_type_attr_vocab--STATISTIC-mean',
-                              'attr_type_attr_vocab-from_basin3d--STATISTIC-MEAN', 'attr_type--AGGREGATION_TYPE', 'attr_vocab--Aluminum',
+                              'attr_type_attr_vocab-from_basin3d--STATISTIC-MEAN', 'ds_id-attr_type_attr_vocab-from_basin3d-similar-vocab', 'attr_type--AGGREGATION_TYPE', 'attr_vocab--Aluminum',
                               'attr_vocab-from_basin3d--Al', 'attr_vocabs--Aluminum-Acetate', 'attr_vocabs-from_basin3d--ACT-Al',
                               'attr_vocabs-some_bad--Aluminum-Acetate-Foo', 'BAD-ds_id', 'BAD-attr_type', 'BAD-attr_vocab_type', 'No-results', 'No-results-from_basin3d',
                               'complexmap-attr_vocabs-from_basin3d', 'complexmap-attr_vocabs-wildcard-from_basin3d', 'complexmap-attr_vocab-Al', 'complexmap-attr_vocab-bothAl',
