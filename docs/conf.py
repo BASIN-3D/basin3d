@@ -35,15 +35,11 @@ author = 'Charuleka Varadharajan, Valerie Hendrix, Danielle Christianson'
 #
 # The short X.Y version.
 # part of setuptools
-release = "0.noversion"
-try:
-    from basin3d.version import __release__  # type: ignore
-    release = __release__
-except ImportError:
-    try:
-        release = subprocess.check_output(["git", "describe", "--tags"]).rstrip().decode('utf-8')
-    except Exception:
-        pass
+import os
+import re
+# The full version, including alpha/beta/rc tags.
+release = re.sub('^v', '', os.popen('git describe').read().strip())
+# The short X.Y version.
 version = release.split("-")[0]
 
 # -- General configuration ---------------------------------------------------
