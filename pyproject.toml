@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.2", "wheel", "setuptools-git-versioning", ]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools-git-versioning]
+enabled = true
+template = "{tag}"
+dev_template = "{tag}.post{ccount}"
+dirty_template = "{tag}.post{ccount}+dirty"
+
+[project]
+name = "basin3d"
+dynamic = ["version"]
+authors = [{ name = "Valerie C Hendrix", email = "vchendrix@lbl.gov" },
+    { name = "Danielle Svehla Christianson", email = "dschristianson@lbl.gov" },
+    { name = "Charuleka Varadharajan", email = "cvaradharajan@lbl.gov" },
+    { name = "Catherine Wong", email = "catwong@lbl.gov" }]
+maintainers = [
+    { name = "Valerie C Hendrix", email = "vchendrix@lbl.gov" },
+    { name = "Danielle Svehla Christianson", email = "dschristianson@lbl.gov" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Hydrology"
+]
+description = "BASIN-3D Core Framework"
+requires-python = '>=3.8,<3.11'
+dependencies = [
+    "pyyaml>=6.0",
+    "requests",
+    "pydantic",
+    "tinydb",
+]
+
+
+[project.optional-dependencies]
+dev = ['pytest', 'pytest-flake8', 'pytest-mypy', 'pytest-cov',
+    'types-PyYAML', 'types-chardet', 'types-cryptography', 'types-requests']
+
+[project.urls]
+homepage = "github.com/BASIN-3D/basin3d"
+documentation = "basin3d.readthedocs.io/"
+repository = "github.com"
+changelog = "github.com/BASIN-3D/basin3d/blob/main/CHANGES.md"
+
+[tool.setuptools]
+py-modules = ["manage"]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+exclude = ["*.tests"]
+namespaces = false
