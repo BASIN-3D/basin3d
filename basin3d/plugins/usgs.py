@@ -52,7 +52,7 @@ The following are the access classes that map *USGS Data Source API* to the *BAS
 import json
 
 from basin3d.core import monitor
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import requests
 
@@ -636,7 +636,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 for value in values["value"]:
 
                     if len(value['qualifiers']) > 1:
-                        #ToDo: add some error messaging.
+                        # ToDo: add some error messaging.
                         pass
 
                     # result_point_quality = self.map_result_quality(value['qualifiers'])

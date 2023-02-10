@@ -47,7 +47,7 @@ class MonitorMixin(object):
             logger_level = level == MessageLevelEnum.CRITICAL and logging.CRITICAL or level == MessageLevelEnum.WARN and logging.WARNING \
                  or level == MessageLevelEnum.ERROR and logging.ERROR or logging.INFO
             synthesis_message = SynthesisMessage(msg=message, level=level, where=where)
-        logger.log(logger_level, msg=message, extra=where and {"basin3d_where": ".".join(where)} or {}) # type: ignore
+        logger.log(logger_level, msg=message, extra=where and {"basin3d_where": ".".join(where)} or {})  # type: ignore
         return synthesis_message
 
     def info(self, message: str, where: Optional[List] = None):
@@ -188,7 +188,7 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
                     monitor.basin3d_where.reset(self._where_context_token)
                 raise StopIteration
 
-    def log(self, message: str, level: Optional[MessageLevelEnum] = None,  where: Optional[List] = None):  # type: ignore[override]
+    def log(self, message: str, level: Optional[MessageLevelEnum] = None, where: Optional[List] = None):  # type: ignore[override]
         """
         Add a synthesis message to the synthesis respoonse
         :param message: The message

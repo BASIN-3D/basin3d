@@ -155,7 +155,6 @@ class HTTPConnectionOAuth2(HTTPConnectionDataSource):
 
         raise InvalidOrMissingCredentials("client_id and client_secret are missing or invalid")
 
-
     def login(self):
         """
         Get a token
@@ -334,7 +333,7 @@ class HTTPConnectionTokenAuth(HTTPConnectionDataSource):
         :return:
         """
         return credentials and "username" in credentials.keys() and "password" in credentials.keys() \
-               and credentials["username"] and credentials["password"]
+            and credentials["username"] and credentials["password"]
 
     def login(self):
         """

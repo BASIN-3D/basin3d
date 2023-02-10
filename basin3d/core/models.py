@@ -54,7 +54,7 @@ class JSONSerializable:
                         else:
                             map[k] = o.__dict__[k]
                 return map
-            except:
+            except Exception:
                 # There is not __dict__, return a string representation
                 return str(o)
 
@@ -231,7 +231,7 @@ class Base(JSONSerializable):
                 bad_attributes.append(key)
             else:
                 # If enum, get value
-                setattr(self, key,  isinstance(value, enum.Enum) and value.value or value)
+                setattr(self, key, isinstance(value, enum.Enum) and value.value or value)
 
         if len(bad_attributes) > 0:
             raise ValueError("Invalid argument(s) for {} : {}".format(self.__class__.__name__,
