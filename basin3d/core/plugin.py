@@ -148,7 +148,6 @@ class DataSourcePluginPoint:
                 access_point = access_class(self.get_datasource(), catalog)
                 self.access_classes[access_point.synthesis_model_class] = access_point
 
-
     @classmethod
     def get_meta(cls):
         """
@@ -225,4 +224,3 @@ class PluginMount(type):
 
     """
     plugins: Dict[DataSourcePluginPoint, str] = {}
-

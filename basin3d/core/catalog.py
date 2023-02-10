@@ -65,7 +65,7 @@ class CatalogBase:
                     logger.info(f"Loading metadata catalog for Plugin {plugin_id}")
                 except Exception:
                     logger.error(
-                        f'Could not retrieve plugin_id. Check that plugin is configured / registered properly.')
+                        'Could not retrieve plugin_id. Check that plugin is configured / registered properly.')
                     raise CatalogException
 
                 mapping_filename = f'{plugin_id.lower()}_mapping.csv'
@@ -575,7 +575,7 @@ class CatalogTinyDb(CatalogBase):
 
                 # if AttributeMapping is not found: THIS SHOULD NEVER HAPPEN.
                 if attr_map is None:
-                    logger.error(f'AttributeMapping not found given database search results. THIS SHOULD NEVER HAPPPEN.')
+                    logger.error('AttributeMapping not found given database search results. THIS SHOULD NEVER HAPPPEN.')
                     continue
 
                 # If attr_vocab was specified, track what was found for the datasource

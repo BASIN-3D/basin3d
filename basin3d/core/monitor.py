@@ -86,7 +86,6 @@ class Basin3dLogger(logging.Logger):
         except LookupError:
             kwargs['extra']["synthesis_id"] = "*"
 
-
         return kwargs
 
 
