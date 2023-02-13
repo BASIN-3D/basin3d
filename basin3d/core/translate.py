@@ -1,6 +1,4 @@
 """
-`basin3d.core.translate`
-************************
 
 .. currentmodule:: basin3d.core.translate
 

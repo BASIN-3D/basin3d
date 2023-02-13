@@ -11,8 +11,31 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-import subprocess
 import sys
+import tomli as tomllib
+
+# Load project information from pyproject.toml
+project_dir = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, os.path.abspath(project_dir))
+
+with open(os.path.join(project_dir, "pyproject.toml"), "rb") as f:
+    config = tomllib.load(f)
+    project = config['project']
+    author_list = [a['name'] for a in project['authors']]
+
+project = project['name']
+copyright = '2023, The Regents of the University of California, through Lawrence Berkeley National Laboratory \n(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.'
+author = ", ".join(author_list)
+
+# The short X.Y version.
+# part of setuptools
+import basin3d
+
+# The full version, including alpha/beta/rc tags.
+release = basin3d.__version__
+# The short X.Y version.
+version = release.split("-")[0]
+
 
 sys.path.insert(0, os.path.abspath('..'))
 master_doc = "index"
@@ -56,8 +79,6 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
-    'sphinx.ext.inheritance_diagram',
-    'sphinx.ext.graphviz',
     'sphinx_rtd_theme',
     'sphinx.ext.intersphinx',
 ]

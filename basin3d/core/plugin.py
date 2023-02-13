@@ -1,6 +1,4 @@
 """
-`basin3d.core.plugin`
-*********************
 
 .. currentmodule:: basin3d.core.plugin
 

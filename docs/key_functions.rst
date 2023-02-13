@@ -22,5 +22,6 @@ Key Functions
 
 .. automodule:: basin3d.monitor
     :members: configure, get_logger
+    :noindex:
 
 

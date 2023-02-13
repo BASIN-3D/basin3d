@@ -1,6 +1,4 @@
 """
-`basin3d.core.schema.query`
-***************************
 
 .. currentmodule:: basin3d.core.schema.query
 

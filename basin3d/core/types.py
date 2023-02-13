@@ -1,6 +1,4 @@
 """
-`basin3d.core.types`
-************************
 
 .. currentmodule:: basin3d.core.synthesis
 

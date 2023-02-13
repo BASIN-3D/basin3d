@@ -1,6 +1,4 @@
 """
-`basin3d.core.schema.enum`
-***************************
 
 .. currentmodule:: basin3d.core.schema.enum
 

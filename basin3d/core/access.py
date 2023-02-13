@@ -1,6 +1,4 @@
 """
-`basin3d.core.access`
-************************
 
 .. currentmodule:: basin3d.core.access
 

@@ -1,6 +1,4 @@
 """
-`basin3d.synthesis`
-*******************
 
 .. currentmodule:: basin3d.synthesis
 
