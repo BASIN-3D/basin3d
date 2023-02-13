@@ -1,6 +1,4 @@
 """
-`basin3d.monitor`
-*****************
 
 .. currentmodule:: basin3d.monitor
 

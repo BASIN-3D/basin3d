@@ -22,6 +22,7 @@ maintainers = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python",
+    "License :: OSI Approved :: BSD License",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3.9",
@@ -30,6 +31,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Hydrology"
 ]
 description = "BASIN-3D Core Framework"
+license = { file = "LICENSE" }
+readme = "README.md"
 requires-python = '>=3.8,<3.11'
 dependencies = [
     "pyyaml>=6.0",
@@ -42,17 +45,26 @@ dependencies = [
 [project.optional-dependencies]
 dev = ['pytest', 'pytest-mypy', 'pytest-cov', 'flake8',
     'types-PyYAML', 'types-chardet', 'types-cryptography', 'types-requests']
+docs = ["sphinx",
+    "sphinx-autodoc-typehints",
+    "graphviz",
+    "sphinx_rtd_theme",
+    "tomli",
+    "myst-parser"]
 
 [project.urls]
-homepage = "github.com/BASIN-3D/basin3d"
-documentation = "basin3d.readthedocs.io/"
-repository = "github.com"
-changelog = "github.com/BASIN-3D/basin3d/blob/main/CHANGES.md"
+homepage = "https://github.com/BASIN-3D/basin3d"
+documentation = "https://basin3d.readthedocs.io/"
+repository = "https://github.com/BASIN-3D"
+changelog = "https://github.com/BASIN-3D/basin3d/blob/main/CHANGES.md"
 
 [tool.setuptools]
-py-modules = ["manage"]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-exclude = ["*.tests"]
-namespaces = false
+include = ["basin3d**"]  # package names should match these glob patterns (["*"] by default)
+exclude = ["test*"] # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+[tool.setuptools.package-data]
+basin3d = ["data/*.csv", "plugins/*.csv"]

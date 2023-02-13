@@ -1,5 +1,0 @@
-sphinx
-sphinx-autodoc-typehints
-graphviz
-sphinx_rtd_theme
-

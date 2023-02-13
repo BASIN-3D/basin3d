@@ -1,17 +1,10 @@
 """
-`basin3d.core.models`
-*********************
 
 .. currentmodule:: basin3d.core.models
 
 :synopsis: The BASIN-3D  Models
 :module author: Val Hendrix <vhendrix@lbl.gov>
 :module author: Danielle Svehla Christianson <dschristianson@lbl.gov>
-
-Below is the inheritance diagram for BASIN-3D generic models and supporting classes.
-
-.. inheritance-diagram:: basin3d.core.models
-    :top-classes: basin3d.core.models.Base, basin3d.core.models.JSONSerializable
 
 .. contents:: Contents
     :local:

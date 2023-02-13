@@ -1,6 +1,4 @@
 """
-`basin3d.core.monitor`
-**********************
 
 .. currentmodule:: basin3d.core.monitor
 

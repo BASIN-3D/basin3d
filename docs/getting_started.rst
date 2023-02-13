@@ -11,7 +11,7 @@ Diverse, Distributed Datasets)
 
 Install basin3d using the following command::
 
-    $ pip install git+https://github.com/BASIN-3D/basin3d.git
+    $ pip install basin3d
 
 
 

@@ -1,6 +1,4 @@
 """
-`basin3d.core.catalog`
-************************
 
 .. currentmodule:: basin3d.core.synthesis
 

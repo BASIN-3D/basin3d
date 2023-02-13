@@ -1,8 +1,5 @@
 """
 
-`basin3d.plugins.usgs`
-**********************
-
 .. currentmodule:: basin3d.plugins.usgs
 
 :platform: Unix, Mac

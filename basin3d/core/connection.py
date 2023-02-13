@@ -1,6 +1,4 @@
 """
-`basin3d.core.connection`
-*************************
 
 .. currentmodule:: basin3d.core.connection
 

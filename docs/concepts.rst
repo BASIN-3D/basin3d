@@ -36,7 +36,7 @@ BASIN-3D is designed to support diverse types of data, which we call observation
 *IMPORTANT: To query many observation types using BASIN-3D, monitoring features and observed properties must be specified.*
 
 **Additional Metadata**
-    Observations have many other metadata, including when it occurs in time. See XXX for additional metadata available for observations.
+    Observations have many other metadata, including when it occurs in time. See :class:`basin3d.core.models.Observation` for additional metadata available for observations.
 
 
 Monitoring Features (e.g., Locations and Samples)
@@ -56,7 +56,7 @@ Monitoring Features (e.g., Locations and Samples)
     Monitoring features can be organized into hierarchies to enable queries by *parent features*:
 
 **Additional Metadata**
-    Monitoring features have metadata that include their geo-reference. See XXX for additional metadata available for monitoring features.
+    Monitoring features have metadata that include their geo-reference. See See :class:`basin3d.core.models.MonitoringFeature` for additional metadata available for monitoring features.
 
 
 Observed Properties (e.g., Variables)
