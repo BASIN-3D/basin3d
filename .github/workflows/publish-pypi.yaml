@@ -2,12 +2,14 @@ name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
 on:
   release:
+    - prereleased
+    - released
+
 
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
-
 
     steps:
     - uses: actions/checkout@v2
@@ -28,12 +30,16 @@ jobs:
         python -m build
 
     - name: Publish distribution 📦 to Test PyPI
+      # A release was created and identified as a pre-release. A pre-release is a
+      # release that is not ready for production and may be unstable.
+      if: github.event_name == 'release' && github.event.action == 'prereleased'
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
         repository_url: https://test.pypi.org/legacy/
 
     - name: Publish distribution 📦 to PyPI
+      # A release was published, or a pre-release was changed to a release.
       if: github.event_name == 'release' && github.event.action == 'released'
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
