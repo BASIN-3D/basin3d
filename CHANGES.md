@@ -1,5 +1,22 @@
 # Changelog
 
+## Version 0.4.0
+This release adds a new major enhancement to datasource variable mapping by allowing
+multiple datasource variables to be mapped to a single BASIN-3D variable.  Additionally,
+the ability to define complex variable mappings where a single datasource variable may 
+translate to multiple BASIN-3D attributes. Mapping to attributes other than variables, such as 
+STATISTIC and RESULST_QUALITY, is now supported.
+
+This release additionally prepares basin3d for publication in the Python Package Index (PyPI)
+https://pypi.org/.
+
++ Issue #153 - Add Github Action to publish to PyPi
++ Issue #151 - Reformat sphinx docs for publication
++ Issue #149 - Modernize build system
++ Issue #148 - Update mypy configuration
++ Issue #143 - Enable complex mapping
++ Issue #93  - Enable mapping multiple datasource variables to same BASIN-3D variable
+
 ## Version 0.3.0
 This release has core improvements such as logging, error handling and data quality flag support.
 The USGS plugin was enhanced to return hi resolution data from the instantaneous values
