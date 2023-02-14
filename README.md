@@ -17,7 +17,7 @@ basin3d has available plugins that can connect to specific data sources of inter
 
 Install a source distribution with pip:
 
-    $ pip install git+https://github.com/BASIN-3D/basin3d.git
+    $ pip install basin3d
     
 Make sure your installation was successful:
 
@@ -36,7 +36,7 @@ If you’re interested in contributing to basin3d, check out out our [contributi
 
 
 ## Changelog
-See the [changelog](CHANGES.md) for a history of updates and changes to basin3d
+See the [changelog](https://basin3d.readthedocs.io/en/stable/changelog.html) for a history of updates and changes to basin3d
 
 ## Authors
 
@@ -67,7 +67,7 @@ so.
 
 ## License
 
-See [LICENSE](LICENSE) file for licensing details
+See [LICENSE](https://basin3d.readthedocs.io/en/stable/license_agreement.html) file for licensing details
 
 ## Acknowledgments
 
