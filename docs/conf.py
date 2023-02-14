@@ -24,7 +24,7 @@ with open(os.path.join(project_dir, "pyproject.toml"), "rb") as f:
     author_list = [a['name'] for a in project['authors']]
 
 project = project['name']
-copyright = '2023, The Regents of the University of California, through Lawrence Berkeley National Laboratory \n(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.'
+copyright = '2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory \n(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.'
 author = ", ".join(author_list)
 
 # The short X.Y version.
