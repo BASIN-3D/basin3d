@@ -1,5 +1,6 @@
 include LICENSE
 include README.md
+include basin3d/core/logging.yaml
 include basin3d/data/basin3d_variables_hydrology.csv
 include basin3d/plugins/usgs_mapping.csv
 prune tests

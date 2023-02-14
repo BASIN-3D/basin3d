@@ -25,6 +25,7 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering",
@@ -67,4 +68,4 @@ exclude = ["test*"] # exclude packages matching these glob patterns (empty by de
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.setuptools.package-data]
-basin3d = ["data/*.csv", "plugins/*.csv"]
+basin3d = ["data/*.csv", "plugins/*.csv", "core/logging.yaml"]
