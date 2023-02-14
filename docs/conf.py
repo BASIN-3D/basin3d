@@ -27,6 +27,21 @@ project = project['name']
 copyright = '2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory \n(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.'
 author = ", ".join(author_list)
 
+
+
+
+def setup(app):
+    app.add_css_file('style.css')
+
+
+# -- Project information -----------------------------------------------------
+
+# The version info for the project you're documenting, acts as replacement for
+# |version| and |release|, also used in various other places throughout the
+# built documents.
+#
+# The short X.Y version.
+# part of setuptools
 # The short X.Y version.
 # part of setuptools
 import basin3d
@@ -36,34 +51,7 @@ release = basin3d.__version__
 # The short X.Y version.
 version = release.split("-")[0]
 
-
-sys.path.insert(0, os.path.abspath('..'))
 master_doc = "index"
-
-
-def setup(app):
-    app.add_css_file('style.css')
-
-
-# -- Project information -----------------------------------------------------
-
-# General information about the project.
-project = 'basin3d'
-copyright = '2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory \n(subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.'
-author = 'Charuleka Varadharajan, Valerie Hendrix, Danielle Christianson'
-
-# The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
-#
-# The short X.Y version.
-# part of setuptools
-import os
-import re
-# The full version, including alpha/beta/rc tags.
-release = re.sub('^v', '', os.popen('git describe').read().strip())
-# The short X.Y version.
-version = release.split("-")[0]
 
 # -- General configuration ---------------------------------------------------
 
