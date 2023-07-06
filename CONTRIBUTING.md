@@ -53,7 +53,7 @@ Run the tests with coverage ONLY
 Sphinx is used to generate documentation. You first need to create a virtual environment for generating the docs.
 	
 	$ conda activate basin3d
-	$ pip install -r docs/requirements.txt
+    $ pip install -e ".[docs]"
    
 Generate the documentation
 	
