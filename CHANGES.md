@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 0.4.1
+Minor maintenance to handle dependency updates and minor fixes.
+
++ Issue #162 - Add badges to readme
++ Issue #163 - Pydantic v2 breaks things
++ Issue #165 - mypy issues in newer version
++ Pin Sphinx, ignore doi reference links, fix docs requirements installation instructions
+
 ## Version 0.4.0
 This release adds a new major enhancement to datasource variable mapping by allowing
 multiple datasource variables to be mapped to a single BASIN-3D variable.  Additionally,

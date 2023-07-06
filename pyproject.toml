@@ -38,7 +38,7 @@ requires-python = '>=3.8,<3.11'
 dependencies = [
     "pyyaml>=6.0",
     "requests",
-    "pydantic",
+    "pydantic<2",
     "tinydb",
 ]
 
@@ -46,8 +46,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ['pytest', 'pytest-mypy', 'pytest-cov', 'flake8',
     'types-PyYAML', 'types-chardet', 'types-cryptography', 'types-requests']
-docs = ["sphinx",
-    "sphinx-autodoc-typehints",
+docs = ["sphinx<=6.2.1",
+    "sphinx-autodoc-typehints<=1.23.0",
     "graphviz",
     "sphinx_rtd_theme",
     "tomli",

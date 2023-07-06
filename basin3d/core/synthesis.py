@@ -103,7 +103,7 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
         :param model_access: Model access
         """
 
-        self._synthesis_response = SynthesisResponse(query=query)
+        self._synthesis_response = SynthesisResponse(query=query)  # type: ignore[call-arg]
         self._model_access: 'DataSourceModelAccess' = model_access
 
         # Filter the plugins, if specified
@@ -266,7 +266,7 @@ class DataSourceModelAccess(MonitorMixin):
                     synthesized_query.id = datasource_pk
                     synthesized_query.datasource = [datasource.id]
                     obj: Base = plugin_views[self.synthesis_model].get(query=synthesized_query)
-                    return SynthesisResponse(query=query, data=obj)
+                    return SynthesisResponse(query=query, data=obj)  # type: ignore[call-arg]
                 else:
                     messages.append(self.log("Plugin view does not exist",
                                              MessageLevelEnum.WARN,
@@ -277,7 +277,7 @@ class DataSourceModelAccess(MonitorMixin):
                 messages.append(self.log(f"DataSource not not found for id {query.id}",
                                 MessageLevelEnum.ERROR))
 
-        return SynthesisResponse(query=query, messages=messages)
+        return SynthesisResponse(query=query, messages=messages)  # type: ignore[call-arg]
 
 
 class MonitoringFeatureAccess(DataSourceModelAccess):

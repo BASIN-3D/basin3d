@@ -1,3 +1,6 @@
+[![Python package](https://github.com/BASIN-3D/basin3d/actions/workflows/main.yml/badge.svg)](https://github.com/BASIN-3D/basin3d/actions/workflows/main.yml)
+[![Pypi](https://img.shields.io/pypi/v/basin3d)](https://pypi.org/project/basin3d/)
+
 # basin3d
 Broker for Assimilation, Synthesis and Integration of eNvironmental Diverse, Distributed Datasets. 
 

@@ -12,4 +12,4 @@ Hubbard, S. S., K. H. Williams, D. Agarwal, J. Banfield, H. Beller, N. Bouskill,
 D. Dwivedi, N. Falco, B. Faybishenko, R. Maxwell, P. Nico, C. Steefel, H. Steltzer, T. Tokunaga, P. A. Tran,
 H. Wainwright, and C. Varadharajan. 2018. The East River, Colorado, Watershed: A Mountainous Community Testbed
 for Improving Predictive Understanding of Multiscale Hydrological–Biogeochemical Dynamics.
-Vadose Zone J. 17:180061. http://dx.doi.org/10.2136/vzj2018.03.0061
+Vadose Zone J. 17:180061. https://doi.org/10.2136/vzj2018.03.0061

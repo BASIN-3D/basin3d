@@ -331,3 +331,6 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #
 # texinfo_no_detailmenu = False
+
+# linkcheck ignore: dois that redirect and fail for some reason (wiley)
+linkcheck_ignore = [r'https://doi\.org/.*']
