@@ -188,8 +188,8 @@ class SynthesisResponse(BaseModel):
     data: Optional[Union[object, List[object]]] = Field(title="Data",
                                                         description="The data for the current response. Empty if provided "
                                                                     "via Iterator.")
-    messages: List[SynthesisMessage] = Field([], title="Messages",
-                                             description="The synthesis messages for this response")
+    messages: List[Optional[SynthesisMessage]] = Field([], title="Messages",
+                                                       description="The synthesis messages for this response")
 
     class Config:
         # output fields to camelcase
