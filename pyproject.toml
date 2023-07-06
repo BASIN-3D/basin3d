@@ -38,7 +38,7 @@ requires-python = '>=3.8,<3.11'
 dependencies = [
     "pyyaml>=6.0",
     "requests",
-    "pydantic",
+    "pydantic<2",
     "tinydb",
 ]
 
