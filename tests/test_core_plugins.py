@@ -35,9 +35,9 @@ def test_plugin_access_objects():
         basin3d.core.models.MonitoringFeature]
 
     assert plugin_access_objects[
-               basin3d.core.models.MonitoringFeature].__class__.__name__ == 'tests.testplugins.alpha.AlphaMonitoringFeatureAccess'
+               basin3d.core.models.MonitoringFeature].__class__.__name__ == 'AlphaMonitoringFeatureAccess'
     assert plugin_access_objects[basin3d.core.models.MeasurementTimeseriesTVPObservation].__class__.__name__ == \
-           'tests.testplugins.alpha.AlphaMeasurementTimeseriesTVPObservationAccess'
+           'AlphaMeasurementTimeseriesTVPObservationAccess'
 
 
 def test_plugin_incomplete():
@@ -99,13 +99,13 @@ def test_get_feature_type(feature_name, return_format, result):
      {'start_date': '2019-10-01', 'observed_property': ["Ag"], 'monitoring_feature': ['E-region']}),
     # AlphaSource.MF
     ("tests.testplugins.alpha.AlphaSourcePlugin",
-     [{'level': 'ERROR', 'msg': 'DataSource not not found for id E-1234', 'where': None}],
+     [{'level': 'ERROR', 'msg': 'DataSource not found for retrieve request', 'where': None}],
      "monitoring_features",
      {"id": 'E-1234'}),
-    # USGS.MR
+    # USGS.MF
 
     ("basin3d.plugins.usgs.USGSDataSourcePlugin",
-     [{'level': 'ERROR', 'msg': 'DataSource not not found for id E-1234', 'where': None}],
+     [{'level': 'ERROR', 'msg': 'DataSource not found for retrieve request', 'where': None}],
      "monitoring_features",
      {"id": 'E-1234'}),
     # NoPluginViews.TVP
@@ -124,7 +124,7 @@ def test_get_feature_type(feature_name, return_format, result):
      "measurement_timeseries_tvp_observations",
      {'start_date': '2019-10-01', 'observed_property': ["Ag"], 'monitoring_feature': ['A-region']}),
     ],
-    ids=["ErrorSource.MF", "ErrorSource.TVP", "AlphaSource.MF", "USGS.MR", "NoPluginViews.TVP", "NoPluginViews.MF", "AlphaSource.TVP"])
+    ids=["ErrorSource.MF", "ErrorSource.TVP", "AlphaSource.MF", "USGS.MF", "NoPluginViews.TVP", "NoPluginViews.MF", "AlphaSource.TVP"])
 def test_plugin_exceptions(plugin, messages, synthesis_call, synthesis_args):
     """Test that basin3d handles unexpected exceptions"""
 

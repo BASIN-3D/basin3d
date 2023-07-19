@@ -91,7 +91,7 @@ def basin3d_plugin(cls):
     return cls
 
 
-def basin3d_plugin_access(plugin_class, synthesis_model_class, access_type):
+def _basin3d_plugin_access(plugin_class, synthesis_model_class, access_type):
     """Decorator for registering model access"""
 
     def _inner(func):

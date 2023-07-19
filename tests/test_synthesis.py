@@ -1,12 +1,11 @@
 import datetime
-import logging
 import pytest
 
 import basin3d
 from basin3d.core.catalog import CatalogException
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.synthesis import DataSourceModelIterator
-from basin3d.synthesis import register, SynthesisException
+from basin3d.synthesis import register, SynthesisException, SynthesisResponse
 
 
 def test_register_error(monkeypatch):
@@ -58,58 +57,76 @@ def test_register():
     assert datasources[1].location == 'https://asource.foo/'
 
 
-@pytest.mark.parametrize("query", [{"id": "A-123"}, {"id": "A-123", "feature_type": "region"}],
-                         ids=['not-found', 'too-many-for-id'])
-def test_monitoring_feature_not_found(query):
-    """Test not found """
+@pytest.mark.parametrize("query, expected_monitoring_feature_id, msg",
+                         [({"id": "A-123"}, None, None),
+                          ({"id": "A-1", "feature_type": "region"}, None, None),
+                          ({"id": "A-1", 'datasource': 'A'}, "A-1", None),
+                          ({"id": "A-1"}, "A-1", None),
+                          ({"id": "A-1", "monitoring_feature": "A-123"}, "A-1",
+                           'Monitoring Feature query has both id A-1 and monitoring_feature A-123 specified. Removing monitoring_feature and using id.'),
+                          ({"id": "A-123", "monitoring_feature": "A-1"}, None,
+                           'Monitoring Feature query has both id A-123 and monitoring_feature A-1 specified. Removing monitoring_feature and using id.'),
+                          ],
+                         ids=['not-found', 'wrong-feature-type', 'point-datasource', 'point', 'with-mf-valid', 'with-mf-invalid'])
+def test_monitoring_features_by_id(query, expected_monitoring_feature_id, msg):
+    """Test query of single monitoring feature using id """
 
     synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
-    pytest.raises(Exception, synthesizer.monitoring_features, **query)
+    result = synthesizer.monitoring_features(**query)
+
+    assert isinstance(result, SynthesisResponse)
+
+    if expected_monitoring_feature_id:
+        assert result.data.id == expected_monitoring_feature_id
+    else:
+        assert result.data is None
+
+    if msg is not None:
+        assert result.messages[0].msg == msg
 
 
-def test_monitoring_features_found():
-    """Test  found """
+def test_monitoring_features():
+    """Test monitoring features"""
 
     synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
-    monitoring_featurues = synthesizer.monitoring_features()
-    if isinstance(monitoring_featurues, DataSourceModelIterator):
+    monitoring_features = synthesizer.monitoring_features()
+    if isinstance(monitoring_features, DataSourceModelIterator):
         count = 0
-        assert monitoring_featurues.synthesis_response is not None
-        assert monitoring_featurues.synthesis_response.dict() == {'data': None,
-                                                                  'messages': [],
-                                                                  'query': {'datasource': None,
-                                                                            'feature_type': None,
-                                                                            'is_valid_translated_query': None,
-                                                                            'monitoring_feature': None,
-                                                                            'parent_feature': None}}
-        assert isinstance(monitoring_featurues.synthesis_response.query, QueryMonitoringFeature)
+        assert monitoring_features.synthesis_response is not None
+        assert monitoring_features.synthesis_response.dict() == {'data': None,
+                                                                 'messages': [],
+                                                                 'query': {'datasource': None,
+                                                                           'feature_type': None,
+                                                                           'id': None,
+                                                                           'is_valid_translated_query': None,
+                                                                           'monitoring_feature': None,
+                                                                           'parent_feature': None}}
+        assert isinstance(monitoring_features.synthesis_response.query, QueryMonitoringFeature)
 
-        for mf in monitoring_featurues:
+        for mf in monitoring_features:
             count += 1
 
-        assert monitoring_featurues.synthesis_response is not None
-        assert monitoring_featurues.synthesis_response.dict() == {'data': None,
-                                                                  'messages': [{'level': 'WARN',
-                                                                                'msg': 'message1',
-                                                                                'where': ['Alpha',
-                                                                                          'MonitoringFeature']},
-                                                                               {'level': 'WARN',
-                                                                                'msg': 'message2',
-                                                                                'where': ['Alpha',
-                                                                                          'MonitoringFeature']},
-                                                                               {'level': 'WARN',
-                                                                                'msg': 'message3',
-                                                                                'where': ['Alpha',
-                                                                                          'MonitoringFeature']}],
-                                                                  'query': {'datasource': None,
-                                                                            'feature_type': None,
-                                                                            'is_valid_translated_query': None,
-                                                                            'monitoring_feature': None,
-                                                                            'parent_feature': None}}
+        assert monitoring_features.synthesis_response is not None
+        assert monitoring_features.synthesis_response.dict() == {'data': None,
+                                                                 'messages': [{'level': 'WARN',
+                                                                               'msg': 'message1',
+                                                                               'where': ['Alpha', 'MonitoringFeature']},
+                                                                              {'level': 'WARN',
+                                                                               'msg': 'message2',
+                                                                               'where': ['Alpha', 'MonitoringFeature']},
+                                                                              {'level': 'WARN',
+                                                                               'msg': 'message3',
+                                                                               'where': ['Alpha', 'MonitoringFeature']}],
+                                                                 'query': {'datasource': None,
+                                                                           'feature_type': None,
+                                                                           'id': None,
+                                                                           'is_valid_translated_query': None,
+                                                                           'monitoring_feature': None,
+                                                                           'parent_feature': None}}
 
-        assert count == 2
+        assert count == 1
     else:
-        assert monitoring_featurues is not None
+        assert monitoring_features is not None
 
 
 @pytest.mark.parametrize("query", [{"id": "A-123"}, {"id": "A-123", "feature_type": "region"}],

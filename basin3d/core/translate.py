@@ -16,7 +16,7 @@ from typing import List, Optional, Union
 
 from basin3d.core import monitor
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT
-from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
+from basin3d.core.schema.query import QueryBase, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 
 
 logger = monitor.get_logger(__name__)
@@ -114,26 +114,30 @@ def _is_translated_query_valid(datasource_id, query, translated_query) -> Option
     :param translated_query: the translated query
     :return: boolean (True = valid translated query, False = invalid translated query) or None (translated query could not be assessed)
     """
-    # loop thru kwargs
-    for attr in query.mapped_fields:
-        translated_attr_value = getattr(translated_query, attr)
-        b3d_attr_value = getattr(query, attr)
-        if isinstance(b3d_attr_value, list):
-            b3d_attr_value = ', '.join(b3d_attr_value)
-        if translated_attr_value and isinstance(translated_attr_value, list):
-            # if list and all of list == NOT_SUPPORTED, False
-            if all([x == NO_MAPPING_TEXT for x in translated_attr_value]):
-                logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with values: {b3d_attr_value}.')
-                return False
-        elif translated_attr_value and isinstance(translated_attr_value, str):
-            # if single NOT_SUPPORTED, False
-            if translated_attr_value == NO_MAPPING_TEXT:
-                logger.warning(f'Translated query for datasource {datasource_id} is invalid. No vocabulary found for attribute {attr} with value: {b3d_attr_value}.')
-                return False
-        elif translated_attr_value:
-            logger.warning(
-                f'Translated query for datasource {datasource_id} cannot be assessed. Translated value for {attr} is not expected type.')
-            return None
+    for field_type, field_list in zip(['mapped', 'prefixed'], [query.mapped_fields, query.prefixed_fields]):
+        # loop thru kwargs
+        for attr in field_list:
+            translated_attr_value = getattr(translated_query, attr)
+            b3d_attr_value = getattr(query, attr)
+            msg_prefix = ''
+            if field_type == 'mapped':
+                msg_prefix = 'No vocabulary found for attribute {attr} with values: {b3d_attr_value}.'
+            if isinstance(b3d_attr_value, list):
+                b3d_attr_value = ', '.join(b3d_attr_value)
+            if translated_attr_value and isinstance(translated_attr_value, list):
+                # if list and all of list == NOT_SUPPORTED, False
+                if all([x == NO_MAPPING_TEXT for x in translated_attr_value]):
+                    logger.warning(f'Translated query for datasource {datasource_id} is invalid.{msg_prefix}')
+                    return False
+            elif translated_attr_value and isinstance(translated_attr_value, str):
+                # if single NOT_SUPPORTED, False
+                if translated_attr_value == NO_MAPPING_TEXT:
+                    logger.warning(f'Translated query for datasource {datasource_id} is invalid.{msg_prefix}')
+                    return False
+            elif translated_attr_value:
+                logger.warning(
+                    f'Translated query for datasource {datasource_id} cannot be assessed. Translated value for {attr} is not expected type.')
+                return None
     return True
 
 
@@ -175,7 +179,7 @@ def _order_mapped_fields(plugin_access, query_mapped_fields):
     return query_mapped_fields_ordered
 
 
-def _translate_mapped_query_attrs(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+def _translate_mapped_query_attrs(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature]) -> QueryBase:
     """
     Translation functionality
     """
@@ -214,7 +218,7 @@ def _translate_mapped_query_attrs(plugin_access, query: Union[QueryMeasurementTi
     return query
 
 
-def _translate_prefixed_query_attrs(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+def _translate_prefixed_query_attrs(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature]) -> QueryBase:
     """
 
     :param plugin_access:
@@ -237,12 +241,18 @@ def _translate_prefixed_query_attrs(plugin_access, query: Union[QueryMeasurement
     for attr in query.prefixed_fields:
         attr_value = getattr(query, attr)
         if attr_value:
+
+            # if the value is a string
             if isinstance(attr_value, str):
-                attr_value = attr_value.split(",")
+                translated_value = extract_id(attr_value)
+                if translated_value == attr_value:
+                    translated_value = NO_MAPPING_TEXT
 
-            translated_values = [extract_id(x) for x in attr_value if x.startswith("{}-".format(id_prefix))]
+            # otherwise assume it is a list
+            else:
+                translated_value = [extract_id(x) for x in attr_value if x.startswith("{}-".format(id_prefix))]
 
-            setattr(query, attr, translated_values)
+            setattr(query, attr, translated_value)
 
     return query
 
@@ -385,7 +395,7 @@ def translate_attributes(plugin_access, mapped_attrs, **kwargs):
     return kwargs
 
 
-def translate_query(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, QueryById]) -> QueryBase:
+def translate_query(plugin_access, query: Union[QueryMeasurementTimeseriesTVP, QueryMonitoringFeature]) -> QueryBase:
     """
     Translate BASIN-3D vocabulary specified in a query to the datasource vocabularies defined by :class:`basin3d.core.models.AttributeMapping` objects specified in the datasource plugin.
 

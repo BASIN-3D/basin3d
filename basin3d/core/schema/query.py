@@ -36,6 +36,9 @@ class QueryBase(BaseModel):
 
     datasource: Optional[List[str]] = Field(title="Datasource Identifiers",
                                             description="List of datasource identifiers to query by.")
+
+    id: Optional[str] = Field(title="Identifier", description="The unique identifier for the desired object")
+
     is_valid_translated_query: Union[None, bool] = Field(default=None, title="Valid translated query",
                                                          description="Indicates whether the translated query is valid: None = is not translated")
 
@@ -68,14 +71,9 @@ class QueryBase(BaseModel):
     prefixed_fields: ClassVar[List[str]] = []
 
 
-class QueryById(QueryBase):
-    """Query for a single data object by identifier"""
-
-    id: str = Field(title="Identifier", description="The unique identifier for the desired data object")
-
-
 class QueryMonitoringFeature(QueryBase):
     """Query :class:`basin3d.core.models.MonitoringFeature`"""
+    # optional but id (QueryBase) is required to query by named monitoring feature
     feature_type: Optional[FeatureTypeEnum] = Field(title="Feature Type",
                                                     description="Filter results by the specified feature type.")
     monitoring_feature: Optional[List[str]] = Field(title="Monitoring Features",
@@ -101,7 +99,7 @@ class QueryMonitoringFeature(QueryBase):
                 data[field] = isinstance(data[field], str) and data[field].upper() or data[field]
         super().__init__(**data)
 
-    prefixed_fields: ClassVar[List[str]] = ['monitoring_feature', 'parent_feature']
+    prefixed_fields: ClassVar[List[str]] = ['id', 'monitoring_feature', 'parent_feature']
 
 
 class QueryMeasurementTimeseriesTVP(QueryBase):

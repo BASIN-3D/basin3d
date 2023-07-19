@@ -15,16 +15,18 @@ from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonito
                                              "parent_feature": ['moo']}, False),
                                            ({"feature_type": 'POINT'}, False),
                                            ({"feature_type": 'FOO'}, True),
-                                           ({"datasource": 'FOO'}, False)],
+                                           ({"datasource": 'FOO'}, False),
+                                           ({"id": 'foo'}, False),
+                                           ({"id": ['foo']}, True)],
                          ids=["empty", "valid1", "valid2", "feature-type-valid", "feature-type-invalid",
-                              "datasource-invalid"])
+                              "datasource-invalid", "id-valid", "id-invalid"])
 def test_query_monitoring_feature(params, error):
     """Test the monitoring feature query dataclass"""
     if not error:
         query = QueryMonitoringFeature(**params)
 
         for p in ["datasource", "monitoring_feature", "parent_feature",
-                  "feature_type"]:
+                  "feature_type", "id"]:
 
             if p not in params:
                 assert getattr(query, p) is None
@@ -98,7 +100,7 @@ def test_query_measurement_timeseries_tvp(params, error):
         query = QueryMeasurementTimeseriesTVP(**params)
 
         for p in ["datasource", "aggregation_duration", "monitoring_feature", "observed_property",
-                  "start_date", "end_date", "statistic", "result_quality"]:
+                  "start_date", "end_date", "statistic", "result_quality", "id"]:
 
             query_json = json.loads(query.json())
             if p not in params:

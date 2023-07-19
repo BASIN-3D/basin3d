@@ -19,7 +19,7 @@ from basin3d.core import monitor
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
 from basin3d.core.schema.enum import MessageLevelEnum, AggregationDurationEnum
-from basin3d.core.schema.query import QueryBase, QueryById, QueryMeasurementTimeseriesTVP, \
+from basin3d.core.schema.query import QueryBase, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
 from basin3d.core.translate import translate_query
 
@@ -33,7 +33,7 @@ class MonitorMixin(object):
     def log(self,
             message: str, level: Optional[MessageLevelEnum] = None, where: Optional[List] = None) -> Optional[SynthesisMessage]:
         """
-        Add a synthesis message to the synthesis respoonse
+        Add a synthesis message to the synthesis response
         :param message: The message
         :param level:  The message level
         :param where:  Where the message is from
@@ -188,7 +188,7 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
 
     def log(self, message: str, level: Optional[MessageLevelEnum] = None, where: Optional[List] = None):  # type: ignore[override]
         """
-        Add a synthesis message to the synthesis respoonse
+        Add a synthesis message to the synthesis response
         :param message: The message
         :param level:  The message level
         :return: None
@@ -237,45 +237,74 @@ class DataSourceModelAccess(MonitorMixin):
         return DataSourceModelIterator(query, self)
 
     @monitor.ctx_synthesis
-    def retrieve(self, query: QueryById) -> SynthesisResponse:
+    def retrieve(self, query: QueryBase, **kwargs) -> SynthesisResponse:
         """
         Retrieve a single synthesized value
 
         :param query: The query for this request
+        :param kwargs: messages, list of messages to be returned in the SynthesisResponse
         """
-        messages = []
-        if query.id:
+        datasource_id: Optional[str] = None
+        datasource = None
+        messages: List[Optional[SynthesisMessage]] = []
 
-            # split the datasource id prefix from the primary key
-            id_list = query.id.split("-")
-            datasource = None
-            try:
-                plugin = self.plugins[id_list[0]]
-                datasource = plugin.get_datasource()
-            except KeyError:
-                pass
-
-            if datasource:
-                datasource_pk = query.id.replace("{}-".format(id_list[0]),
-                                                 "", 1)  # The datasource id prefix needs to be removed
-
-                plugin_views = plugin.get_plugin_access()
-                monitor.set_ctx_basin3d_where([plugin.get_datasource().id, self.synthesis_model.__name__])
-                if self.synthesis_model in plugin_views:
-                    synthesized_query: QueryById = query.copy()
-                    synthesized_query.id = datasource_pk
-                    synthesized_query.datasource = [datasource.id]
-                    obj: Base = plugin_views[self.synthesis_model].get(query=synthesized_query)
-                    return SynthesisResponse(query=query, data=obj)  # type: ignore[call-arg]
-                else:
-                    messages.append(self.log("Plugin view does not exist",
-                                             MessageLevelEnum.WARN,
-                                             [plugin.get_datasource().id, self.synthesis_model.__name__],
-                                             ))
-
+        if 'messages' in kwargs and kwargs.get('messages'):
+            msg = kwargs.get('messages')
+            if isinstance(msg, List) and isinstance(msg[0], SynthesisMessage):
+                messages.extend(msg)
             else:
-                messages.append(self.log(f"DataSource not not found for id {query.id}",
-                                MessageLevelEnum.ERROR))
+                messages.append(self.log('Message mis-configured.', MessageLevelEnum.WARN))
+
+        # if the datasource is in the query, utilize it straight up
+        if query.datasource:
+            datasource_id = query.datasource[0]
+
+        # otherwise, get from a prefixed field.
+        # Not tying specifically to id at this point to enable different retrieve approaches from future classes.
+        elif query.prefixed_fields:
+            value = None
+            for prefixed_field in query.prefixed_fields:
+                attr_value = getattr(query, prefixed_field)
+                if attr_value and isinstance(attr_value, str):
+                    value = attr_value
+                    break
+                elif attr_value and isinstance(attr_value, list):
+                    value = attr_value[0]
+                    break
+
+            if value and isinstance(value, str):
+                datasource_id = value.split("-")[0]
+
+        try:
+            plugin = self.plugins[datasource_id]
+            datasource = plugin.get_datasource()
+        except KeyError:
+            pass
+
+        if datasource:
+
+            plugin_views = plugin.get_plugin_access()
+            monitor.set_ctx_basin3d_where([plugin.get_datasource().id, self.synthesis_model.__name__])
+            if self.synthesis_model in plugin_views and hasattr(plugin_views[self.synthesis_model], 'get'):
+
+                # Now translate the query object
+                translated_query_params: QueryBase = self.synthesize_query(plugin_views[self.synthesis_model], query)
+                translated_query_params.datasource = [plugin.get_datasource().id]
+
+                # Get the model access iterator if synthesized query is valid
+                if translated_query_params.is_valid_translated_query:
+                    item: Optional[Base] = plugin_views[self.synthesis_model].get(query=translated_query_params)
+                else:
+                    logger.warning(f'Translated query for datasource {plugin.get_datasource().id} is not valid.')
+
+                if item:
+                    return SynthesisResponse(query=query, data=item, messages=messages)  # type: ignore[call-arg]
+            else:
+                messages.append(self.log("Plugin view does not exist", MessageLevelEnum.WARN,
+                                         [plugin.get_datasource().id, self.synthesis_model.__name__],))
+
+        else:
+            messages.append(self.log("DataSource not found for retrieve request", MessageLevelEnum.ERROR))
 
         return SynthesisResponse(query=query, messages=messages)  # type: ignore[call-arg]
 
@@ -299,11 +328,13 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
     * *utc_offset:* float, Coordinate Universal Time offset in hours (offset in hours), e.g., +9
     * *url:* url, URL with details for the feature
 
-    **Filter** by the following attributes (/?attribute=parameter&attribute=parameter&...)
+    **Filter** by the following attributes
 
-    * *datasource (optional):* a single data source id prefix (e.g ?datasource=`datasource.id_prefix`)
+    * *datasource (optional):* str, a single data source id prefix
+    * *id (optional):* str, a single monitoring feature id. Cannot be combined with monitoring_feature
+    * *parent_feature (optional)*: list, a list of parent feature ids. Plugin must have this functionality enabled.
+    * *monitoring_feature (optional)*: list, a list of monitoring feature ids. Cannot be combined with id, which will take precedence.
 
-    **Restrict fields**  with query parameter ‘fields’. (e.g. ?fields=id,name)
     """
     synthesis_model = MonitoringFeature
 
@@ -318,6 +349,34 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
         :return: The synthesized query information
         """
         return translate_query(plugin_access, query)
+
+    def retrieve(self, query: QueryMonitoringFeature) -> SynthesisResponse:
+        """
+        Retrieve the specified Monitoring Feature
+
+        :param query: :class:`basin3d.core.schema.query.QueryMonitoringFeature`, id must be specified; monitoring_feature if specified will be removed.
+        :return: The synthesized response containing the specified MonitoringFeature if it exists
+        """
+
+        # validate that id is specified
+        if not query.id:
+            return SynthesisResponse(
+                query=query,
+                messages=[self.log('query.id field is missing and is required for monitoring feature request by id.',
+                                   MessageLevelEnum.ERROR)])  # type: ignore[call-arg]
+
+        msg = []
+
+        # remove monitoring_feature specification (i.e., id takes precedence)
+        if query.monitoring_feature:
+            mf_text = ', '.join(query.monitoring_feature)
+            query.monitoring_feature = None
+            msg.append(self.log(f'Monitoring Feature query has both id {query.id} and monitoring_feature {mf_text} '
+                                f'specified. Removing monitoring_feature and using id.', MessageLevelEnum.WARN))
+
+        # retrieve / get method order should be: MonitoringFeatureAccess, DataSourceModelAccess, <plugin>MonitoringFeatureAccess.get
+        synthesis_response: SynthesisResponse = super().retrieve(query=query, messages=msg)
+        return synthesis_response
 
 
 class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
@@ -341,7 +400,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *statistic:* list, statistical properties of the observation result (MEAN, MIN, MAX, TOTAL)
     * *result_quality:* list, quality assessment values contained in the result (VALIDATED, UNVALIDATED, SUSPECTED, REJECTED, ESTIMATED)
 
-    **Filter** by the following attributes (?attribute=parameter&attribute=parameter&...):
+    **Filter** by the following attributes:
 
     * *monitoring_feature (required):* List of monitoring_features ids
     * *observed_property (required):* List of observed property variable ids
@@ -351,10 +410,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     * *statistic (optional):* List of statistic options, enum (INSTANT|MEAN|MIN|MAX|TOTAL)
     * *datasource (optional):* a single data source id prefix (e.g ?datasource=`datasource.id_prefix`)
     * *result_quality (optional):* enum (VALIDATED|UNVALIDATED|SUSPECTED|REJECTED|ESTIMATED)
-    * *sampling_medium (optional):* ADD here -- probably should be enum
-
-    **Restrict fields** with query parameter ‘fields’. (e.g. ?fields=id,name)
-
+    * *sampling_medium (optional):* enum (SOLID_PHASE|WATER|GAS|OTHER)
 
     """
     synthesis_model = MeasurementTimeseriesTVPObservation
