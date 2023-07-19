@@ -53,9 +53,8 @@ from typing import Any, List, Optional, Tuple
 
 import requests
 
-# Get an instance of a logger
 from basin3d.core.schema.enum import FeatureTypeEnum, AggregationDurationEnum
-from basin3d.core.schema.query import QueryById, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
+from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.access import get_url
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, GeographicCoordinate, \
     MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
@@ -437,7 +436,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
 
         return usgs_huc_codes.CONTENT
 
-    def get(self, query: QueryById):
+    def get(self, query: QueryMonitoringFeature):
         """ Get a single Region object
 
         ===================== === =====================
@@ -451,25 +450,30 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         :param query: The query info object
         :return: a serialized ``MonitoringFeature`` object
         """
+        # query.id will always be a string at this point with validation upstream, thus ignoring the type checking
 
-        if len(query.id) == 2:
-            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.REGION)
-        elif len(query.id) == 4:
-            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.SUBREGION)
-        elif len(query.id) == 6:
-            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.BASIN)
-        elif len(query.id) == 8:
-            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.SUBBASIN)
-        else:
-            mf_query = QueryMonitoringFeature(monitoring_feature=[query.id], feature_type=FeatureTypeEnum.POINT)
+        monitoring_feature_len = len(query.id)  # type: ignore[arg-type]
+        if not query.feature_type:
+            if monitoring_feature_len == 2:
+                query.feature_type = FeatureTypeEnum.REGION
+            elif monitoring_feature_len == 4:
+                query.feature_type = FeatureTypeEnum.SUBREGION
+            elif monitoring_feature_len == 6:
+                query.feature_type = FeatureTypeEnum.BASIN
+            elif monitoring_feature_len == 8:
+                query.feature_type = FeatureTypeEnum.SUBBASIN
+            else:
+                query.feature_type = FeatureTypeEnum.POINT
 
-        for o in self.list(query=mf_query):
+        query.monitoring_feature = [query.id]  # type: ignore[list-item]
+
+        for o in self.list(query=query):
             return o
 
         # An 8 character code can also be a point, Try that
-        if len(query.id) == 8:
-            for o in self.list(query=QueryMonitoringFeature(monitoring_feature=[query.id],
-                                                            feature_type=FeatureTypeEnum.POINT)):
+        if monitoring_feature_len == 8:
+            query.feature_type = FeatureTypeEnum.POINT
+            for o in self.list(query=query):
                 return o
         return None
 

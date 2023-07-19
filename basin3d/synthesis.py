@@ -35,8 +35,7 @@ from typing import List, Union, cast
 from basin3d.core.catalog import CatalogTinyDb
 from basin3d.core.models import DataSource
 from basin3d.core.plugin import PluginMount
-from basin3d.core.schema.query import QueryById, QueryMeasurementTimeseriesTVP, \
-    QueryMonitoringFeature, SynthesisResponse
+from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, SynthesisResponse
 from basin3d.core.synthesis import DataSourceModelIterator, MeasurementTimeseriesTVPObservationAccess, \
     MonitoringFeatureAccess, logger
 
@@ -183,7 +182,7 @@ class DataSynthesizer:
         """
         return self._catalog.find_attribute_mappings(datasource_id=datasource_id, attr_type=attr_type, attr_vocab=attr_vocab, from_basin3d=from_basin3d)
 
-    def monitoring_features(self, query: Union[QueryById, QueryMonitoringFeature] = None, **kwargs) -> Union[
+    def monitoring_features(self, query: QueryMonitoringFeature = None, **kwargs) -> Union[
             DataSourceModelIterator, SynthesisResponse]:
         """
         Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
@@ -246,13 +245,10 @@ class DataSynthesizer:
             or a :class:`~basin3d.core.synthesis.DataSourceModelIterator` for multple :class:`MonitoringFeature` objects.
         """
         if not query:
-            if "id" in kwargs and isinstance(kwargs["id"], str):
-                query = QueryById(**kwargs)
-            else:
-                query = QueryMonitoringFeature(**kwargs)
+            query = QueryMonitoringFeature(**kwargs)
 
         # Search for single or list?
-        if isinstance(query, QueryById):
+        if query.id:
             #  mypy casts are only used as hints for the type checker,
             #  and they don’t perform a runtime type check.
             return cast(SynthesisResponse, self._monitoring_feature_access.retrieve(query=query))
