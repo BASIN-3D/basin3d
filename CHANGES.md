@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 0.4.2
+Update DataSourceModelAccess.retrieve method to use translation layer
+
++ Issue #168 - Updates to support django bug
+
 ## Version 0.4.1
 Minor maintenance to handle dependency updates and minor fixes.
 
