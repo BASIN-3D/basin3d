@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 0.4.3
+Minor update to remove special handling of FeatureTypeEnum
+
++ Issue #172 - Change whitespace in enum to underscore
+
 ## Version 0.4.2
 Update DataSourceModelAccess.retrieve method to use translation layer
 
