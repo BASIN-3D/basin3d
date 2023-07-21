@@ -225,7 +225,7 @@ class DataSynthesizer:
         The code below is an example of what you will see if a registered plugin does not support
         the requested feature type.
 
-        >>> response_itr = synthesizer.monitoring_features(feature_type='horizontal path')
+        >>> response_itr = synthesizer.monitoring_features(feature_type='horizontal_path')
         >>> for mf in response_itr:
         ...   print(mf)
         ...
@@ -236,7 +236,7 @@ class DataSynthesizer:
         This is an example of checking the synthesis response messages in the :class:`basin3d.core.synthesis.DataSourceModelIterator`.
 
         >>> response_itr.synthesis_response.messages
-        [SynthesisMessage(msg='Feature type HORIZONTAL PATH not supported by USGS.', level='WARN', where=['USGS', 'MonitoringFeature'])]
+        [SynthesisMessage(msg='Feature type HORIZONTAL_PATH not supported by USGS.', level='WARN', where=['USGS', 'MonitoringFeature'])]
 
 
         :param query: (optional) The Monitoring Feature Query object
