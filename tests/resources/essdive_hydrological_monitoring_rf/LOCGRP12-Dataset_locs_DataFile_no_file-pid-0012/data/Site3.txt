@@ -1,0 +1,13 @@
+# HeaderRows_5
+# HeaderRows_Format: Column_Header; Unit; InstallationMethod_ID; Instrument_Summary
+# DateTime; YYYY-MM-DD hh:mm:ss UTC-06:00; N/A; No daylight savings time
+# Water_Temperature; deg C; temp_sens1; thermocouple
+DateTime,Site_ID,Water_Temperature,Notes
+2022-01-01 00:00:00,Site3,15.1,N/A
+2022-01-01 01:00:00,Site3,15,N/A
+2022-01-01 02:00:00,Site3,14.5,N/A
+2022-01-01 03:00:00,Site3,-9999,N/A
+2022-01-01 04:00:00,Site3,Inf,N/A
+2022-01-01 05:00:00,Site3,13.8,N/A
+2022-01-01 06:00:00,Site3,14.1,N/A
+2022-01-01 07:00:00,Site3,14.4,N/A

@@ -1,0 +1,11 @@
+attr_type,basin3d_vocab,datasource_vocab,datasource_desc
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,PH:WATER,pH,"pH."
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,GWL:WATER,Depth_to_Water,"Vertical distance from ground surface down to the water surface."
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,SWL:WATER,Gage_Height,"Vertical distance from river bed up to the water surface."
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,SWL:WATER,Water_Depth,"Vertical distance between the water surface and the bottom of the water body at a specific location."
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,WLE:WATER,Water_Surface_Elevation,"Elevation of the surface of the water body."
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,EC:WATER,Electrical_Conductivity,"Electrical conductivity."
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,SC:WATER,Specific_Conductance,"Specific conductance. Electrical conductivity at 25 degrees celsius."
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,DO:WATER,Dissolved_Oxygen,"Dissolved oxygen."
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,WT:WATER,Water_Temperature,"Water temperature."
+AGGREGATION_DURATION,NONE,NONE,

@@ -20,8 +20,8 @@ specifying the provider STORET.
 
 **Data Usage** See citation information at `WQP User Guide <https://www.waterqualitydata.us/portal_userguide/>`_. Requests to the WQP web services are logged in BASIN-3D. See :doc:`/quick_guide`.
 
-Section 1: EPA Data Source Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Section 1: Data Source Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 None.
 Data are publicly available and accessed via the `Water Quality Portal Web Services <https://www.waterqualitydata.us/webservices_documentation/>`_.
 Please follow data usage guidelines at `User Guide <https://www.waterqualitydata.us/portal_userguide/>`_ .
@@ -154,3 +154,155 @@ Section 4: Data Source Info
 **Vocabulary Mapping File** `epa_mapping.csv <https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/epa_mapping.csv>`_
 
 **Citation** Water Quality Portal. Washington (DC): National Water Quality Monitoring Council, United States Geological Survey (USGS), Environmental Protection Agency (EPA); 2021. https://doi.org/10.5066/P9QRKUVJ.
+
+
+ESS-DIVE Hydrologic Monitoring Reporting Format (RF) Plugin
+-----------------------------------------------------------
+The `Environmental System Science Data Infrastructure for a Virtual Ecosystem (ESS-DIVE) <https://ess-dive.lbl.gov/>`_ is a data repository for Earth and environmental sciences research supported by the US Department of Energy.
+
+The ESS-DIVE plugin supports datasets formatted using the `ESS-DIVE Community Hydrologic Monitoring Reporting Format <https://github.com/ess-dive-community/essdive-hydrologic-monitoring>`_.
+
+Desired datasets must be downloaded to your local machine. Use the `ESS-DIVE data portal <https://data.ess-dive.lbl.gov/data>`_ to discover and download datasets of interest. Additionally, any dataset that follows the reporting format can be synthesized with the plugin.
+
+Data usage should follow the `ESS-DIVE Data Use and Citation policies <https://ess-dive.lbl.gov/data-use-and-citation>`_.
+We recommend that DOI information be acquired for data citation while users are acquiring the datasets for local configuration. Future versions of the ESS-DIVE plugin aim to provide the DOI automatically with query results.
+
+Section 1: Data Source Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1. Each dataset must have its own directory within a single, top-level directory. Each dataset must have files organized into 2 subdirectories called "data" and "locations".
+
+  |    -- Top-level directory
+  |       -- Dataset 1 directory
+  |          -- data
+  |          -- locations
+  |       -- Dataset 2 directory
+  |          -- data
+  |          -- locations
+  |       ...
+
+
+2. Each dataset directory must use the following naming convention::
+
+    <location_grouping_code>-<dataset_name>-pid-<essdive_dataset_pid>
+
+  where,
+
+   - *location_grouping_code* is a user-defined short, unique code for datasets that a share location naming schema. For example, ESS-DIVE projects may define a common set of location identifiers that project researchers use in their separate measurement collections.
+     An example *location_group_code* is WFSFA for the Watershed Function-SFA project. If you don't have information to determine datasets that share the same location naming schema, we recommend using a different code of your choice for each dataset.
+   - *dataset_name* is a user-defined human-readable name of the dataset that will be included in the BASIN-3D metadata. Use underscores to separate words. Users may choose to use the dataset title and/or a shortened versions of it.
+   - *essdive_dataset_pid* is the ESS-DIVE persistent identifier (pid) for the dataset. It can be found on the ESS-DIVE dataset webpage in the header above the list of files in the dataset (see screenshot in example below).
+
+  Do not use hyphens in the *location_grouping_code* or *dataset_name*.
+
+  An example dataset directory name: ``SPS21-Spatial_Study_2021_River_Corridor_Watershed_Biogeochemistry_SFA-pid-ess-dive-af2abbeb5ffb423-20230509T155621313`` for the dataset
+  `Spatial Study 2021: Sensor-Based Time Series of Surface Water Temperature, Specific Conductance, Total Dissolved Solids, Turbidity, pH, and Dissolved Oxygen from across Multiple Watersheds in the Yakima River Basin, Washington, USA <https://data.ess-dive.lbl.gov/view/doi:10.15485/1892052>`_,
+  where,
+
+    - ``SPS21`` is the *location_grouping_code*.
+    - ``Spatial_Study_2021_River_Corridor_Watershed_Biogeochemistry_SFA`` is the *dataset_name*; Note: no hyphens used.
+    - ``ess-dive-af2abbeb5ffb423-20230509T155621313`` is the *essdive_dataset_pid*. See screenshot below for pid location on a dataset's ESS-DIVE webpage.
+
+    .. image:: _static/images/ess-dive_pid_example.png
+      :align: center
+
+
+  The same *location_grouping_code* should be used for datasets if they share the same location naming schema, i.e., the same location identifiers / names.
+  For example, Watershed Function-SFA has a standardized locations list that all researchers use to identify the locations where measurements are being made.
+  If 2 observation types are taken at the same WFSFA location and submitted to ESS-DIVE in separate datasets, both of those datasets should use the same *location_grouping_code* so that the BASIN-3D location identifiers are the same.
+
+  See Section 3 below for more information on how location identification, including *location_grouping_code*, is used in the BASIN-3D monitoring feature objects.
+
+3. The locations subdirectory in each dataset can contain only 2 files. One **must** be the Installation Methods file, described in
+   the `reporting format instructions <https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_Instructions.md>`_.
+   The other can be a supplementary locations information file that uses
+   the `Hydrologic Monitoring Reporting Format defined terms <https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_Term_Guide.md>`_.
+
+4. All data files should be put in the data subdirectory. Data files must follow the `reporting format instructions <https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_Instructions.md>`_ or they will not be synthesized. Hierarchical structures are not supported.
+
+5. The top-level directory path must be configured as an environmental variable in the environment where you are running basin3d::
+
+    $ export $ESSDIVE_DATASETS_PATH=<top_level_directory_path>
+
+
+Section 2: Using the ESSDIVE plugin in BASIN-3D
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*Note: Only dataset files that follow the ESS-DIVE Hydrological Monitoring Reporting Format are supported by BASIN-3D in the ESSDIVE plugin.*
+
+1. Install basin3d using the instructions in the :doc:`Getting Started Guide </getting_started>`.
+
+2. Configure datasets as described above. Including specifying the top-level directory path as an environmental variable.
+
+3. Import the ESS-DIVE plugin::
+
+    >>> from basin3d.plugins import essdive
+
+4. Register the plugin (and any other you have imported)::
+
+    >>> synthesizer = synthesis.register()
+
+5. Find the available monitoring feature IDs (aka location identifiers). Note: BASIN-3D data requests must have monitoring features listed by ID::
+
+    >>> monitoring_features = synthesizer.monitoring_features(datasource='ESSDIVE')
+    >>> for monitoring_feature in monitoring_features:
+    >>>     print(f'{monitoring_feature.id} --- {monitoring_feature.name}')
+
+6. Request time series data (arguments in the example below, including monitoring_feature IDs, are for illustration only)::
+
+    >>> measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=['ESSDIVE-LOCGRP1-Site1'], observed_property=['PH', 'WT'], start_date='2022-01-01', aggregation_duration='NONE')
+    >>> for mvp in measurement_timeseries_tvp_observations:
+    >>>    print(f'{mvp.feature_of_interest.id} --- {mvp.observed_property}'
+
+7. Synthesized data should be cited following the ESS-DIVE data usage policy.
+
+Section 3: Usage Notes
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+  **BASIN-3D capabilities that cannot be supported or are limited for the ESS-DIVE Hydrological Monitoring RF include:**
+
+    | - All locations are considered POINT for the feature_type Monitoring Feature attribute.
+
+    | - All data are considered instantaneous. The RF does not describe standard reporting of temporal aggregation and statistics.
+
+    | - Monitoring Feature parent_feature attribute is not supported because the reporting format does not support it.
+
+    | - Monitoring Feature observed_properties attribute is not supported.
+
+    | - When using the synthesizer.monitoring_feature() method, locations are not resolved by depth. If available in the metadata, depths will be listed in the description field of the monitoring feature object. Depths are be resolved for data requests, i.e., for synthesizer.measurement_timeseries_tvp_observations() method, separate time series objects with distinct location information are generated.
+
+General considerations
+""""""""""""""""""""""
+
+  * The plugin will extract only information that strictly follows the defined portions of the Hydrologic Monitoring Reporting Format. Datasets and individual files that do not match the format are not snythesized. The plugin may skip a dataset wholly or partial.
+  * For example, the plugin does not support custom vocabularies defined in a data dictionary. It cannot extract location information referenced in another ESS-DIVE dataset listed in the file-level metadata and/or data dictionary.
+  * The plugin supports csv files that can be ingested with Python pandas package. Large files may not be readable as chunking is not enabled in this first version.
+  * Location latitude and longitude must be present in the dataset for a particular time series to be synthesized.
+  * The plugin assumes that the reporting format is applied uniformly within a dataset. It assesses an initial data file and discards any data files there after that do not follow the same reporting format application.
+
+Data considerations
+"""""""""""""""""""
+
+  * Only `vocabulary defined by the reporting format <https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_RecommendedVocabulary.md>`_ is supported.
+  * The reporting format allows variables to have a single suffix (e.g., pH_1) to indicate the sensor when multiple sensors measuring the same property are employed. The plugin supports any defined variable vocabulary with a single suffix separated by an underscore. Note: the plugin does not validate the suffix as a valid sensor ID.
+  * The reporting format defined terms Sensor_Depth and Sensor_Elevation are assumed to vary in time and are not supported at this time. Depth and Elevation terms are considered fixed and included in a time series location metadata.
+  * The reporting format implies that complete time series are contained in a single file for a given variable. The plugin follows this assumption and does not piece together a complete time series (i.e., time periods) separated into multiple files.
+
+Location considerations
+"""""""""""""""""""""""
+
+  * If Site_ID is not provided, an location ID is created using the lat / long coordinates. The lat / long ID is used as a monitoring feature ID in a data query.
+  * BASIN-3D monitoring feature identifiers are constructed as follows: ESSDIVE-<location_grouping_code>-<dataset_location_id>, where the *dataset_location_identifier* is either the provided Site_ID or the constructed lat / long ID. *location_grouping_code* is described in Section 1.
+  * Sensor_ID is not considered a unique location identifier. Different lat, long, depth/elevation values must be used to distinguish separate locations. If multiple sensors are deployed as replicates at the same location, their data will be returned in separate time series objects with the same location information.
+  * The plugin does not validate consistency of Site_ID and lat / long coordinates. The reporting format allows for location information to be specified repeatedly in multiple places within the various files. Only one location per Site_ID is generated. All others with the same Site_ID that encountered afterward are ignored.
+
+Section 4: Data Source Info
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**User Guide** https://github.com/ess-dive-community/essdive-hydrologic-monitoring/ See the Instructions documentation.
+
+**Vocabulary definitions**
+https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_RecommendedVocabulary.md
+https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_Term_Guide.md
+
+**Vocabulary Mapping File** `essdive_mapping.csv <https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/essdive_mapping.csv>`_
+
+**Citation** Goldman A E ; Ren H ; Torgeson J ; Zhou H (2021): ESS-DIVE Reporting Format for Hydrologic Monitoring Data and Metadata. Environmental Systems Science Data Infrastructure for a Virtual Ecosystem (ESS-DIVE). doi:10.15485/1822940

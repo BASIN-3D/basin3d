@@ -1,0 +1,5 @@
+Latitude,Longitude,Site_ID,Depth,Depth_Reference,Elevation,Elevation_Reference,Site_Name,Water_Name
+34.0087,-123.456,Site1,12,meters below ground surface,1000,meters above mean sea level (NAVD88),Site One,N/A
+34.0087,-123.456,Site1,12.1,meters below ground surface,1000,meters above mean sea level (NAVD88),Site One,N/A
+34.0587,-123.856,Site2,10,meters below ground surface,1000,meters above mean sea level (NAVD88),Site Two,N/A
+34.0587,-123.856,Site2,10.1,meters below ground surface,1000,meters above mean sea level (NAVD88),Site Two,N/A

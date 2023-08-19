@@ -1,0 +1,5 @@
+InstallationMethod_ID,InstallationMethod_Description,Latitude,Longitude,Site_ID,Depth,Depth_Reference,Elevation,Elevation_Reference,Site_Name,Water_Name,Site_Type,Configuration,DateTime_Start,DateTime_End,UTC_Offset
+ph_sens1,info on pH sensor install,34.0087,-123.456,Site1,1.2,meters below ground surface,1000,meters above mean sea level (NAVD88),Site One,N/A,water well,N/A,2022-01-01 00:00:00,2022-02-01 00:00:00,-6
+temp_sens1,info on temp sensor install,34.0087,-123.456,Site1,1.2,meters below ground surface,1000,meters above mean sea level (NAVD88),Site One,N/A,water well,N/A,2022-01-01 00:00:00,2022-02-01 00:00:00,-6
+ph_sens2,info on pH sensor install,34.0587,-123.856,Site2,1,meters below ground surface,1000,meters above mean sea level (NAVD88),Site Two,N/A,water well,N/A,2022-01-01 00:00:00,2022-02-01 00:00:00,-6
+temp_sens2,info on temp sensor install,34.0587,-123.856,Site2,1,meters below ground surface,1000,meters above mean sea level (NAVD88),Site Two,N/A,water well,N/A,2022-01-01 00:00:00,2022-02-01 00:00:00,-6
