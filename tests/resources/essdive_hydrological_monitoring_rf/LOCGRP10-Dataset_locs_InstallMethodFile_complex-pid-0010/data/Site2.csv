@@ -1,0 +1,15 @@
+# HeaderRows_7,,,
+# HeaderRows_Format: Column_Header; Unit; InstallationMethod_ID; Instrument_Summary,,,
+# DateTime; YYYY-MM-DD hh:mm:ss UTC-06:00; N/A; No daylight savings time,,,
+# Sensor_Depth; meters below ground surface; N/A; N/A,,,
+# pH; pH; ph_sens2; pH sensor model AAA,,,
+# Temperature; deg C; temp_sens2; thermocouple,,,
+DateTime,Depth,pH,Temperature
+2022-01-10 09:00:00,0.95,7.2,15.1
+2022-01-12 13:00:00,1,7.2,15
+2022-02-15 14:00:00,0.97,7.2,14.5
+2022-06-12 17:00:00,0.95,7.2,14.3
+2022-06-25 15:00:00,1.02,7.2,13.6
+2022-08-04 14:00:00,1,7.2,13.8
+2022-10-07 11:00:00,1.01,7.2,14.1
+2022-11-10 12:00:00,1,7.2,14.4

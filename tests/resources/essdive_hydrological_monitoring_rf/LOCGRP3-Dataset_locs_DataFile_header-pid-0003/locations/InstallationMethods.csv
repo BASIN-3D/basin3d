@@ -1,0 +1,5 @@
+InstallationMethod_ID,InstallationMethod_Description,DateTime_Start,DateTime_End,UTC_Offset,Depth
+ph_sens1,info on pH sensor install,1/1/22 0:00,1/1/23 0:00,-6,-0.2
+temp_sens1,info on temp sensor install,1/1/22 0:00,1/1/23 0:00,-6,-0.2
+ph_sens2,info on pH sensor install,1/1/22 0:00,1/1/23 0:00,-6,-0.25
+temp_sens2,info on temp sensor install,1/1/22 0:00,1/1/23 0:00,-6,-0.25

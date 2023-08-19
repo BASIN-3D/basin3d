@@ -26,6 +26,20 @@ API Reference
     :members:
     :undoc-members:
 
+`basin3d.plugins.epa`
+*********************
+
+.. automodule:: basin3d.plugins.epa
+    :members:
+    :undoc-members:
+
+`basin3d.plugins.essdive`
+*************************
+
+.. automodule:: basin3d.plugins.essdive
+    :members:
+    :undoc-members:
+
 `basin3d.core.schema.enum`
 ***************************
 
