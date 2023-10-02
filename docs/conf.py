@@ -333,4 +333,4 @@ texinfo_documents = [
 # texinfo_no_detailmenu = False
 
 # linkcheck ignore: dois that redirect and fail for some reason (wiley)
-linkcheck_ignore = [r'https://doi\.org/.*']
+linkcheck_ignore = [r'https://doi\.org/.*', r'https://www.epa.gov/*', r'https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/*']
