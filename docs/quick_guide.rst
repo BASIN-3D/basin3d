@@ -8,6 +8,7 @@ Hook up Data Sources
 To access a data source, its BASIN-3D plugin must be configured. Custom plugins can be built. Documentation will be forthcoming in future versions. Current available plugins:
 
     - USGS Daily Values and Instantaneous Values
+    - EPA Water Quality eXchange (WQX)
 
 If a plugin exists for the data source, import it before registering a synthesizer.
 

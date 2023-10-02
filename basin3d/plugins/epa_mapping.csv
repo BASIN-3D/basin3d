@@ -1,0 +1,106 @@
+attr_type,basin3d_vocab,datasource_vocab,datasource_desc
+SAMPLING_MEDIUM,GAS,Air,"the invisible gaseous substance surrounding the earth, a mixture of nitrogen, oxygen, and minute amounts of other gases that forms earth's atmosphere"
+SAMPLING_MEDIUM,OTHER,Biological,relating to biology or living organisms
+SAMPLING_MEDIUM,OTHER,Habitat,"the natural home or environment of an animal, plant, or other organism."
+SAMPLING_MEDIUM,OTHER,Other,other; the area or natural environment in which an organism or substance is found
+SAMPLING_MEDIUM,SOLID_PHASE,Sediment,"matter that settles to the bottom of a liquid; dregs; Geology Solid fragmented material, such as silt, sand, gravel, chemical precipitates, and fossil fragments, that is transported and deposited by water, ice, or wind or that accumulates through chemical precipitation or secretion by organisms, and that forms layers on the Earth's surface."
+SAMPLING_MEDIUM,SOLID_PHASE,Soil,"the loose top layer of the Earth's surface, a black or dark brown material consisting of rock and mineral particles mixed with decayed organic matter (humus), and capable of retaining water, providing nutrients for plants, and supporting a wide range of biotic communities."
+SAMPLING_MEDIUM,SOLID_PHASE,Tissue,an aggregate of cells usually of a particular kind together with their intercellular substance that form one of the structural materials of a plant or an animal
+SAMPLING_MEDIUM,WATER,Water,"a colorless, transparent, odorless, tasteless liquid that forms the seas, lakes, rivers, and rain and is the basis of the fluids of living organisms."
+RESULT_QUALITY,VALIDATED,Accepted,Reported result has been accepted; Water Quality Portal visible.
+RESULT_QUALITY,VALIDATED,Final,"Publishable, released to public; Water Quality Portal visible."
+RESULT_QUALITY,UNVALIDATED,Preliminary,"Internal use only, not released to public."
+RESULT_QUALITY,UNVALIDATED,Provisional,"Reported result has not been verified, not undergone all QC procedures; Water Quality Portal visible."
+RESULT_QUALITY,UNVALIDATED,Raw,"State of original collection, not undergone any QC procedures; Water Quality Portal visible."
+RESULT_QUALITY,REJECTED,Rejected,Reported result has not been accepted; Water Quality Portal visible.
+RESULT_QUALITY,UNVALIDATED,Unreviewed,Reported result has not been reviewed; Water Quality Portal visible.
+RESULT_QUALITY,VALIDATED,Validated,Reported result has been verified and reviewed; Water Quality Portal visible.
+RESULT_QUALITY,ESTIMATED,Estimated,"Approximation, educated guess, or projection of a quantity based on experience and/or information available at the time, and the cheapest (and least accurate) type of modeling."
+STATISTIC,MAX,Maximum,"The maximum is a unique number for a given set of data. This number can be repeated, but there is only one maximum for a data set"
+STATISTIC,MEAN,Mean,mean is the sum of all the numbers in the set divided by the amount of numbers in the set
+STATISTIC,MIN,Minimum,the smallest or the least value in a given set of data.
+STATISTIC,TOTAL,Sum,Use summation notation to express the sum of all numbers.
+STATISTIC,INSTANT,Instantaneous,The rate of change at a particular moment. Same as the value of the derivative at a particular point.
+OBSERVED_PROPERTY,Ag,Silver,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Al,Aluminum,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,As,Arsenic,Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,As,"Arsenic, Inorganic",Request Date: 23-Jul-14 (nps.gov cas# review)
+OBSERVED_PROPERTY,AT,"Temperature, air",The air temperature.; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,B,Boron,Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Ba,Barium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Be,Beryllium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Br,Bromide,Nemi.gov; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,Ca,Calcium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Cd,Cadmium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Cl,Chloride,Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Co,Cobalt,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,CO2,Carbon dioxide,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Cr,Chromium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Cr,Chromium(VI),; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Cs,Cesium,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,Cu,Copper,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,d13C,Carbon Delta 13,1; Request Date: 14-JUN-18
+OBSERVED_PROPERTY,DO,Dissolved oxygen (DO),; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Eu,Europium,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,F,Fluoride,Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,FDOM,Colored dissolved organic matter (CDOM),The presence of colored dissolved organic matter in water affects water quality by reducing the amount of ultraviolet light penetration in the water column.; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Fe2,Ferrous ion,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,FeT,Iron,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Ge,Germanium,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,H2,Hydrogen,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,H2O_d18O,Oxygen-18,"Oxygen, atomic number 8.; Request Date: 02-MAR-07"
+OBSERVED_PROPERTY,H2O_dD,Deuterium/Hydrogen ratio,The ratio of deuterium and hydrogen.; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,H2O_dD,Deuterium,; Request Date: 17-AUG-15
+OBSERVED_PROPERTY,H2S,Hydrogen sulfide,Request Date: 23-Jul-14 (nps.gov cas# review)
+OBSERVED_PROPERTY,HCO3,Bicarbonate,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,Hg,Mercury,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,K,Potassium,Request Date: 23-Jul-14 (nps.gov cas# review)
+OBSERVED_PROPERTY,Li,Lithium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,LSE,"Elevation, land surface, MSL",; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,MICRO_COV,Relative abundance,NLA; Request Date: 27-APR-16
+OBSERVED_PROPERTY,Mg,Magnesium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Mo,Molybdenum,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Na,Sodium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Na,"Sodium, Percent Total Cations",; Request Date: 17-DEC-14
+OBSERVED_PROPERTY,NH3,Ammonia,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,NH4,Ammonium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Ni,Nickel,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,O2,Oxygen,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,ORP,Oxidation reduction potential (ORP),The electrical potential required to transfer electrons from one substance (the oxidant) to another (the reductant).; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,P,"Total Phosphorus, mixed forms",; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,P,Phosphorus,"EPA WorkGroup QA - Total Phosphorus, mixed forms (LsP+FeP+CaP+InOrgP+OrgP); Request Date: 04-APR-16"
+OBSERVED_PROPERTY,Pb,Lead,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,PH,pH,"is the abbreviation for ���potential hydrogen��� and the reading indicates the concentration of hydrogen ions in the water. Basically, it is the measure of how acidic or basic (alkaline) the water is.;Nemi.gov; Request Date: 02-MAR-07"
+OBSERVED_PROPERTY,PPT,Precipitation volume,
+OBSERVED_PROPERTY,Rb,Rubidium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,RDC,Discharge (stage unknown),
+OBSERVED_PROPERTY,RH,Relative humidity,The ratio of the actual amount of moisture in the air and the maximum amount of moisture in the air at a given temperature.; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,S2,Sulfide,Nemi.gov; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,S2O3,Thiosulfate,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,Sb,Antimony,Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,SBD,Dry Bulk Density of Soils,GLENDA contact (klewin.kenneth@epa.gov); Request Date: 21-DEC-15
+OBSERVED_PROPERTY,SC,Specific conductance,"Specific conductance is the ability of an aqueous solution to carry an electrical current, expressed in terms of resistance, reported in micromhos per centimeter at 25 degrees Celsium (C).; Request Date: 02-MAR-07"
+OBSERVED_PROPERTY,Se,Selenium,Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Si,Silicon,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,Sn,Tin,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,SO4,Sulfate,Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Sr,Strontium,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,STM,"Temperature, soil",The temperature of a soil.; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,SWE,Water content of snow,The amount of water in snow.; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,SWL,"Height, gage",Watersheds-based Monitoring and Interoperable Data Platforms; Request Date: 03-OCT-16
+OBSERVED_PROPERTY,SWL,Stream water level,NWIS
+OBSERVED_PROPERTY,TDS,Total dissolved solids,The weight of solids remaining after a well-mixed sample has been filtered through a standard glass filter and the resultant filtrate is evaporated and dried to a constant weight at 180 deg C.Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Ti,Titanium,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,TIC,Inorganic carbon,"The carbon containing compounds in water which are not organic compounds, carbonate and bicarbonate species primarily.Nemi.gov; Request Date: 02-MAR-07"
+OBSERVED_PROPERTY,TRB,Turbidity,Turbidity is an optical property of the water that causes light to be scattered and absorbed rather than transmitted in straight lines through the sample.Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,TSS,Total suspended solids,The weight of solids remaining after a well-mixed sample is filtered through a standard glass filter and the suspended portion is dried to a constant weight at 103-105 deg C.Nemi.gov; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,V,Vanadium,; Request Date: 22-JUL-14
+OBSERVED_PROPERTY,W_DIR,"Wind direction (direction from, expressed 0-360 deg)",; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,W_SPD,Wind velocity,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,WBT,"Temperature, wet bulb",The measure of air temperature and humidity using a wet bulb thermometer.; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,WLE,"Elevation, water surface, MSL",; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,WT,"Temperature, water","The temperature of water, usually measured in units of deg Centigrade or deg Fahrenheit.; Request Date: 02-MAR-07"
+OBSERVED_PROPERTY,Zn,Zinc,; Request Date: 02-MAR-07
+OBSERVED_PROPERTY,Zr,Zirconium,; Request Date: 22-JUL-14
+AGGREGATION_DURATION,DAY,Daily,
+AGGREGATION_DURATION,NONE,NONE,Artificial mapping created by plugin developer to handle single observation case. NONE is not a EPA vocabulary.

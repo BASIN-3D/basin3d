@@ -6,6 +6,7 @@ Welcome to basin3d-core |release| documentation!
    intro
    concepts
    getting_started
+   plugins
    quick_guide
    examples
    key_functions
