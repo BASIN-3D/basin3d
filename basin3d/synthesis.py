@@ -192,7 +192,7 @@ class DataSynthesizer:
 
         **Search for a single monitoring feature by id:**
 
-        >>> from basin3d.plugins import usgs
+        >>> from basin3d.plugins import usgs, epa
         >>> from basin3d import synthesis
         >>> synthesizer = synthesis.register()
         >>> response = synthesizer.monitoring_features(id='USGS-0101')
@@ -236,7 +236,7 @@ class DataSynthesizer:
         This is an example of checking the synthesis response messages in the :class:`basin3d.core.synthesis.DataSourceModelIterator`.
 
         >>> response_itr.synthesis_response.messages
-        [SynthesisMessage(msg='Feature type HORIZONTAL_PATH not supported by USGS.', level='WARN', where=['USGS', 'MonitoringFeature'])]
+        [SynthesisMessage(msg='Feature type HORIZONTAL_PATH not supported by USGS.', level='WARN', where=['USGS', 'MonitoringFeature']), SynthesisMessage(msg='Feature type HORIZONTAL_PATH not supported by EPA Water Quality eXchange.', level='WARN', where=['EPA', 'MonitoringFeature'])]
 
 
         :param query: (optional) The Monitoring Feature Query object
