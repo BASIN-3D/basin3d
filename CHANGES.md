@@ -1,5 +1,8 @@
 # Changelog
 
+## Version 0.5.0
+This release adds a new data source plugin to the US EPA Water Quality eXchange, available via the National Water Quality Monitoring Council Water Quality Portal under the provider STORET. Documentation has also been updated to describe plugins in more detail.
+
 ## Version 0.4.3
 Minor update to remove special handling of FeatureTypeEnum
 
