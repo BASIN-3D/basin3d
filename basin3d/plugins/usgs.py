@@ -521,9 +521,9 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
 
 class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
     """
-    USGS Daily Values Service: https://waterservices.usgs.gov/rest/DV-Service.html
+    USGS Daily Values Service: https://waterservices.usgs.gov/docs/dv-service/
 
-    USGS Instantaneous Values Service: https://waterservices.usgs.gov/rest/IV-Service.html
+    USGS Instantaneous Values Service: https://waterservices.usgs.gov/docs/instantaneous-values/
 
     Access for mapping USGS water services daily or instantaneous value data to
     :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation` objects.
