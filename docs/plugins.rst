@@ -43,7 +43,7 @@ Section 2: Using the EPA plugin in BASIN-3D
 
 4. Find the available monitoring feature IDs (aka location identifiers). Note: These monitoring feature IDs are required parameters for BASIN-3D data requests.
 
-Option 1: Specify a `USGS HUC <https://water.usgs.gov/GIS/huc.html>`_ 2, 4, 6, or 8-digit code in the parent_feature argument. Prefix the HUC identifier with "EPA-".
+Option 1: Specify a `USGS HUC <https://water.usgs.gov/GIS/huc.html>`_ 2, 4, 6, 8, 10, or 12-digit code in the parent_feature argument. Prefix the HUC identifier with "EPA-".
 The BASIN-3D USGS plugin can be used to find USGS HUC information and identifiers:
 
 .. code-block::
