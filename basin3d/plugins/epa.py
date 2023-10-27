@@ -230,13 +230,13 @@ class EPAMonitoringFeatureAccess(DataSourcePluginAccess):
             loc_list = []
             if query.parent_feature:
                 for parent_feature in query.parent_feature:
-                    if len(parent_feature) not in [2, 4, 6, 8] or not parent_feature.isdigit():
-                        msg = f'{self.datasource.name}: {parent_feature} does not appear to be a valid USGS huc: 2, 4, 6, 8-digit code.'
+                    if len(parent_feature) not in [2, 4, 6, 8, 10, 12] or not parent_feature.isdigit():
+                        msg = f'{self.datasource.name}: {parent_feature} does not appear to be a valid USGS huc: 2, 4, 6, 8, 10, or 12-digit code.'
                         synthesis_messages.append(msg)
                         logger.warning(msg)
                         continue
                     wildcard = '*'
-                    if len(parent_feature) == 8:
+                    if len(parent_feature) >= 8:
                         wildcard = ''
                     loc_list.append(f'huc%3A{parent_feature}{wildcard}')
 

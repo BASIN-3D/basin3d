@@ -47,8 +47,8 @@ def get_url_text(text, status=200):
                          [({"feature_type": "region"}, "Feature type REGION not supported by EPA Water Quality eXchange."),
                           ({"feature_type": "point"}, "EPA Water Quality eXchange requires either a parent feature or monitoring feature be specified in the query."),
                           ({"parent_feature": ['EPA-huc'], "monitoring_feature": ["EPA-siteid"]}, "EPA Water Quality eXchange does not support querying monitoring features by both parent_feature (huc) and monitoring_feature (list of ids)."),
-                          ({"parent_feature": "EPA-00001"}, "EPA Water Quality eXchange: 00001 does not appear to be a valid USGS huc: 2, 4, 6, 8-digit code."),
-                          ({"parent_feature": "EPA-A001"}, "EPA Water Quality eXchange: A001 does not appear to be a valid USGS huc: 2, 4, 6, 8-digit code.")],
+                          ({"parent_feature": "EPA-00001"}, "EPA Water Quality eXchange: 00001 does not appear to be a valid USGS huc: 2, 4, 6, 8, 10, or 12-digit code."),
+                          ({"parent_feature": "EPA-A001"}, "EPA Water Quality eXchange: A001 does not appear to be a valid USGS huc: 2, 4, 6, 8, 10, or 12-digit code.")],
                          ids=["wrong_feature_type", "no-parent-or-monitoring-feature", "both-parent-and-monitoring-features", "malformed-huc-1", "malformed-huc-2"])
 def test_epa_monitoring_features_invalid_query(query, expected_msg, monkeypatch):
     # Test EPA monitoring feature invalid query
@@ -68,6 +68,8 @@ def test_epa_monitoring_features_invalid_query(query, expected_msg, monkeypatch)
 @pytest.mark.parametrize("query, resource_file, expected_count",
                          [({"parent_feature": "EPA-1402"}, "epa_1402.json", 2418),
                           ({"parent_feature": "EPA-14020001"}, "epa_14020001.json", 355),
+                          ({"parent_feature": "EPA-1402000101"}, "epa_1402000101.json", 36),
+                          ({"parent_feature": "EPA-140200010101"}, "epa_140200010101.json", 3),
                           ({"monitoring_feature": ['EPA-0801417-CB-AS-1']}, "epa_loc_single.json", 1),
                           ({"monitoring_feature": ['EPA-WIDNR_WQX-001', 'EPA-11NPSWRD_WQX-BLCA_NURE_0002', 'EPA-CCWC-MM-29 WASH #3']}, "epa_loc_multiple.json", 3),
                           ({"monitoring_feature": ['EPA-WIDNR_WQX-001', 'EPA-invalid']}, "epa_loc_one_good.json", 1),
@@ -83,9 +85,9 @@ def test_epa_monitoring_features_invalid_query(query, expected_msg, monkeypatch)
                           ({"feature_type": "plot"}, "epa_mock.json", 0),
                           ({"feature_type": "vertical_path"}, "epa_mock.json", 0),
                           ({"feature_type": "horizontal_path"}, "epa_mock.json", 0)],
-                         ids=["huc-wildcard", "huc-8", "single-mf", "multiple-mf", "one-invalid-mf", "mf-invalid", "huc-invalid",
-                              "region", "subregion", "basin", "subbasin", "watershed", "subwatershed",
-                              "site", "plot", "vertical_path", "horizontal_path"])
+                         ids=["huc-wildcard", "huc-8", "huc-10", "huc-12", "single-mf", "multiple-mf", "one-invalid-mf",
+                              "mf-invalid", "huc-invalid", "region", "subregion", "basin", "subbasin", "watershed",
+                              "subwatershed", "site", "plot", "vertical_path", "horizontal_path"])
 def test_epa_monitoring_features(query, resource_file, expected_count, monkeypatch):
     """ Test EPA monitoring feature list """
 
