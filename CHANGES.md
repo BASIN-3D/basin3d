@@ -1,5 +1,8 @@
 # Changelog
 
+## Version 0.5.1
+This release adds a data source plugin for datasets following the ESS-DIVE Community Hydrologic Monitoring Reporting Format. Details for configuring the dataset for synthesis are described in the online documentation.
+
 ## Version 0.5.0
 This release adds a new data source plugin to the US EPA Water Quality eXchange, available via the National Water Quality Monitoring Council Water Quality Portal under the provider STORET. Documentation has also been updated to describe plugins in more detail.
 
