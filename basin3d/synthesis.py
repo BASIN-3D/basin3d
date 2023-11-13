@@ -128,7 +128,7 @@ class DataSynthesizer:
         Br -- Bromide (Br) -- mM
         Cl -- Chloride (Cl) -- mM
         DIN -- Dissolved Inorganic Nitrogen (Nitrate + Nitrite) -- mg/L
-        DTN -- Dissolved Total Nitrogen (DTN) -- mM
+        DTN -- Dissolved Total Nitrogen (DTN) -- mg/L
         F -- Fluoride (F) -- mM
         ...
 

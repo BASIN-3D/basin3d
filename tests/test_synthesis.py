@@ -200,4 +200,4 @@ def test_observed_properties():
     for op in results:
         count += 1
 
-    assert count == 168
+    assert count == 167
