@@ -188,9 +188,9 @@ def test_find_observed_properties(caplog, catalog):
             'W_SPD', 'W_CH', 'ERT', 'CEC', 'EXAFS', 'SEQ', 'XRD', 'XRF', 'XANES', 'HCND', 'SED_SIZE', 'HCND_Sat',
             'Porosity', 'SBD', 'SYD', 'HCND_Unsat', 'RET_CUR', 'LSE', 'GWF', 'Well logs', 'SAT', 'SDE', 'SMO', 'STM',
             'SWP', 'SEC', 'FDOM', 'DO', 'EC', 'SC', 'SAL', 'GWL', 'PH', 'ORP', 'RDC', 'SWL', 'WLH', 'WLE', 'WT', 'TDS',
-            'TSS', 'TRB', 'STO_RES', 'LAI', 'PLT_HT', 'PAI', 'PFT', 'SAP', 'RGB', 'GCC', 'NDVI'] == [i.basin3d_vocab for
-                                                                                                     i in
-                                                                                                     catalog.find_observed_properties()]
+            'TSS', 'TRB', 'STO_RES', 'LAI', 'PLT_HT', 'PAI', 'PFT', 'RGB', 'GCC', 'NDVI'] == [i.basin3d_vocab for
+                                                                                              i in
+                                                                                              catalog.find_observed_properties()]
 
     # specified valid observed properties returned
     assert ['ACT', 'Br'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['ACT', 'Br'])]

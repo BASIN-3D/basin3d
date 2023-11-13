@@ -3,14 +3,14 @@ ACT,Acetate (CH3COO),"Biogeochemistry,Anions",mM
 Br,Bromide (Br),"Biogeochemistry,Anions",mM
 Cl,Chloride (Cl),"Biogeochemistry,Anions",mM
 DIN,Dissolved Inorganic Nitrogen (Nitrate + Nitrite),"Biogeochemistry,Anions",mg/L
-DTN,Dissolved Total Nitrogen (DTN),"Biogeochemistry,Anions",mM
+DTN,Dissolved Total Nitrogen (DTN),"Biogeochemistry,Anions",mg/L
 F,Fluoride (F),"Biogeochemistry,Anions",mM
 NO3,Nitrate (NO3),"Biogeochemistry,Anions",mM
 NO2,Nitrite (NO2),"Biogeochemistry,Anions",mM
 PO4,Phosphate (PO4),"Biogeochemistry,Anions",mM
 SO4,Sulfate (SO4),"Biogeochemistry,Anions",mM
 S2,Sulfide (S),"Biogeochemistry,Anions",mM
-S2O3,Thiosulfate (S2O3),"Biogeochemistry,Anions",mg/L
+S2O3,Thiosulfate (S2O3),"Biogeochemistry,Anions",mM
 HCO3,Bicarbonate,"Biogeochemistry,Carbon",mg/L
 DIC,Dissolved Inorganic C (DIC),"Biogeochemistry,Carbon",mg/L
 DOC,Dissolved Organic Carbon (DOC),"Biogeochemistry,Carbon",mg/L
@@ -18,14 +18,14 @@ NPOC,Non-Purgable Organic Carbon (NPOC),"Biogeochemistry,Carbon",mg/L
 POC,Particulate Organic C (POC),"Biogeochemistry,Carbon",mg/L
 TIC,Total Inorganic Carbon (TIC),"Biogeochemistry,Carbon",mg/L
 TOC,Total Organic Carbon (TOC),"Biogeochemistry,Carbon",mg/L
-d13C,Carbon (d13C),"Biogeochemistry,Isotopes",per mil
+d13C,Carbon (d13C),"Biogeochemistry,Isotopes",mg/L
 CO2_d13C_soilgas,Carbon in Carbon Dioxide soil gas (CO2-d13C),"Biogeochemistry,Isotopes",per mil
 CH4_d13C_soilgas,Carbon in Methane soil gas (CH4-d13C),"Biogeochemistry,Isotopes",per mil
 d15N,Nitrogen in Air (Air-d15N),"Biogeochemistry,Isotopes",per mil
 N2O_d15N_soilgas,Nitrogen in Nitrous Oxide soil gas (N2O-d15N),"Biogeochemistry,Isotopes",per mil
 CO2_d18O_soilgas,Oxygen in Carbon Dioxide soil gas (CO2-d18O),"Biogeochemistry,Isotopes",per mil
 N2O_d18O_soilgas,Oxygen in Nitrous Oxide soil gas (N2O-d18O),"Biogeochemistry,Isotopes",per mil
-SO4_d34S,Sulfur in Sulfate (SO4-d34S),"Biogeochemistry,Isotopes",per mil
+SO4_d34S,Sulfur in Sulfate (SO4-d34S),"Biogeochemistry,Isotopes",mg/L
 U235,Uranium (U235),"Biogeochemistry,Isotopes",mg/L
 H2O_d18O,Water - d18O,"Biogeochemistry,Isotopes",mg/L
 H2O_dD,Water - Deuterium (dD),"Biogeochemistry,Isotopes",mg/L
@@ -83,19 +83,19 @@ P,Total Phosphorous (P),"Biogeochemistry,Trace elements",mg/L
 U,Uranium (U),"Biogeochemistry,Trace elements",mg/L
 V,Vanadium (V),"Biogeochemistry,Trace elements",mg/L
 Zn,Zinc (Zn),"Biogeochemistry,Trace elements",mg/L
-Zr,Zirconium (Zr),"Biogeochemistry,Trace elements",
+Zr,Zirconium (Zr),"Biogeochemistry,Trace elements",mg/L
 AT,Air Temperature,"Climate,Weather",C
 ALB,Albedo,"Climate,Weather",
 APA,Atmospheric Pressure (Absolute),"Climate,Weather",mm Hg
 APR,Atmospheric Pressure (Relative to Sea Level),"Climate,Weather",mm Hg
-DP,Dewpoint,"Climate,Weather",F
+DP,Dewpoint,"Climate,Weather",C
 ET,Evapotranspiration,"Climate,Weather",
-HI,Heat Index,"Climate,Weather",F
+HI,Heat Index,"Climate,Weather",C
 PPT,Precipitation (Instantaneous),"Climate,Weather",mm
 PPT_TOT_5,Precipitation Accumulation (5 min interval),"Climate,Weather",mm/5 min
 PPT_TOT_10,Precipitation Accumulation (10 min interval),"Climate,Weather",mm/10 min
 PPT_TOT_60,Precipitation Accumulation (1 hr interval),"Climate,Weather",mm/hr
-PPT_TOT_DAY,Daily Precipitation Accumulation/ Total Daily Rainfall,"Climate,Weather",mm
+PPT_TOT_DAY,Daily Precipitation Accumulation/ Total Daily Rainfall,"Climate,Weather",mm/day
 UV_IN,Incoming Ultraviolet Radiation,"Climate,Weather",W/m2
 UV_REF,Reflected Ultraviolet Radiation,"Climate,Weather",W/m2
 NIR_IN,Near Infrared Incoming Radiation,"Climate,Weather",W/m2
@@ -108,16 +108,16 @@ BB_IN,Incoming Broadband Radiation,"Climate,Weather",W/m2
 BB_REF,Reflected Broadband Radiation,"Climate,Weather",W/m2
 RH,Relative Humidity,"Climate,Weather",
 SD,Snow Depth,"Hydrogeology, Snow",m
-SWE,Snow Water Equivalent,"Hydrogeology, Snow",
-SDEN,Snow Density,"Hydrogeology, Snow",
-ST,Snow Temperature,"Hydrogeology, Snow",
+SWE,Snow Water Equivalent,"Hydrogeology, Snow",cm
+SDEN,Snow Density,"Hydrogeology, Snow",kg/m3
+ST,Snow Temperature,"Hydrogeology, Snow",C
 PPT_SF,Snowfall,"Climate,Weather",mm
 SRAD,Solar Radiation,"Climate,Weather",W/m2
-WBT,Wetbulb Temperature,"Climate,Weather",F
+WBT,Wetbulb Temperature,"Climate,Weather",C
 W_DIR,Wind Direction,"Climate,Weather",degrees
-W_GS,Wind Gust Speed,"Climate,Weather",mph
-W_SPD,Wind Speed,"Climate,Weather",mph
-W_CH,Windchill,"Climate,Weather",F
+W_GS,Wind Gust Speed,"Climate,Weather",m/s
+W_SPD,Wind Speed,"Climate,Weather",m/s
+W_CH,Windchill,"Climate,Weather",C
 ERT,ERT Time lapse data,"Hydrogeology,Geophysics",
 CEC,Cation Exchange Capacity (CEC),"Hydrogeology,Mineralogy",meq/100 g
 EXAFS,EXAFS,"Hydrogeology,Mineralogy",
@@ -133,25 +133,25 @@ SBD,Soil/Sediment Bulk Density,"Hydrogeology,Physical",g/cc
 SYD,Specific Yield,"Hydrogeology,Physical",
 HCND_Unsat,Unsaturated Hydraulic Conductivity,"Hydrogeology,Physical",m/day
 RET_CUR,Water retention curves,"Hydrogeology,Physical",
-LSE,Land Surface Elevation,Hydrogeology/surface,
+LSE,Land Surface Elevation,"Hydrogeology,Surface",
 GWF,Groundwater Flux,"Hydrogeology,Subsurface",
 Well logs,Lithological columns borehole information,"Hydrogeology,Subsurface",
 SAT,Saturation (Neutron Probe),"Hydrogeology,Subsurface",
-SDE,Soil Dielectric Constant,"Hydrogeology,Subsurface",unitless
+SDE,Soil Dielectric Constant,"Hydrogeology,Subsurface",
 SMO,Soil Moisture,"Hydrogeology,Subsurface",
 STM,Soil Temperature,"Hydrogeology,Subsurface",C
-SWP,Soil Water Potential/Tensiometer Head,"Hydrogeology,Subsurface",
+SWP,Soil Water Potential/Tensiometer Head,"Hydrogeology,Subsurface",kPa
 SEC,Soil Electrical Conductivity,"Hydrogeology,Subsurface",uS/cm
 FDOM,Colored Dissolved Organic Matter (FDOM),"Hydrogeology,Water Physical/Quality Parameters",QSU
 DO,Dissolved Oxygen (DO),"Hydrogeology,Water Physical/Quality Parameters",mg/L
 EC,Electrical Conductivity (EC),"Hydrogeology,Water Physical/Quality Parameters",uS/cm
 SC,Specific Conductance (SC),"Hydrogeology,Water Physical/Quality Parameters",uS/cm
-SAL,Salinity ,"Hydrogeology,Water Physical/Quality Parameters",PSU
+SAL,Salinity,"Hydrogeology,Water Physical/Quality Parameters",PSU
 GWL,Ground Water Level,"Hydrogeology,Water Physical/Quality Parameters",m bgs
-PH,pH,"Hydrogeology,Water Physical/Quality Parameters",m bgs
-ORP,Redox Potential (ORP),"Hydrogeology,Water Physical/Quality Parameters",
-RDC,River Discharge,"Hydrogeology,Water Physical/Quality Parameters",mV
-SWL,Surface Water Level/ River Stage,"Hydrogeology,Water Physical/Quality Parameters",m2/s
+PH,pH,"Hydrogeology,Water Physical/Quality Parameters",
+ORP,Redox Potential (ORP),"Hydrogeology,Water Physical/Quality Parameters",mV
+RDC,River Discharge,"Hydrogeology,Water Physical/Quality Parameters",m2/s
+SWL,Surface Water Level/ River Stage,"Hydrogeology,Water Physical/Quality Parameters",m
 WLH,Water Level Head (Height of Water Column),"Hydrogeology,Water Physical/Quality Parameters",m
 WLE,Water Level Elevation,"Hydrogeology,Water Physical/Quality Parameters",m
 WT,Water Temperature,"Hydrogeology,Water Physical/Quality Parameters",C
@@ -163,7 +163,6 @@ LAI,Leaf Area Index,"Vegetation, Plant Traits",
 PLT_HT,Canopy/plant Height,"Vegetation,Plant Traits",m
 PAI,Plant Area Index,"Vegetation,Plant Traits",
 PFT,Plant functional types,"Vegetation,Plant Traits",
-SAP,Sap Flow,"Vegetation,Plant Response",
 RGB,RGB pixel color values in an image,Remote Sensing,
 GCC,Green Chromatic Coordinate,Remote Sensing,
 NDVI,Normalized Difference Vegetation Index (NDVI),Remote Sensing,
