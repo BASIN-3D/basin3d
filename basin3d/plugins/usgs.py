@@ -5,39 +5,38 @@
 :platform: Unix, Mac
 :synopsis: USGS Daily Values and Instantaneous Values Plugin Definition and supporting views.
 :module author: Val Hendrix <vhendrix@lbl.gov>
+:module author: Danielle S Christianson <dschristianson@lbl.gov>
 
 
-* :class:`USGSDataSourcePlugin` - This Data Source plugin maps the USGS Daily Values and Instantaneous Values Data Source to the
-    BASIN-3D Models
+* :class:`USGSDataSourcePlugin` - This Data Source plugin maps the USGS Daily Values and Instantaneous Values Service to BASIN-3D Models
 
 USGS to BASIN-3D Mapping
 ++++++++++++++++++++++++
-The table below describes how BASIN-3D synthesis models are mapped to the USGS Daily Values and Instantaneous Source
-models.
+The table below describes how BASIN-3D synthesis models are mapped to the USGS Daily Values and Instantaneous Service models.
 
-=================== === ==================================================================================
+=================== === ==================================================================================================
 USGS NWIS               BASIN-3D
-=================== === ==================================================================================
-``nwis/dv``         >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
-------------------- --- ----------------------------------------------------------------------------------
-``nwis/iv``         >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
-------------------- --- ----------------------------------------------------------------------------------
+=================== === ==================================================================================================
+``nwis/dv``         >>  :class:`basin3d.core.models.MeasurementTimeseriesTVPObservation` with aggregation_duration == DAY
+------------------- --- --------------------------------------------------------------------------------------------------
+``nwis/iv``         >>  :class:`basin3d.core.models.MeasurementTimeseriesTVPObservation` with aggregation_duration == NONE
+------------------- --- --------------------------------------------------------------------------------------------------
 ``nwis/sites``      >>  :class:`basin3d.synthesis.models.field.MonitoringFeature`
-------------------- --- ----------------------------------------------------------------------------------
-``nwis/huc``        >>  :class:`basin3d.synthesis.models.field.MonitoringFeature`
-------------------- --- ----------------------------------------------------------------------------------
+------------------- --- --------------------------------------------------------------------------------------------------
+``nwis/huc``        >>  :class:`basin3d.core.models.MonitoringFeature`
+------------------- --- --------------------------------------------------------------------------------------------------
 ``new_huc_rdb.txt`` >>  :class:`basin3d.synthesis.models.field.MonitoringFeature`
-                         * Region to Region
-                         * Subregion to Subregion
-                         * Accounting Unit to Basin
-                         * Watershed to Subbasin
-=================== === ==================================================================================
+                         * Region (2-digit HUC code) to Region
+                         * Subregion (4-digit HUC code) to Subregion
+                         * Accounting (6-digit HUC code) Unit to Basin
+                         * Watershed (8-digit HUC code) to Subbasin
+=================== === ==================================================================================================
 
 
 Access Classes
 ++++++++++++++
 
-The following are the access classes that map *USGS Data Source API* to the *BASIN-3D Models*.
+The following are the access classes that map *USGS Water Data* to the *BASIN-3D Models*.
 
 * :class:`USGSMeasurementTimeseriesTVPObservationAccess` - Access for accessing a group of data points grouped by time, space, model, sample  etc.
 * :class:`USGSMonitoringFeatureAccess` - Access for accessing monitoring features
@@ -88,20 +87,11 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
                                                           query: QueryMeasurementTimeseriesTVP,
                                                           synthesis_messages):
     """
-    Get the Data Points for USGS Daily Values or Instantaneous Values
+    Get the data for USGS Daily Values or Instantaneous Values
 
-    =================== === ===================
-    USGS NWIS               BASIN-3D
-    =================== === ===================
-    ``nwis/dv``          >> ``data_points/``
-    ------------------- --- -------------------
-    ``nwis/iv``          >> ``data_points/``
-    =================== === ===================
-
-    :param view: The request object ( Please refer to the Django documentation ).
+    :param view: Access class
     :param query: Query information for this request
-    :returns: a generator object that yields :class:`~basin3d.synthesis.models.field.DataPoint`
-        objects
+    :returns: a generator object that yields data from the request in json form
     """
 
     # Temporal resolution is always daily.
@@ -300,30 +290,29 @@ def _parse_sites_response(usgs_site_response):
 
 class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
     """
-    Access for mapping USGS HUC Regions, SubRegions and Accounting Units to
-    :class:`~basin3d.synthesis.models.field.Region` objects.
+    Access for mapping USGS HUC Units to :class:`~basin3d.core.models.MonitoringFeature` objects.
 
-    ============== === ====================================================
-    USGS NWIS          BASIN-3D
-    ============== === ====================================================
-    HUCs            >> :class:`basin3d.synthesis.models.field.Region`
-    ============== === ====================================================
+    ============== === =======================================================
+    USGS HUC code      BASIN-3D
+    ============== === =======================================================
+    2-digit        >>  :class:`basin3d.core.schema.enum.FeatureType` REGION
+    -------------- --- -------------------------------------------------------
+    4-digit        >>  :class:`basin3d.core.schema.enum.FeatureType` SUBREGION
+    -------------- --- -------------------------------------------------------
+    6-digit        >>  :class:`basin3d.core.schema.enum.FeatureType` BASIN
+    -------------- --- -------------------------------------------------------
+    8-digit        >>  :class:`basin3d.core.schema.enum.FeatureType` SUBBASIN
+    ============== === =======================================================
 
     """
     synthesis_model_class = MonitoringFeature
 
     def list(self, query: QueryMonitoringFeature):
         """
-        Get the Regions
-
-        =================== === ===================
-        USGS NWIS               BASIN-3D
-        =================== === ===================
-        ``new_huc_rdb.txt``  >> ``MonitoringFeature/``
-        =================== === ===================
+        List Monitoring Feature
 
         :param query: The query information object
-        :returns: a generator object that yields :class:`~basin3d.synthesis.models.field.MonitoringFeature`
+        :return: a generator object that yields :class:`~basin3d.core.models.MonitoringFeature`
             objects
         """
         synthesis_messages: List[str] = []
@@ -437,18 +426,10 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
         return usgs_huc_codes.CONTENT
 
     def get(self, query: QueryMonitoringFeature):
-        """ Get a single Region object
+        """ Get a single Monitoring Feature object
 
-        ===================== === =====================
-        USGS NWIS                 BASIN-3D
-        ===================== === =====================
-        ``{huc}``              >>  ``Primary key (query.id)``
-        --------------------- --- ---------------------
-        ``new_huc_rdb.txt``    >>  ``monitoringfeatures/<feature_type>/{query.id}``
-        ===================== === =====================
-
-        :param query: The query info object
-        :return: a serialized ``MonitoringFeature`` object
+        :param query: The query info object with id specified
+        :return: a :class:`basin3d.core.models.MonitoringFeature` object
         """
         # query.id will always be a string at this point with validation upstream, thus ignoring the type checking
 
@@ -480,18 +461,10 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
     def _load_huc_obj(self, json_obj, feature_type, description=None,
                       related_sampling_feature=None, related_sampling_feature_type=None):
         """
-        Serialize an USGS Daily Values Data Source City object into a :class:`~basin3d.synthesis.models.field.Region` object
+        Transform USGS huc information to a :class:`~basin3d.core.models.MonitoringFeature` object
 
-        ============== === =================
-        USGS NWIS          BASIN-3D
-        ============== === =================
-        ``{huc}``  >>      ``MonitoringFeature.id``
-        ============== === =================
-
-        :param json_obj: USGS Daily Values Data Source Region object
-        :type json_obj: dict
-        :return: a serialized :class:`~basin3d.synthesis.models.field.MonitoringFeature` object
-        :rtype: :class:`basin3d.synthesis.models.field.MonitoringFeature`
+        :param json_obj: USGS Site Service location object
+        :return: a serialized :class:`~basin3d.core.models.MonitoringFeature` object
         """
         if not description:
             description = "{}: {}".format(feature_type, json_obj["basin"])
@@ -526,15 +499,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
     USGS Instantaneous Values Service: https://waterservices.usgs.gov/docs/instantaneous-values/
 
     Access for mapping USGS water services daily or instantaneous value data to
-    :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation` objects.
-
-    ===================== === ====================================================================================
-    USGS NWIS                 BASIN-3D
-    ===================== === ====================================================================================
-    Daily Values          >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
-    --------------------- --- ------------------------------------------------------------------------------------
-    Instantaneous Values  >>  :class:`basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation`
-    ===================== === ====================================================================================
+    :class:`basin3d.core.models.MeasurementTimeseriesTVPObservation` objects.
 
     Daily Value and Instantaneous Value Qualification Code (dv_rmk_cd)
 
@@ -552,23 +517,17 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
     NOT_SUPPORTED  2          Remark is write protected without any remark code to be printed
     NOT_SUPPORTED  _          No remark (blank)
     =============  =========  ================================================================================
+
     """
 
     synthesis_model_class = MeasurementTimeseriesTVPObservation
 
     def list(self, query: QueryMeasurementTimeseriesTVP):
         """
-        Get the Data Points for USGS Daily Values or Instantaneous Values
+        List of Measurement Timeseries TVP Observation objects for USGS Daily Values or Instantaneous Values
 
-        =================== === ======================
-        USGS NWIS               BASIN-3D
-        =================== === ======================
-        ``nwis/dv``          >> ``measurement_tvp_timeseries/``
-        ------------------- --- ----------------------
-        ``nwis/iv``          >> ``measurement_tvp_timeseries/``
-        =================== === ======================
-
-        :returns: a generator object that yields :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation` objects
+        :param query: :class:`basin3d.core.schema.query.QueryMeasurementTimeseriesTVP`
+        :return: a generator object that yields :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation` objects
         """
         synthesis_messages = []
         feature_obj_dict = {}
@@ -708,7 +667,7 @@ class USGSDataSourcePlugin(DataSourcePluginPoint):
 
     class DataSourceMeta:
         """
-        This is an internal metadata class for defining additional :class:`~basin3d.models.DataSource`
+        This is an internal metadata class for defining additional :class:`basin3d.core.models.DataSource`
         attributes.
 
         **Attributes:**

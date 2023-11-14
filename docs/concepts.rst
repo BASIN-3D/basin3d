@@ -8,7 +8,7 @@ BASIN-3D translates queries of BASIN-3D’s data model to queries of individual 
 
     A *plugin* is a software component that extends functionality. In this case, a plugin will add access to data sources desired for synthesis. A *data source* is where the data originates.
 
-    A plugin to USGS Daily Water service is available with BASIN-3D. Future releases will provide additional plugins and custom plugins can be built.
+    Several plugins to public data sources are available with BASIN-3D. See :doc:`plugins`.
 
 BASIN-3D allows scientists to make a single query to multiple data sources.
 
