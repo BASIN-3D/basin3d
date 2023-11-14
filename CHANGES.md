@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 1.0.0
+This release that adds documentation improvements and corrects unit issues in the BASIN-3D observed property vocabulary. 
+This is a major release; however there are no breaking changes.
+
++ Issue #145 - update Acknowledgements
++ Issue #176 - units in basin3d observed property vocabulary are amiss
++ Issue #183 - Documentation updates
+
 ## Version 0.5.1
 This release adds a data source plugin for datasets following the ESS-DIVE Community Hydrologic Monitoring Reporting Format. Details for configuring the dataset for synthesis are described in the online documentation.
 
