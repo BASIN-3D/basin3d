@@ -3,12 +3,173 @@
 Data Sources Plugins
 ********************************
 
+  | :ref:`USGS Daily and Instantaneous Values <usgs_plugin>`
+  | :ref:`EPA Water Quality eXchange (WQX) <epa_plugin>`
+  | :ref:`ESS-DIVE Hydrologic Monitoring Reporting Format (RF) <essdive_plugin>`
+
+.. _usgs_plugin:
+
 USGS Daily and Instantaneous Values
 -----------------------------------
-The USGS Daily and Instantaneous Values Data Source is available. See :doc:`quick_guide` for example usage.
+`USGS water data <https://waterservices.usgs.gov/>`_ via the USGS Daily Values and Instantaneous Values Services. Metadata are acquired via the USGS Site Service.
 
-Additional details coming soon.
+**Data Usage** https://waterservices.usgs.gov/
 
+
+Section 1: Data Source Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+None.
+
+Data are publicly available and accessed via the following USGS Water Services:
+  | `Site Service <https://waterservices.usgs.gov/docs/site-service/site-service-details/>`_
+  | `Daily Values Service <https://waterservices.usgs.gov/docs/dv-service/daily-values-service-details/>`_
+  | `Instantaneous Values Service <https://waterservices.usgs.gov/docs/instantaneous-values/instantaneous-values-details/>`_
+
+
+Section 2: Using the USGS plugin in BASIN-3D
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. Install basin3d using the instructions in the :doc:`/getting_started`.
+
+2. Import the USGS plugin:
+
+>>> from basin3d.plugins import usgs
+
+3. Register the plugin (and any other you have imported):
+
+>>> from basin3d import synthesis
+>>> synthesizer = synthesis.register()
+
+4. Find the available monitoring feature IDs (aka location identifiers). Note: POINT or REGION monitoring feature IDs are required parameters for BASIN-3D data requests.
+
+   USGS HUC codes are mapped to the following BASIN-3D :class:`basin3d.core.schema.enum.FeatureTypeEnum` vocabulary.
+
+   =============== === =====================
+   USGS HUC code       BASIN-3D Feature Type
+   --------------- --- ---------------------
+   2-digit         >>  REGION
+   --------------- --- ---------------------
+   4-digit         >>  SUBREGION
+   --------------- --- ---------------------
+   6-digit         >>  BASIN
+   --------------- --- ---------------------
+   8-digit         >>  SUBBASIN
+   --------------- --- ---------------------
+   8, 10, 12-digit >>  POINT
+   =============== === =====================
+
+   See Section 3: Locations Considerations below for additional details.
+
+Option 1: Specify a `USGS HUC <https://water.usgs.gov/GIS/huc.html>`_ 2, 4, 6, 8-digit code in the parent_feature argument and the desired feature_type. Prefix the HUC identifier with "USGS-". For example, to find the USGS station locations in the USGS huc 14020001:
+
+.. code-block::
+
+    >>> monitoring_features = synthesizer.monitoring_features(parent_feature=['USGS-14020001'], feature_type='POINT')
+    >>> for monitoring_feature in monitoring_features:
+    >>>     print(f'{monitoring_feature.id} --- {monitoring_feature.name}')
+    USGS-09106800 --- TAYLOR RIVER ABOVE TRAIL CREEK NR TAYLOR PARK, CO
+    USGS-09107000 --- TAYLOR RIVER AT TAYLOR PARK, CO.
+    USGS-09107500 --- TEXAS CREEK AT TAYLOR PARK, CO
+    ...
+
+Option 2: Specify one or more USGS HUC codes, prefixed by "USGS-", in the monitoring_feature argument, and the feature_type.
+
+.. code-block::
+
+    >>> monitoring_features = synthesizer.monitoring_features(monitoring_feature=['USGS-13010000', 'USGS-385508107021201'], feature_type='POINT')
+    >>> for monitoring_feature in monitoring_features:
+    >>>     print(f'{monitoring_feature.id} --- {monitoring_feature.name}')
+    USGS-13010000 --- SNAKE RIVER AT S BOUNDARY OF YELLOWSTONE NATL PARK
+    USGS-385508107021201 --- SLATE RIVER ABV O-B-J CREEK (SR2) NR CRESTED BUTTE
+
+Option 3: Specify a feature_type. For example, to find the USGS REGIONs (2-digit huc codes):
+
+*Note: this option does not support POINT feature type.*
+
+.. code-block::
+
+    >>> monitoring_features = synthesizer.monitoring_features(feature_type='REGION')
+    >>> for monitoring_feature in monitoring_features:
+    >>>     print(f'{monitoring_feature.id} --- {monitoring_feature.name}')
+    USGS-01 --- New England: Nope; Nope
+    USGS-02 --- Mid Atlantic: Nope; Nope
+    USGS-03 --- South Atlantic-Gulf
+    ...
+
+5. Request time series data. Query argument aggregation_duration supports "NONE" or "DAY". See Section 4 below for full vocabulary mapping details.
+
+.. code-block::
+
+    >>> measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=['USGS-09110990', 'USGS-09107500'],observed_property=['RDC','WT'],start_date='2019-10-01',end_date='2019-10-30',aggregation_duration='DAY')
+    >>> for m in measurement_timeseries_tvp_observations:
+    ...    result_length = len(m.result.value)
+    ...    print(f"{m.feature_of_interest.id} --- {m.observed_property.get_basin3d_vocab()} --- time series length: {result_length}")
+    feature_of_interest: USGS-09107500 --- observed_property: RDC --- time series length: 0
+    feature_of_interest: USGS-09110990 --- observed_property: RDC --- time series length: 30
+    WARNING * basin3d.core.synthesis USGS.MeasurementTimeseriesTVPObservation - 09107500 had no valid data values for 00060 that match the query.
+
+6. Synthesized data should be cited following the USGS data use policies. See **Data Usage** above.
+
+
+Section 3: Usage Notes
+^^^^^^^^^^^^^^^^^^^^^^
+.. warning::
+  **BASIN-3D capabilities that cannot be supported or are limited for the USGS Water Data include:**
+
+    | - Only unit conversions are performed for BASIN-3D observed property River Discharge (RDC) mapped to USGS ParameterCd 00060. Otherwise, USGS units are reported in the :class:`basin3d.core.models.MeasurementTimeseriesTVPObservation` unit_of_measurement attribute and may not match the specified BASIN-3D vocabulary unit.
+    |
+    | - Only instantaneous and daily time aggregations are currently supported. Daily aggregations are supplied by the data source, not aggregated by BASIN-3D.
+    |
+    | - USGS Daily and Instantaneous Values Service may contain provisional data. See the Other Tips section in the USGS Services Documentation on `Writing Fault Resistant Code <https://waterservices.usgs.gov/docs/writing-fault-resistant-code/>`_
+    |
+    | - Some USGS Daily and Instantaneous Values data are reported in Daylight Savings Time and others in Standard Time. BASIN-3D reports Standard Time as the UTC Offset.
+
+Data Considerations
+"""""""""""""""""""
+  * BASIN-3D supports data acquisition by USGS stream station (BASIN-3D FeatureType POINT) and 2-digit HUC codes (BASIN-3D FeatureType REGION). See examples above.
+  * Data acquisition by 2-digit HUC code can take significant time and may time out.
+  * Instantaneous Values (BASIN-3D aggregation_duration=NONE) responses can aldo be large and may time out.
+  * USGS Daily and Instantaneous Values Service may contain provisional data. The USGS plugin supports filtering by result quality. See mapping in Section 4 below.
+  * The BASIN-3D Sampling Medium attribute is deduced from the USGS parameterCd description.
+
+Location Considerations
+"""""""""""""""""""""""
+  * An attempt to read the HUC Codes from USGS at https://water.usgs.gov/GIS/new_huc_rdb.txt is made. If the service times out, a static version of the file is read. The static version is confirmed to be up-to-date periodically.
+
+Section 4: Data Source Info
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**User Guide** https://waterservices.usgs.gov/docs/
+
+**Vocabulary definitions**
+  Vocabulary definitions are found on the following resources:
+
+    | https://help.waterdata.usgs.gov/codes-and-parameters
+    | https://waterservices.usgs.gov/docs/site-service/site-service-details/
+    | https://waterservices.usgs.gov/docs/dv-service/daily-values-service-details/
+    | https://waterservices.usgs.gov/docs/instantaneous-values/instantaneous-values-details/
+
+  Daily Value and Instantaneous Value Qualification Code (dv_rmk_cd)
+
+  =============  =========  ===========================================================================
+  BASIN-3D Code  USGS Code  USGS Description
+  =============  =========  ===========================================================================
+  ESTIMATED      e          Value has been edited or estimated by USGS personnel and is write protected
+  NOT_SUPPORTED  &          Value was computed from affected unit values
+  ESTIMATED      E          Value was computed from estimated unit values.
+  VALIDATED      A          Approved for publication -- Processing and review completed.
+  UNVALIDATED    P          Provisional data subject to revision.
+  NOT_SUPPORTED  <          The value is known to be less than reported value and is write protected.
+  NOT_SUPPORTED  >          The value is known to be greater than reported value and is write protected
+  NOT_SUPPORTED  1          Value is write protected without any remark code to be printed
+  NOT_SUPPORTED  2          Remark is write protected without any remark code to be printed
+  NOT_SUPPORTED  _          No remark (blank)
+  =============  =========  ===========================================================================
+
+**Vocabulary Mapping File** `usgs_mapping.csv <https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/usgs_mapping.csv>`_
+
+**Citation** https://waterservices.usgs.gov/
+
+.. _epa_plugin:
 
 EPA Water Quality eXchange (WQX)
 --------------------------------
@@ -44,7 +205,7 @@ Section 2: Using the EPA plugin in BASIN-3D
 4. Find the available monitoring feature IDs (aka location identifiers). Note: These monitoring feature IDs are required parameters for BASIN-3D data requests.
 
 Option 1: Specify a `USGS HUC <https://water.usgs.gov/GIS/huc.html>`_ 2, 4, 6, 8, 10, or 12-digit code in the parent_feature argument. Prefix the HUC identifier with "EPA-".
-The BASIN-3D USGS plugin can be used to find USGS HUC information and identifiers:
+The BASIN-3D USGS plugin can be used to find USGS HUC information and identifiers. For example, to find the EPA locations in the USGS huc 14020001:
 
 .. code-block::
 
@@ -155,6 +316,7 @@ Section 4: Data Source Info
 
 **Citation** Water Quality Portal. Washington (DC): National Water Quality Monitoring Council, United States Geological Survey (USGS), Environmental Protection Agency (EPA); 2021. https://doi.org/10.5066/P9QRKUVJ.
 
+.. _essdive_plugin:
 
 ESS-DIVE Hydrologic Monitoring Reporting Format (RF) Plugin
 -----------------------------------------------------------

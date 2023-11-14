@@ -7,8 +7,9 @@ Hook up Data Sources
 ---------------------
 To access a data source, its BASIN-3D plugin must be configured. Custom plugins can be built. Documentation will be forthcoming in future versions. Current available plugins:
 
-    - USGS Daily Values and Instantaneous Values
-    - EPA Water Quality eXchange (WQX)
+  | :ref:`USGS Daily and Instantaneous Values <usgs_plugin>`
+  | :ref:`EPA Water Quality eXchange (WQX) <epa_plugin>`
+  | :ref:`ESS-DIVE Hydrologic Monitoring Reporting Format (RF) <essdive_plugin>`
 
 If a plugin exists for the data source, import it before registering a synthesizer.
 
@@ -28,6 +29,8 @@ Get a List of Locations for a Data Source
 .. autofunction:: basin3d.synthesis.DataSynthesizer.monitoring_features
     :noindex:
 
+See :any:`Monitoring Feature Object Structure <monitoring_feature_object_example>`
+
 
 Get a List of Attribute Mappings for a Data Source
 --------------------------------------------------
@@ -39,6 +42,14 @@ Get a List of Variables Supported by a BASIN-3D
 -----------------------------------------------
 .. autofunction:: basin3d.synthesis.DataSynthesizer.observed_properties
     :noindex:
+
+
+Get Time Series Data
+--------------------
+.. autofunction:: basin3d.synthesis.DataSynthesizer.measurement_timeseries_tvp_observations
+    :noindex:
+
+See :any:`Measurement Timeseries TVP Observations Object Structure <measurement_timeseries_tvp_object_example>`
 
 
 Logging

@@ -10,10 +10,6 @@ Functions
 ----------------
 * :func:`register` - Register the specified plugins or implicitly register loaded plugins
 
-Utility Classes
----------------
-* :py:class:`TimeseriesOutputType` - Enumeration for :func:`get_timeseries_data` output types
-* :py:exc:`SynthesisException` - Special Exception for Synthesis module
 
 Classes
 --------
@@ -23,8 +19,8 @@ synthesis.DataSynthesizer Functions
 -----------------------------------
 
 * :func:`DataSynthesizer.attribute_mappings`- Search for attribute_mappings which describe how the datasource vocabularies are mapped to BASIN-3D vocabularies, including observed properties, statistics, result_quality, etc.
-* :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observation (Instantaneous and Daily Values supported) from USGS Monitoring features and observed property variables
-* :func:`DataSynthesizer.monitoring_features`- Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
+* :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observations from specified Monitoring features and observed property variables
+* :func:`DataSynthesizer.monitoring_features`- Search for all monitoring features, features by parent monitoring features, features by monitoring feature identifiers, or look for a single monitoring feature by id.
 * :func:`DataSynthesizer.observed_properties`- Search for observed properties
 
 ----------------------------------
@@ -135,7 +131,7 @@ class DataSynthesizer:
         BASIN-3D observed properties. An observed property defines what is being measured.
         Data source observed property vocabularies are mapped and thus synthesized to the BASIN-3D observed property vocabulary.
 
-        :return: an iterator of :class:`ObservedProperty` objects
+        :return: an iterator of :class:`basin3d.core.models.ObservedProperty` objects
 
         """
         return self._catalog.find_observed_properties()
@@ -171,24 +167,22 @@ class DataSynthesizer:
         RESULT_QUALITY | ESTIMATED -- E, Value was computed from estimated unit values.
         RESULT_QUALITY | VALIDATED -- A, Approved for publication -- Processing and review completed.
 
-        Return all the :class:`AttributMapping` registered or those that match the specified fields.
+        Return all the :class:`basin3d.core.models.AttributMapping` registered or those that match the specified fields.
 
         :param datasource_id: str, The datasource identifier
         :param attr_type: str, The attribute type (e.g., OBSERVED_PROPERTY, STATISTIC, etc)
         :param attr_vocab: str, The attribute vocabulary, either the BASIN-3D vocabulary or the datasource vocabulary
         :param from_basin3d: bool, True = the specified attr_vocab is a BASIN-3D vocabulary, False: the specified attr_vocab is from the datasource
 
-        :return: iterator of :class:`AttributeMapping` objects
+        :return: iterator of :class:`basin3d.core.models.AttributeMapping` objects
         """
         return self._catalog.find_attribute_mappings(datasource_id=datasource_id, attr_type=attr_type, attr_vocab=attr_vocab, from_basin3d=from_basin3d)
 
-    def monitoring_features(self, query: QueryMonitoringFeature = None, **kwargs) -> Union[
-            DataSourceModelIterator, SynthesisResponse]:
+    def monitoring_features(self, query: QueryMonitoringFeature = None, **kwargs) -> Union[DataSourceModelIterator, SynthesisResponse]:
         """
-        Search for all USGS monitoring features, USGS points by parent monitoring features, or look for a single monitoring feature by id.
+        Search for all Monitoring Features, Monitoring Features by parent monitoring features, or Monitoring Feature by id(s).
 
         To see feature types for a given plugin: **<plugin_module>.<plugin_class>.feature_types**
-
 
         **Search for a single monitoring feature by id:**
 
@@ -200,7 +194,6 @@ class DataSynthesizer:
         >>> print(f"{mf.id} - {mf.description}")
         USGS-0101 - SUBREGION: St. John
 
-
         **Search for all USGS monitoring features:**
 
         >>> for mf in synthesizer.monitoring_features(datasource='USGS', feature_type='region'): # doctest: +ELLIPSIS
@@ -210,7 +203,6 @@ class DataSynthesizer:
         USGS-03 - REGION: South Atlantic-Gulf
         ...
 
-
         **Search for USGS points by parent (subbasin) monitoring features:**
 
         >>> for mf in synthesizer.monitoring_features(feature_type='point',parent_feature=['USGS-17040101']): # doctest: +ELLIPSIS
@@ -219,6 +211,13 @@ class DataSynthesizer:
         USGS-13010065 [(-110.6675, 44.09888889)]
         USGS-13010450 [(-110.5874305, 43.9038296)]
         ...
+
+        **Search for USGS points by monitoring features identifiers:**
+
+        >>> for mf in synthesizer.monitoring_features(feature_type='point', monitoring_feature=['USGS-13010000', 'USGS-13010450']): # doctest: +ELLIPSIS
+        ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
+        USGS-13010000 [(-110.6647222, 44.1336111)]
+        USGS-13010450 [(-110.5874305, 43.9038296)]
 
         **Unsupported feature types warning:**
 
@@ -238,12 +237,48 @@ class DataSynthesizer:
         >>> response_itr.synthesis_response.messages
         [SynthesisMessage(msg='Feature type HORIZONTAL_PATH not supported by USGS.', level='WARN', where=['USGS', 'MonitoringFeature']), SynthesisMessage(msg='Feature type HORIZONTAL_PATH not supported by EPA Water Quality eXchange.', level='WARN', where=['EPA', 'MonitoringFeature'])]
 
-
-        :param query: (optional) The Monitoring Feature Query object
-
+        :param query: (optional) A Monitoring Feature Query :class:`basin3d.core.schema.query.QueryMonitoringFeature` object
+        :param kwargs: (optional) Monitoring Feature Query parameters. See Query info below.
         :return: a single :class:`~basin3d.core.schema.query.SynthesisResponse` for a query by id
-            or a :class:`~basin3d.core.synthesis.DataSourceModelIterator` for multple :class:`MonitoringFeature` objects.
+            or a :class:`~basin3d.core.synthesis.DataSourceModelIterator` for multple :class:`basin3d.core.models.MonitoringFeature` objects.
+
+        .. note::
+            **Monitoring Feature Query parameters**
+            :class:`basin3d.core.schema.query.QueryMonitoringFeature`
+
+            | All parameters are optional.
+            |
+            |    * **datasource** A single data source id prefix.
+            |    * **feature_type** The :class:`basin3d.core.schema.enum.FeatureTypeEnum` of the desired Monitoring Feature(s). Data Sources may not support all Feature Types.
+            |
+            | Only one of the following can be specified in a query:
+            |
+            |    * **id** A single Monitoring Feature ID for the Monitoring Feature desired. Returns a single Synthesis Response object.
+            |    * **monitoring_feature** List of Monitoring Feature IDs for the Monitoring Features desired. Returns iterator of MonitoringFeature objects.
+            |    * **parent_feature** List of Monitoring Feature IDs for the parent features of the desired Monitoring Features. Returns iterator of MonitoringFeature objects.
+
+
+        .. note::
+            **Monitoring Feature attributes**
+            :class:`basin3d.core.models.MonitoringFeature`
+
+            | Attributes values are dependent on data source features.
+            |
+            |    * **id** Unique feature identifier, prefixed by data source id
+            |    * **name** Feature name
+            |    * **description** Description of the Monitoring Feature
+            |    * **feature_type** :class:`basin3d.core.schema.enum.FeatureTypeEnum` REGION, SUBREGION, BASIN, SUBBASIN, WATERSHED, SUBWATERSHED, SITE, PLOT, HORIZONTAL PATH, VERTICAL PATH, POINT
+            |    * **observed_properties** List of observed properties :class:`basin3d.core.models.ObservedProperty` collected at the feature.
+            |    * **related_sampling_feature_complex** List of :class:`basin3d.core.models.RelatedSamplingFeature`. PARENT features are currently supported.
+            |    * **shape** Shape of the feature: POINT, CURVE, SURFACE, SOLID
+            |    * **coordinates** Location of feature in absolute and/or representative datum: :class:`basin3d.core.models.Coordinate`
+            |    * **description_reference** Additional information about the feature
+            |    * **related_party** List of people or organizations responsible for the feature
+            |    * **utc_offset** Coordinate Universal Time offset in hours (offset in hours), e.g., +9
+            |    * **datasource** The feature's data source :class:`basin3d.core.models.DataSource`
+
         """
+
         if not query:
             query = QueryMonitoringFeature(**kwargs)
 
@@ -258,14 +293,13 @@ class DataSynthesizer:
             return cast(DataSourceModelIterator,
                         self._monitoring_feature_access.list(query=query))
 
-    def measurement_timeseries_tvp_observations(self, query: QueryMeasurementTimeseriesTVP = None, **kwargs) -> \
-            DataSourceModelIterator:
+    def measurement_timeseries_tvp_observations(self, query: QueryMeasurementTimeseriesTVP = None, **kwargs) -> DataSourceModelIterator:
         """
-        Search for Measurement Timeseries TVP Observation from USGS Monitoring features and observed property variables.
+        Search for Measurement Timeseries TVP Observations for the specified query arguments.
 
-        Aggregation Duration for DAY and NONE are both supported. DAY will call USGS Daily Values Service and NONE will call USGS Instantaneous Values Service.
+        Aggregation Duration for DAY (default) and NONE are both supported.
 
-            **Search with aggregation duration DAY (Daily Values Service):**
+            **Search with aggregation duration DAY:**
 
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
@@ -275,7 +309,7 @@ class DataSynthesizer:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
 
-            **Search with aggregation duration NONE (Instantaneous Values Service):**
+            **Search with aggregation duration NONE:**
 
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
@@ -286,9 +320,54 @@ class DataSynthesizer:
             USGS-09110990 - RDC
             USGS-09111250 - RDC
 
+        :param query: (optional) :class:`basin3d.core.schema.query.QueryMeasurementTimeseriesTVP` object
+        :param kwargs: (required) Measurement Timeseries TVP Query parameters. See Query info below.
+        :return: a :class:`~basin3d.core.synthesis.DataSourceModelIterator` that yields :class:`basin3d.core.models.MeasurementTimeseriesTVPObservation` objects
 
-        :param query: The query information for this function
-        :return: a :class:`~basin3d.core.synthesis.DataSourceModelIterator` that yields :class:`MeasurementTimeseriesTVPObservations` objects
+        .. note::
+            **Measurement Timeseries TVP Query parameters**
+            :class:`basin3d.core.schema.query.QueryMeasurementTimeseriesTVP`
+
+            | Required arguments:
+            |
+            |    * **monitoring_feature** List of monitoring features id(s)
+            |    * **observed_property** List of observed property(ies), i.e., BASIN-3D observed property vocabulary. See :func:`basin3d.synthesis.DataSynthesizer.observed_properties`
+            |    * **start_date** Start date YYYY-MM-DD
+            |
+            | Optional arguments:
+            |
+            |    * **end_date** End date YYYY-MM-DD
+            |    * **aggregation_duration** A single aggregation duration :class:`basin3d.core.schema.enum.AggregationDurationEnum` (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|NONE)
+            |    * **statistic** List of statistic(s) :class:`basin3d.core.schema.enum.StatisticEnum` (MEAN|MIN|MAX|INSTANTANEOUS)
+            |    * **result_quality** List of result quality(ies) :class:`basin3d.core.schema.enum.ResultQualityEnum` (VALIDATED|UNVALIDATED|SUSPECTED|REJECTED|ESTIMATED)
+            |    * **sampling_medium** List of sampling medium(s) :class:`basin3d.core.schema.enum.SamplingMediumEnum` (SOLID_PHASE|WATER|GAS|OTHER)
+            |    * **datasource** A single data source id prefix
+
+
+        .. note::
+            **Measurement Timeseries TVP Observation attributes**
+            :class:`basin3d.core.models.MeasurementTimeseriesTVPObservation`
+
+            | Attributes values are dependent on data source features.
+            |
+            | :class:`basin3d.core.models.MappedAttribute` are returned for several attributes so that the data source values are also available.
+            |
+            |    * **id** Observation identifier
+            |    * **type** Type of observation: MEASUREMENT_TVP_TIMESERIES
+            |    * **observed_property** The observation's observed property :class:`basin3d.core.models.MappedAttribute`
+            |    * **datasource** The data source :class:`basin3d.core.models.DataSource`
+            |    * **sampling_medium** Observed property sampling medium :class:`basin3d.core.models.MappedAttribute` (SOLID_PHASE, WATER, GAS, OTHER)
+            |    * **phenomenon_time** Datetime of the observation, for a timeseries the start and end times can be provided
+            |    * **utc_offset** Coordinate Universal Time offset in hours (offset in hours), e.g., +9
+            |    * **feature_of_interest** Monitoring Feature object :class:`basin3d.core.models.MonitoringFeature`, feature on which the observation is being made
+            |    * **feature_of_interest_type** Feature type of the feature of interest, :class:`basin3d.core.schema.enum.FeatureTypeEnum`
+            |    * **result** Observed values of the observed property being assessed, and (opt) their result quality, :class:`basin3d.core.models.ResultListTVP`
+            |    * **time_reference_position** Position of timestamp in aggregated_duration (START, MIDDLE, END)
+            |    * **aggregation_duration** Time period represented by observation :class:`basin3d.core.models.MappedAttribute` (YEAR, MONTH, DAY, HOUR, MINUTE, SECOND)
+            |    * **unit_of_measurement** Units in which the observation is reported
+            |    * **statistic** Statistical property of the observation result :class:`basin3d.core.models.MappedAttribute` (MEAN, MIN, MAX, TOTAL)
+            |    * **result_quality** List quality assessment found in the results :class:`basin3d.core.models.MappedAttribute` (VALIDATED, UNVALIDATED, SUSPECTED, REJECTED, ESTIMATED)
+
 
         """
         if not query:
