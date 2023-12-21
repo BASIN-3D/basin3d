@@ -70,18 +70,24 @@ def test_measurement_timeseries_tvp_observations_usgs_errors(additional_query_pa
 @pytest.mark.parametrize('additional_filters, usgs_response, expected_results',
                          [
                           # all-good
-                          ({"monitoring_feature": ["USGS-09110990", "USGS-09111250"], "observed_property": ["RDC"], "result_quality": [ResultQualityEnum.VALIDATED]},
-                           "usgs_nwis_dv_p00060_l09110990_l09111250.json", {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED], "count": 2}),
+                          ({"monitoring_feature": ["USGS-09110990", "USGS-09111250"], "observed_property": ["RDC"], "result_quality": [ResultQualityEnum.VALIDATED], "start_date": "2020-04-01", "end_date": "2020-04-30"},
+                           "usgs_nwis_dv_p00060_l09110990_l09111250.json", {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED], "mvp_count": 2, "result_count": [30, 30], "missing_values_count": [0, 0]}),
                           # some-quality-filtered-data
-                          ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["WT"], "result_quality": [ResultQualityEnum.UNVALIDATED]},
+                          ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["WT"], "result_quality": [ResultQualityEnum.UNVALIDATED], "start_date": "2020-04-01", "end_date": "2020-04-30"},
                            "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json",
-                           {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.UNVALIDATED], "count": 1, "synthesis_msgs": ['09110000 - 00010: 2 timestamps did not match data quality query.']}),
+                           {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.UNVALIDATED], "mvp_count": 1, "result_count": [2], "missing_values_count": [0],
+                            "synthesis_msgs": ['09110000 - 00010: 2 timestamps did not match data quality query.']}),
                           # all-data-filtered
-                          ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["WT"], "result_quality": [ResultQualityEnum.REJECTED]},
+                          ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["WT"], "result_quality": [ResultQualityEnum.REJECTED], "start_date": "2020-04-01", "end_date": "2020-04-30"},
                            "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json",
-                           {"count": 0, "synthesis_msgs": []})
+                           {"mvp_count": 0, "result_count": [0], "missing_values_count": [0], "synthesis_msgs": []}),
+                          # all-data-filtered
+                          ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["RDC"], "start_date": "2023-04-01", "end_date": "2023-04-10"},
+                           "usgs_get_data_09110000_missing_vals.json",
+                           {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.UNVALIDATED], "mvp_count": 1, "result_count": [10], "missing_values_count": [7],
+                            "synthesis_msgs": []}),
                          ],
-                         ids=['all-good', 'some-quality-filtered-data', 'missing-mapping'])
+                         ids=['all-good', 'some-quality-filtered-data', 'missing-mapping', 'missing-values'])
 def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_response, expected_results, monkeypatch):
     """ Test USGS Timeseries data query"""
 
@@ -92,8 +98,6 @@ def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_r
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
 
     query = {
-        "start_date": "2020-04-01",
-        "end_date": "2020-04-30",
         "aggregation_duration": TimeFrequencyEnum.DAY,
         **additional_filters
     }
@@ -102,14 +106,22 @@ def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_r
 
     # loop through generator and serialized the object, get actual object and compare
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
-        count = 0
+        mvp_count = 0
         for timeseries in measurement_timeseries_tvp_observations:
             data = json.loads(timeseries.to_json())
-            count += 1
             assert data["statistic"]["attr_mapping"]["basin3d_vocab"] == expected_results.get("statistic")
             for idx, result_quality in enumerate(data["result_quality"]):
                 assert result_quality["attr_mapping"]["basin3d_vocab"] == expected_results.get("result_quality")[idx]
-        assert count == expected_results.get("count")
+            result_count = 0
+            missing_value_count = 0
+            for result_value in data["result"]["value"]:
+                result_count += 1
+                if result_value[1] == -999999:
+                    missing_value_count += 1
+            assert result_count == expected_results.get("result_count")[mvp_count]
+            assert missing_value_count == expected_results.get("missing_values_count")[mvp_count]
+            mvp_count += 1
+        assert mvp_count == expected_results.get("mvp_count")
         if expected_results.get('synthesis_msgs'):
             expected_msgs = expected_results.get('synthesis_msgs')
             msgs = measurement_timeseries_tvp_observations.synthesis_response.messages

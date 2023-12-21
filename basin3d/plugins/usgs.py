@@ -67,10 +67,11 @@ logger = monitor.get_logger(__name__)
 URL_USGS_HUC = "https://water.usgs.gov/GIS/new_huc_rdb.txt"
 
 
-def convert_discharge(data, parameter, units):
+def convert_discharge(data, data_str, parameter, units):
     """
     Convert the River Discharge to m^3
     :param data:
+    :param data_str:
     :param parameter:
     :param units:
     :return:
@@ -78,7 +79,10 @@ def convert_discharge(data, parameter, units):
     if parameter in ['00060', '00061']:
         # Hardcode conversion from ft^3 to m^3
         # for River discharge
-        data *= 0.028316847
+        if data_str == '-999999':
+            data = int(data_str)
+        else:
+            data *= 0.028316847
         units = "m^3/s"
     return data, units
 
@@ -608,8 +612,9 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         try:
                             try:
                                 data: Optional[float] = float(value['value'])
+                                data_str = value['value']
                                 # Hardcoded unit conversion for river discharge parameters
-                                data, unit_of_measurement = convert_discharge(data, parameter, unit_of_measurement)
+                                data, unit_of_measurement = convert_discharge(data, data_str, parameter, unit_of_measurement)
 
                                 if data:
                                     result_quality.add(result_point_quality)
