@@ -1,0 +1,250 @@
+{
+    "name": "ns1:timeSeriesResponseType",
+    "declaredType": "org.cuahsi.waterml.TimeSeriesResponseType",
+    "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+    "value": {
+        "queryInfo": {
+            "queryURL": "http://waterservices.usgs.gov/nwis/dvstartDT=2023-04-01&endDT=2023-04-10&parameterCd=00060&siteStatus=all&sites=09110000&siteType=ST&format=json",
+            "criteria": {
+                "locationParam": "[ALL:09110000]",
+                "variableParam": "[00060]",
+                "timeParam": {
+                    "beginDateTime": "2023-04-01T00:00:00.000",
+                    "endDateTime": "2023-04-10T00:00:00.000"
+                },
+                "parameter": []
+            },
+            "note": [
+                {
+                    "value": "[ALL:09110000]",
+                    "title": "filter:sites"
+                },
+                {
+                    "value": "[ST]",
+                    "title": "filter:siteType"
+                },
+                {
+                    "value": "[mode=RANGE, modifiedSince=null] interval={INTERVAL[2023-04-01T00:00:00.000-04:00/2023-04-10T00:00:00.000-04:00]}",
+                    "title": "filter:timeRange"
+                },
+                {
+                    "value": "methodIds=[ALL]",
+                    "title": "filter:methodId"
+                },
+                {
+                    "value": "2023-12-20T19:40:46.928Z",
+                    "title": "requestDT"
+                },
+                {
+                    "value": "abe6a5f0-9f6f-11ee-8c98-2cea7f58f5ca",
+                    "title": "requestId"
+                },
+                {
+                    "value": "Provisional data are subject to revision. Go to http://waterdata.usgs.gov/nwis/help/?provisional for more information.",
+                    "title": "disclaimer"
+                },
+                {
+                    "value": "vaas01",
+                    "title": "server"
+                }
+            ]
+        },
+        "timeSeries": [
+            {
+                "sourceInfo": {
+                    "siteName": "TAYLOR RIVER AT ALMONT, CO.",
+                    "siteCode": [
+                        {
+                            "value": "09110000",
+                            "network": "NWIS",
+                            "agencyCode": "USGS"
+                        }
+                    ],
+                    "timeZoneInfo": {
+                        "defaultTimeZone": {
+                            "zoneOffset": "-07:00",
+                            "zoneAbbreviation": "MST"
+                        },
+                        "daylightSavingsTimeZone": {
+                            "zoneOffset": "-06:00",
+                            "zoneAbbreviation": "MDT"
+                        },
+                        "siteUsesDaylightSavingsTime": true
+                    },
+                    "geoLocation": {
+                        "geogLocation": {
+                            "srs": "EPSG:4326",
+                            "latitude": 38.66443715,
+                            "longitude": -106.8453172
+                        },
+                        "localSiteXY": []
+                    },
+                    "note": [],
+                    "siteType": [],
+                    "siteProperty": [
+                        {
+                            "value": "ST",
+                            "name": "siteTypeCd"
+                        },
+                        {
+                            "value": "14020001",
+                            "name": "hucCd"
+                        },
+                        {
+                            "value": "08",
+                            "name": "stateCd"
+                        },
+                        {
+                            "value": "08051",
+                            "name": "countyCd"
+                        }
+                    ]
+                },
+                "variable": {
+                    "variableCode": [
+                        {
+                            "value": "00060",
+                            "network": "NWIS",
+                            "vocabulary": "NWIS:UnitValues",
+                            "variableID": 45807197,
+                            "default": true
+                        }
+                    ],
+                    "variableName": "Streamflow, ft&#179;/s",
+                    "variableDescription": "Discharge, cubic feet per second",
+                    "valueType": "Derived Value",
+                    "unit": {
+                        "unitCode": "ft3/s"
+                    },
+                    "options": {
+                        "option": [
+                            {
+                                "value": "Mean",
+                                "name": "Statistic",
+                                "optionCode": "00003"
+                            }
+                        ]
+                    },
+                    "note": [],
+                    "noDataValue": -999999,
+                    "variableProperty": [],
+                    "oid": "45807197"
+                },
+                "values": [
+                    {
+                        "value": [
+                            {
+                                "value": "-999999",
+                                "qualifiers": [
+                                    "P",
+                                    "Ice"
+                                ],
+                                "dateTime": "2023-04-01T00:00:00.000"
+                            },
+                            {
+                                "value": "-999999",
+                                "qualifiers": [
+                                    "P",
+                                    "Ice"
+                                ],
+                                "dateTime": "2023-04-02T00:00:00.000"
+                            },
+                            {
+                                "value": "-999999",
+                                "qualifiers": [
+                                    "P",
+                                    "Ice"
+                                ],
+                                "dateTime": "2023-04-03T00:00:00.000"
+                            },
+                            {
+                                "value": "-999999",
+                                "qualifiers": [
+                                    "P",
+                                    "Ice"
+                                ],
+                                "dateTime": "2023-04-04T00:00:00.000"
+                            },
+                            {
+                                "value": "-999999",
+                                "qualifiers": [
+                                    "P",
+                                    "Ice"
+                                ],
+                                "dateTime": "2023-04-05T00:00:00.000"
+                            },
+                            {
+                                "value": "-999999",
+                                "qualifiers": [
+                                    "P",
+                                    "Ice"
+                                ],
+                                "dateTime": "2023-04-06T00:00:00.000"
+                            },
+                            {
+                                "value": "-999999",
+                                "qualifiers": [
+                                    "P",
+                                    "Ice"
+                                ],
+                                "dateTime": "2023-04-07T00:00:00.000"
+                            },
+                            {
+                                "value": "111",
+                                "qualifiers": [
+                                    "P"
+                                ],
+                                "dateTime": "2023-04-08T00:00:00.000"
+                            },
+                            {
+                                "value": "114",
+                                "qualifiers": [
+                                    "P"
+                                ],
+                                "dateTime": "2023-04-09T00:00:00.000"
+                            },
+                            {
+                                "value": "122",
+                                "qualifiers": [
+                                    "P"
+                                ],
+                                "dateTime": "2023-04-10T00:00:00.000"
+                            }
+                        ],
+                        "qualifier": [
+                            {
+                                "qualifierCode": "Ice",
+                                "qualifierDescription": "Value is affected by ice at the measurement site.",
+                                "qualifierID": 0,
+                                "network": "NWIS",
+                                "vocabulary": "uv_rmk_cd"
+                            },
+                            {
+                                "qualifierCode": "P",
+                                "qualifierDescription": "Provisional data subject to revision.",
+                                "qualifierID": 1,
+                                "network": "NWIS",
+                                "vocabulary": "uv_rmk_cd"
+                            }
+                        ],
+                        "qualityControlLevel": [],
+                        "method": [
+                            {
+                                "methodDescription": "",
+                                "methodID": 18840
+                            }
+                        ],
+                        "source": [],
+                        "offset": [],
+                        "sample": [],
+                        "censorCode": []
+                    }
+                ],
+                "name": "USGS:09110000:00060:00003"
+            }
+        ]
+    },
+    "nil": false,
+    "globalScope": true,
+    "typeSubstituted": false
+}
