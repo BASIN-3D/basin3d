@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.0.1
+Minor update that correctly handles stream discharge (RDC) for the USGS data that are missing values. Note: it is not a full solution for supporting a common BASIN-3D missing value vocabulary.
+
++ Issue #158 - Support missing values
+
 ## Version 1.0.0
 This release that adds documentation improvements and corrects unit issues in the BASIN-3D observed property vocabulary. 
 This is a major release; however there are no breaking changes.
