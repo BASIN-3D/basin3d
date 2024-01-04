@@ -665,7 +665,7 @@ class EPAMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         """
         op_map = {}
         for observed_property in observed_properties:
-            attr_mapping: AttributeMapping = get_datasource_mapped_attribute(self, MappedAttributeEnum.OBSERVED_PROPERTY, observed_property)
+            attr_mapping: AttributeMapping = get_datasource_mapped_attribute(self, MappedAttributeEnum.OBSERVED_PROPERTY.value, observed_property)
             basin3d_vocab = attr_mapping.basin3d_vocab
             op_map[observed_property] = basin3d_vocab
 
