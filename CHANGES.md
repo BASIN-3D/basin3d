@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.0.2
+Bug fix to correct EPA plugin for use in djanso-basin3d.
+
++ Issue #178 - EPA plugin causing incorrect MeasTVPObs return in django-basin3d
+
 ## Version 1.0.1
 Minor update that correctly handles stream discharge (RDC) for the USGS data that are missing values. Note: it is not a full solution for supporting a common BASIN-3D missing value vocabulary.
 
