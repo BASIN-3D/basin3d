@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.0.3
+Bug fix to correct EPA plugin for empty results.
+
++ Issue #189 - EPA plugin: empty results hangs on locations endpoint
+
 ## Version 1.0.2
 Bug fix to correct EPA plugin for use in djanso-basin3d.
 

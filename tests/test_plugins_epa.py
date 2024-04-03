@@ -174,7 +174,9 @@ site_list_test = ['EPA-CCWC-COAL-26', 'EPA-CORIVWCH_WQX-650', 'EPA-CCWC-COAL-00'
                           # filter-stat-no-spec
                           ({"monitoring_feature": ["EPA-CCWC-COAL-26", "EPA-CCWC-MM-29 WASH #3"], "observed_property": ["As", "DO", "WT"], "statistic": "MEAN"},
                            "epa_data1.csv", "epa_data1_locs.json",
-                           {"statistic": None, "result_quality": [], "aggregation_duration": None, "count": 0}),
+                           {"statistic": None, "result_quality": [], "aggregation_duration": None, "count": 0,
+                            # "synthesis_msgs": ["EPA: No resultPhysChem results matched the query: {'dataProfile': 'resultPhysChem', 'siteid': ['CCWC-COAL-26', 'CCWC-MM-29 WASH #3'], 'characteristicName': ['Arsenic, Inorganic', 'Arsenic', 'Dissolved oxygen (DO)', 'Temperature, water'], 'startDateLo': '01-01-2010', 'startDateHi': '01-01-2011'}"]}),
+                            "synthesis_msgs": ["EPA: No resultPhysChem results matched the query"]}),
                           # filter-result_quality
                           ({"monitoring_feature": arsenic_site_list, "observed_property": ["As"], "result_quality": ["UNVALIDATED", "VALIDATED"]},
                            "epa_data3_arsenic.csv", "epa_data3_locs.json",
@@ -210,10 +212,16 @@ site_list_test = ['EPA-CCWC-COAL-26', 'EPA-CORIVWCH_WQX-650', 'EPA-CCWC-COAL-00'
                            "epa_data1.csv", "epa_data1_locs.json",
                            {"statistic": None, "result_quality": [], "aggregation_duration": "DAY", "count": 1,
                             "synthesis_msgs": ["Could not parse expected numerical measurement value <0.500", "Could not parse expected numerical measurement value <2.50"]}),
+                          # filter-stat-no-spec
+                          ({"monitoring_feature": ["EPA-21COL001-00058"], "observed_property": ["Hg"]},
+                           "epa_empty_data.csv", "epa_loc_not_called.json",
+                           {"statistic": None, "result_quality": [], "aggregation_duration": None, "count": 0,
+                            # "EPA: No resultPhysChem results matched the query: {'dataProfile': 'resultPhysChem', 'siteid': ['21COL001-00058'], 'characteristicName': ['Mercury'], 'startDateLo': '01-01-2010', 'startDateHi': '01-01-2011'}"
+                            "synthesis_msgs": ["EPA: No resultPhysChem results matched the query"]}),
                          ],
                          ids=['all-good', 'all-good-2', 'filter-stat-no-spec', 'filter-result_quality', 'filter-test-validated',
                               'filter-test-estimated', 'filter-test-stat-total', 'filter-test-stat-multiple', "filter-multiple",
-                              'aggregation-day'])
+                              'aggregation-day', 'empty_return'])
 def test_measurement_timeseries_tvp_observations_epa(additional_filters, epa_data_resource, epa_loc_resource, expected_results, monkeypatch):
     # Test EPA Timeseries data query
 
@@ -271,7 +279,9 @@ def test_measurement_timeseries_tvp_observations_epa(additional_filters, epa_dat
         expected_msgs = expected_results.get('synthesis_msgs')
         msgs = measurement_timeseries_tvp_observations.synthesis_response.messages
         for msg in msgs:
-            if expected_msgs:
+            if expected_msgs and 'EPA: No resultPhysChem results matched the query' in expected_msgs:
+                assert 'EPA: No resultPhysChem results matched the query' in msg.msg
+            else:
                 assert msg.msg in expected_msgs
             print(msg.msg)
         if not expected_msgs:
