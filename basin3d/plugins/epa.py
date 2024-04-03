@@ -575,6 +575,7 @@ class EPAMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         # get data from resultPhysChem; possible extension biological results (sample based data)
         epa_data = _post_wqp_data_search(params)
 
+        mf_list = []
         if epa_data and epa_data.status_code == 200:
             # Because the data are all mixed together and we support multiple mappings,
             #   group the variables by the BASIN-3D vocab. Create a look up store for the variables in the query.
@@ -582,8 +583,10 @@ class EPAMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
             results = {}  # type: ignore[var-annotated]
             mf_set = _parse_epa_results_phys_chem(epa_data, query, op_map, results, synthesis_messages)
+            mf_list = list(mf_set)
 
-            mf_query_str = _make_mf_query_str(list(mf_set))
+        if mf_list:
+            mf_query_str = _make_mf_query_str(mf_list)
             loc_info = _get_location_info(mf_query_str)
             loc_info_store = {}
             for loc_info_obj in loc_info:
