@@ -212,7 +212,7 @@ class PluginMount(type):
     The idea for the Simple Plugin Framework comes from a post
     by Marty Alchin on January 10, 2008 about Django
 
-    See: http://martyalchin.com/2008/jan/10/simple-plugin-framework/
+    See: https://web.archive.org/web/20220506163033/http://martyalchin.com/2008/jan/10/simple-plugin-framework/
 
     it is under CC-BY-SA 3.0 US License
     (https://creativecommons.org/licenses/by-sa/3.0/us/)
