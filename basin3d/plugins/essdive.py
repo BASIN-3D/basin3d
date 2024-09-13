@@ -246,10 +246,9 @@ def _read_csv_to_pandas_df(filepath: pathlib.Path, columns_only: bool = False) -
 
         f.seek(0)
         header_ct = len(header_lines)
+        nrows: Optional[int] = None
         if columns_only:
             nrows = 2
-        else:
-            nrows = None
 
         pdf = pd.read_csv(f, header=header_ct, skipinitialspace=True, keep_default_na=False, on_bad_lines='warn', nrows=nrows)
 
@@ -821,6 +820,8 @@ def _build_locations_store(datasets: dict, mf_locations: list) -> Dict[Tuple, lo
                         continue
 
                     for col_name, col_info in header_store['variable_column_info'].items():
+                        lat: Optional[float] = None
+                        long: Optional[float] = None
                         try:
                             lat = float(col_info.get(HydroRFTerms.lat.value))
                             long = float(col_info.get(HydroRFTerms.long.value))
