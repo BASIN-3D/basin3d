@@ -39,6 +39,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Static type checking with mypy
       run: |
+        mypy --version
         mypy -p basin3d  --python-version ${{ matrix.python-version }}
     - name: Make artifact directory
       run: |

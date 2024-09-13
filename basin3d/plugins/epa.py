@@ -251,7 +251,7 @@ class EPAMonitoringFeatureAccess(DataSourcePluginAccess):
                     if mf_obj:
                         yield mf_obj
 
-        return StopIteration(synthesis_messages)
+        return StopIteration(synthesis_messages)  # type: ignore
 
     def get(self, query: QueryMonitoringFeature):
         """
