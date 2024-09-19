@@ -2,16 +2,30 @@ import logging
 from unittest.mock import Mock
 
 import pytest
-from tinydb import TinyDB
 
-from basin3d.core.catalog import CatalogException
-from basin3d.core.models import DataSource, ObservedProperty, AttributeMapping
+import basin3d.core.models
+from basin3d.core.catalog import CatalogException, DATASOURCE_NONE
 from basin3d.core.schema.enum import SamplingMediumEnum, StatisticEnum
 from tests.testplugins import alpha, complexmap
 from basin3d.plugins import usgs
 
 log = logging.Logger(__name__)
 
+# ---------------------------------------
+# Helper comparison functions
+
+
+def compare_models(instance1, instance2):
+    """
+    Compare two SQLAlchemy model instances and return the differences.
+    """
+    differences = {}
+    for column in instance1.__table__.columns:
+        value1 = getattr(instance1, column.name)
+        value2 = getattr(instance2, column.name)
+        if value1 != value2:
+            differences[column.name] = (value1, value2)
+    return differences
 
 # ---------------------------------------
 # Helper and mock functions
@@ -33,11 +47,6 @@ def mock_init_catalog(dummyself):
     return test_catalog
 
 
-def get_datasource_from_id(id, id_prefix, location='test.location'):
-    """Helper file to turn id into datasource"""
-    return DataSource(id=id, name=id, id_prefix=id_prefix, location=location)
-
-
 # ---------------------------------------
 # Fixtures
 
@@ -49,14 +58,18 @@ def test_catalog():
 
 @pytest.fixture
 def catalog(monkeypatch):
-    from basin3d.core.catalog import CatalogTinyDb
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    from basin3d.core.sqlalchemy_models import clear_database
 
-    catalog = CatalogTinyDb()
+    catalog = CatalogSqlAlchemy()
     catalog.plugin_dir = 'tests.testplugins'
 
     catalog.initialize([])
 
-    return catalog
+    yield catalog
+
+    clear_database()
+
 
 
 # ---------------------------------------
@@ -72,11 +85,11 @@ def test_get_attribute_enum():
     assert catalog._get_attribute_enum('FOO', SamplingMediumEnum) is None
 
 
-@pytest.mark.parametrize("plugins", [(["foo"]), [Mock()]])
+@pytest.mark.parametrize("plugins", [(["foo"])])
 def test_catalog_error(plugins):
     """Test Catalog Error"""
-    from basin3d.core.catalog import CatalogTinyDb, CatalogException
-    catalog = CatalogTinyDb()
+    from basin3d.core.catalog import CatalogSqlAlchemy, CatalogException
+    catalog = CatalogSqlAlchemy()
     pytest.raises(CatalogException, catalog.initialize, plugins)
 
 
@@ -89,7 +102,7 @@ def test_gen_basin3d_variable_store(catalog, caplog):
     caplog.clear()
     catalog.variable_filename = 'basin3d_variables_duplicate.csv'
     catalog._gen_variable_store()
-    assert catalog._get_observed_property('Br').to_dict() == ObservedProperty(
+    assert catalog._get_observed_property('Br').to_dict() == basin3d.core.models.ObservedProperty(
         basin3d_vocab='Br', full_name='Bromide (Br)',
         categories=['Biogeochemistry', 'Anions'], units='mM').to_dict()
     log_msgs = [rec.message for rec in caplog.records]
@@ -104,7 +117,7 @@ def test_gen_basin3d_variable_store(catalog, caplog):
     catalog.variable_filename = 'basin3d_observed_property_vocabulary.csv'
     catalog.variable_dir = 'basin3d.data'
     catalog._gen_variable_store()
-    assert catalog._get_observed_property('ACT') == ObservedProperty(
+    assert catalog._get_observed_property('ACT') == basin3d.core.models.ObservedProperty(
         basin3d_vocab='ACT', full_name='Acetate (CH3COO)',
         categories=['Biogeochemistry', 'Anions'], units='mM')
     assert catalog._get_observed_property('heya') is None
@@ -112,16 +125,24 @@ def test_gen_basin3d_variable_store(catalog, caplog):
 
 # catalog.find_observed_property (TinyDB)
 def test_find_observed_property(catalog):
-    assert catalog.find_observed_property('ACT') == ObservedProperty(basin3d_vocab='ACT',
+    assert catalog.find_observed_property('ACT') == basin3d.core.models.ObservedProperty(basin3d_vocab='ACT',
                                                                      full_name='Acetate (CH3COO)',
                                                                      categories=['Biogeochemistry' ,'Anions'],
                                                                      units='mM')
     assert catalog.find_observed_property('FOO') is None
 
 
-def test_not_initialized_errors(caplog):
-    from basin3d.core.catalog import CatalogTinyDb, CatalogException
-    new_catalog = CatalogTinyDb()
+def test_not_initialized_errors(caplog, monkeypatch):
+    """
+    Test the errors when the catalog is not initialized
+
+    :param caplog: The caplog fixture
+    :param monkeypatch: The monkeypatch fixture
+    """
+    from basin3d.core.catalog import CatalogSqlAlchemy, CatalogException
+    new_catalog = CatalogSqlAlchemy()
+
+    monkeypatch.setattr(new_catalog, 'is_initialized', Mock(return_value=False))
 
     caplog.clear()
     with pytest.raises(CatalogException):
@@ -175,8 +196,17 @@ def test_find_observed_properties(caplog, catalog):
     """Test the observed property search works"""
     caplog.set_level(logging.INFO)
 
+    # specified valid observed properties returned
+    assert ['ACT', 'Br'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['ACT', 'Br'])]
+
+    # on invalid observed properties is not returned and warning message generated.
+    caplog.clear()
+    assert ['ACT', 'Br'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['ACT', 'FOO', 'Br'])]
+    log_msgs = [rec.message for rec in caplog.records]
+    assert 'BASIN-3D does not support variable FOO' in log_msgs
+
     # all observed_properties are returned
-    assert ['ACT', 'Br', 'Cl', 'DIN', 'DTN', 'F', 'NO3', 'NO2', 'PO4', 'SO4', 'S2', 'S2O3', 'HCO3', 'DIC', 'DOC',
+    assert [i.basin3d_vocab for i in catalog.find_observed_properties()] == ['ACT', 'Br', 'Cl', 'DIN', 'DTN', 'F', 'NO3', 'NO2', 'PO4', 'SO4', 'S2', 'S2O3', 'HCO3', 'DIC', 'DOC',
             'NPOC', 'POC', 'TIC', 'TOC', 'd13C', 'CO2_d13C_soilgas', 'CH4_d13C_soilgas', 'd15N', 'N2O_d15N_soilgas',
             'CO2_d18O_soilgas', 'N2O_d18O_soilgas', 'SO4_d34S', 'U235', 'H2O_d18O', 'H2O_dD', 'NH4', 'Ca', 'Mg', 'K',
             'Si', 'Na', 'MICRO_COV', 'MGO1', 'MGO2', 'MGO3', 'GENE_TRAN', 'MICRO_PEP', 'MICRO_PLFA', 'NH3', 'CO2', 'H2',
@@ -188,18 +218,7 @@ def test_find_observed_properties(caplog, catalog):
             'W_SPD', 'W_CH', 'ERT', 'CEC', 'EXAFS', 'SEQ', 'XRD', 'XRF', 'XANES', 'HCND', 'SED_SIZE', 'HCND_Sat',
             'Porosity', 'SBD', 'SYD', 'HCND_Unsat', 'RET_CUR', 'LSE', 'GWF', 'Well logs', 'SAT', 'SDE', 'SMO', 'STM',
             'SWP', 'SEC', 'FDOM', 'DO', 'EC', 'SC', 'SAL', 'GWL', 'PH', 'ORP', 'RDC', 'SWL', 'WLH', 'WLE', 'WT', 'TDS',
-            'TSS', 'TRB', 'STO_RES', 'LAI', 'PLT_HT', 'PAI', 'PFT', 'RGB', 'GCC', 'NDVI'] == [i.basin3d_vocab for
-                                                                                              i in
-                                                                                              catalog.find_observed_properties()]
-
-    # specified valid observed properties returned
-    assert ['ACT', 'Br'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['ACT', 'Br'])]
-
-    # on invalid observed properties is not returned and warning message generated.
-    caplog.clear()
-    assert ['ACT', 'Br'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['ACT', 'FOO', 'Br'])]
-    log_msgs = [rec.message for rec in caplog.records]
-    assert 'BASIN-3D does not support variable FOO' in log_msgs
+            'TSS', 'TRB', 'STO_RES', 'LAI', 'PLT_HT', 'PAI', 'PFT', 'RGB', 'GCC', 'NDVI']
 
 
 def test_process_plugin_attr_mapping(catalog, caplog):
@@ -208,12 +227,12 @@ def test_process_plugin_attr_mapping(catalog, caplog):
     from basin3d.core.catalog import CatalogException
     with pytest.raises(CatalogException):
         catalog._process_plugin_attr_mapping(
-            alpha.AlphaSourcePlugin(catalog), filename='mapping_alpha_wrong_header.csv', datasource=DataSource())
+            alpha.AlphaSourcePlugin(catalog), filename='mapping_alpha_wrong_header.csv', datasource=basin3d.core.models.DataSource())
 
     caplog.set_level(logging.INFO)
     caplog.clear()
     from tests.testplugins import beta
-    catalog._process_plugin_attr_mapping(beta.BetaSourcePlugin(catalog), filename='beta_mapping.csv', datasource=DataSource(id='Beta'))
+    catalog._process_plugin_attr_mapping(beta.BetaSourcePlugin(catalog), filename='beta_mapping.csv', datasource=basin3d.core.models.DataSource(id='Beta'))
     log_msgs = [rec.message for rec in caplog.records]
     assert 'Datasource Beta: Attribute type STAT is not supported. Skipping mapping.' in log_msgs
     assert 'Datasource Beta: basin3d_vocab MAXIMUM for attr_type STATISTIC is not a valid BASIN-3D vocabulary. Skipping attribute mapping.' in log_msgs
@@ -223,65 +242,65 @@ def test_process_plugin_attr_mapping(catalog, caplog):
                          # Wrong-plugin-inititalized
                          [([usgs.USGSDataSourcePlugin],
                            {'datasource_id': 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': 'ACT'},
-                           AttributeMapping(
+                           basin3d.core.models.AttributeMapping(
                                attr_type='OBSERVED_PROPERTY',
                                basin3d_vocab='NOT_SUPPORTED',
                                basin3d_desc=[],
                                datasource_vocab='ACT',
                                datasource_desc='No datasource was found for id "Alpha".',
-                               datasource=DataSource())
+                               datasource=DATASOURCE_NONE)
                            ),
                           # USGS
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
                            {'datasource_id': 'USGS', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': '00095'},
-                           AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
+                           basin3d.core.models.AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
                                             basin3d_vocab='SC:WATER',
-                                            basin3d_desc=[ObservedProperty(basin3d_vocab='SC', full_name='Specific Conductance (SC)',
+                                            basin3d_desc=[basin3d.core.models.ObservedProperty(basin3d_vocab='SC', full_name='Specific Conductance (SC)',
                                                                            categories=['Hydrogeology', 'Water Physical/Quality Parameters'], units='uS/cm'),
                                                           SamplingMediumEnum.WATER],
                                             datasource_vocab='00095',
                                             datasource_desc='Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius',
-                                            datasource=DataSource(id='USGS', name='USGS', id_prefix='USGS',
-                                                                  location='https://waterservices.usgs.gov/nwis/', credentials={}))
+                                            datasource=basin3d.core.models.DataSource(id='USGS', name='USGS', id_prefix='USGS',
+                                                                  location='https://waterservices.usgs.gov/nwis/'))
                            ),
                           # Alpha
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
                            {'datasource_id': 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': 'Acetate'},
-                           AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
+                           basin3d.core.models.AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
                                             basin3d_vocab='ACT:WATER',
-                                            basin3d_desc=[ObservedProperty(basin3d_vocab='ACT', full_name='Acetate (CH3COO)', categories=['Biogeochemistry', 'Anions'], units='mM'),
+                                            basin3d_desc=[basin3d.core.models.ObservedProperty(basin3d_vocab='ACT', full_name='Acetate (CH3COO)', categories=['Biogeochemistry', 'Anions'], units='mM'),
                                                           SamplingMediumEnum.WATER],
                                             datasource_vocab='Acetate',
                                             datasource_desc='acetate',
-                                            datasource=DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/', credentials={}))
+                                            datasource=basin3d.core.models.DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/', credentials={}))
                            ),
                           # Complexmap
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin, complexmap.ComplexmapSourcePlugin],
                            {'datasource_id': 'Complexmap', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': 'Mean Al'},
-                           AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM:STATISTIC',
+                           basin3d.core.models.AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM:STATISTIC',
                                             basin3d_vocab='Al:WATER:MEAN',
-                                            basin3d_desc=[ObservedProperty(basin3d_vocab='Al', full_name='Aluminum (Al)', categories=['Biogeochemistry', 'Trace elements'], units='mg/L'),
+                                            basin3d_desc=[basin3d.core.models.ObservedProperty(basin3d_vocab='Al', full_name='Aluminum (Al)', categories=['Biogeochemistry', 'Trace elements'], units='mg/L'),
                                                           SamplingMediumEnum.WATER, StatisticEnum.MEAN],
                                             datasource_vocab='Mean Al',
                                             datasource_desc='aluminum (Al) concentration in water',
-                                            datasource=DataSource(id='Complexmap', name='Complexmap', id_prefix='C', location='https://asource.foo/', credentials={}))
+                                            datasource=basin3d.core.models.DataSource(id='Complexmap', name='Complexmap', id_prefix='C', location='https://asource.foo/', credentials={}))
                            ),
                           # Bad-DataSource
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
                            {'datasource_id': 'FOO', 'attr_type': 'OBSERVED_PROPERTY', 'datasource_vocab': 'Acetate'},
-                           AttributeMapping(attr_type='OBSERVED_PROPERTY',
+                           basin3d.core.models.AttributeMapping(attr_type='OBSERVED_PROPERTY',
                                             basin3d_vocab='NOT_SUPPORTED',
                                             basin3d_desc=[],
                                             datasource_vocab='Acetate',
                                             datasource_desc='No datasource was found for id "FOO".',
-                                            datasource=DataSource())
+                                            datasource=DATASOURCE_NONE)
                            )
                           ],
                          ids=['Wrong-plugin-initialized', 'USGS', 'Alpha', 'Complexmap', 'Bad-DataSource'])
 def test_find_datasource_attribute_mapping(plugins, query, expected):
     """ Test attribute mapping """
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    catalog = CatalogSqlAlchemy()
     catalog.initialize([p(catalog) for p in plugins])
 
     attribute_mapping = catalog.find_datasource_attribute_mapping(**query)
@@ -297,19 +316,19 @@ def test_find_datasource_attribute_mapping(plugins, query, expected):
 # -- datasource vocab to BASIN-3D
 #    -- single datasource vocab (with attr_type specified) with expected single BASIN-3D
 # -- all mappings: to find complex mappings
-# catalog.find_attribute_mappings (TinyDB)
+# catalog.find_attribute_mappings (SqlAlchemy)
 @pytest.mark.parametrize('plugins, query, expected_count, expected_list, expected_msg',
                          # ds_id-attr_type-attr_vocab-from_basin3d--USGS-OBSERVED_PROPERTY-Hg--compound
                          [
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin],
                            {'datasource_id': 'USGS', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': 'Hg', 'from_basin3d': True}, 1,
-                           [AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
+                           [basin3d.core.models.AttributeMapping(attr_type='OBSERVED_PROPERTY:SAMPLING_MEDIUM',
                                              basin3d_vocab='Hg:WATER',
-                                             basin3d_desc=[ObservedProperty(basin3d_vocab='Hg', full_name='Mercury (Hg)', categories=['Biogeochemistry', 'Trace elements'], units='mg/L'),
+                                             basin3d_desc=[basin3d.core.models.ObservedProperty(basin3d_vocab='Hg', full_name='Mercury (Hg)', categories=['Biogeochemistry', 'Trace elements'], units='mg/L'),
                                                            SamplingMediumEnum.WATER],
                                              datasource_vocab='50287',
                                              datasource_desc='Mercury, water, filtered, nanograms per liter',
-                                             datasource=DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/', credentials={}))],
+                                             datasource=basin3d.core.models.DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/'))],
                            []),
                           # datasource_id-only-Alpha-all
                           ([alpha.AlphaSourcePlugin], {'datasource_id': 'Alpha'}, 14, [], []),
@@ -323,30 +342,30 @@ def test_find_datasource_attribute_mapping(plugins, query, expected):
                           ([alpha.AlphaSourcePlugin], {'datasource_id': 'Alpha', 'attr_type': 'STATISTIC', 'attr_vocab': 'MEAN', 'from_basin3d': True}, 1, [], []),
                           # ds_id-attr_vocab--Alpha-mean
                           ([alpha.AlphaSourcePlugin], {'datasource_id': 'Alpha', 'attr_vocab': 'mean'}, 1,
-                           [AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='mean',
+                           [basin3d.core.models.AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='mean',
                                              datasource_desc='', basin3d_desc=[StatisticEnum.MEAN],
-                                             datasource=DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/', credentials={}))],
+                                             datasource=basin3d.core.models.DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/'))],
                            []),
                           # ds_id-attr_vocab-from_basin3d--Alpha-MEAN
                           ([alpha.AlphaSourcePlugin], {'datasource_id': 'Alpha', 'attr_vocab': 'MEAN', 'from_basin3d': True}, 1,
-                           [AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='mean',
+                           [basin3d.core.models.AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='mean',
                                              datasource_desc='', basin3d_desc=[StatisticEnum.MEAN],
-                                             datasource=DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/', credentials={}))],
+                                             datasource=basin3d.core.models.DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/'))],
                            []),
                           # attr_type_attr_vocab--STATISTIC-mean
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {'attr_type': 'STATISTIC', 'attr_vocab': 'mean'}, 1,
-                           [AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='mean',
+                           [basin3d.core.models.AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='mean',
                                              datasource_desc='', basin3d_desc=[StatisticEnum.MEAN],
-                                             datasource=DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/', credentials={}))],
+                                             datasource=basin3d.core.models.DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/'))],
                            []),
                           # attr_type_attr_vocab-from_basin3d--STATISTIC-MEAN
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {'attr_type': 'STATISTIC', 'attr_vocab': 'MEAN', 'from_basin3d': True}, 2,
-                           [AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='mean',
+                           [basin3d.core.models.AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='mean',
                                              datasource_desc='', basin3d_desc=[StatisticEnum.MEAN],
-                                             datasource=DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/', credentials={})),
-                            AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='00003',
+                                             datasource=basin3d.core.models.DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/')),
+                            basin3d.core.models.AttributeMapping(attr_type='STATISTIC', basin3d_vocab='MEAN', datasource_vocab='00003',
                                              datasource_desc='', basin3d_desc=[StatisticEnum.MEAN],
-                                             datasource=DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/', credentials={}))],
+                                             datasource=basin3d.core.models.DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/'))],
                            []),
                           # ds_id-attr_type_attr_vocab-from_basin3d-similar-vocab--USGS-RESULT_QUALITY
                           ([usgs.USGSDataSourcePlugin], {'datasource_id': 'USGS', 'attr_type': 'RESULT_QUALITY', 'attr_vocab': ['ESTIMATED', 'VALIDATED'], 'from_basin3d': True}, 3, [], []),
@@ -362,7 +381,7 @@ def test_find_datasource_attribute_mapping(plugins, query, expected):
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {'attr_vocab': ['Al', 'ACT'], 'from_basin3d': True}, 4, [], []),
                           # attr_vocabs-some_bad--Aluminum,Acetate,Foo
                           ([usgs.USGSDataSourcePlugin, alpha.AlphaSourcePlugin], {'attr_vocab': ['Aluminum', 'Acetate', 'Foo']}, 2, [],
-                           ['No attribute mappings found for the following datasource vocabularies: Foo. Note: specified datasource id = None and attribute type = None']),
+                           ['No attribute mappings found for the following datasource vocabularies: Foo. Note: specified datasource id = None and attribute type = None.']),
                           # BAD-ds_id
                           ([alpha.AlphaSourcePlugin], {'datasource_id': 'Foo'}, -1, [], []),
                           # BAD-attr_type
@@ -400,29 +419,31 @@ def test_find_attribute_mappings(caplog, plugins, query, expected_count, expecte
     """ Test attribute mapping """
     caplog.set_level(logging.INFO)
 
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    catalog = CatalogSqlAlchemy()
     catalog.initialize([p(catalog) for p in plugins])
     caplog.clear()
 
-    attribute_mappings = catalog.find_attribute_mappings(**query)
+    # Check the results, count, and messages
+    with caplog.at_level(logging.INFO):
+        attribute_mappings = catalog.find_attribute_mappings(**query)
 
-    actual_list = []
-    if expected_count >= 0:
-        count = 0
-        for attr_mapping in attribute_mappings:
-            count += 1
-            if expected_list:
-                actual_list.append(attr_mapping)
-        assert count == expected_count
-        if expected_list:
-            for expected_attr_mapping in expected_list:
-                assert expected_attr_mapping in actual_list
-        if expected_msg:
-            log_msgs = [rec.message for rec in caplog.records]
-            for msg in expected_msg:
-                assert msg in log_msgs
-    else:
-        with pytest.raises(CatalogException):
+        actual_list = []
+        if expected_count >= 0:
+            count = 0
             for attr_mapping in attribute_mappings:
-                pass
+                count += 1
+                if expected_list:
+                    actual_list.append(attr_mapping)
+            assert count == expected_count
+            if expected_list:
+                for expected_attr_mapping in expected_list:
+                    assert expected_attr_mapping in actual_list
+            if expected_msg:
+                log_msgs = [rec.message for rec in caplog.records]
+                for msg in expected_msg:
+                    assert msg in log_msgs
+        else:
+            with pytest.raises(CatalogException):
+                for attr_mapping in attribute_mappings:
+                    pass

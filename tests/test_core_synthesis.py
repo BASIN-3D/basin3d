@@ -10,8 +10,8 @@ from tests.testplugins import alpha
 
 @pytest.fixture
 def alpha_plugin_access():
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    catalog = CatalogSqlAlchemy()
     catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
     alpha_ds = DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/')
 
@@ -31,8 +31,8 @@ def alpha_plugin_access():
                             'start_date': '2021-01-01'}, ['DAY']),
                           ], ids=['change-to-day', 'NONE', 'not-specified'])
 def test_measurement_timeseries_TVP_observation_access_synthesize_query(input_query, expected_result, alpha_plugin_access):
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    catalog = CatalogSqlAlchemy()
     catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
     alpha_ds = DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/')
     alpha_access = MeasurementTimeseriesTVPObservationAccess(alpha_ds, catalog)
@@ -45,8 +45,8 @@ def test_measurement_timeseries_TVP_observation_access_synthesize_query(input_qu
 
 
 def test_monitoring_feature_retrieve_no_id():
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    catalog = CatalogSqlAlchemy()
     catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
     alpha_ds = DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/')
     # cheating and assigning a datasource to the plugin field as it won't be used

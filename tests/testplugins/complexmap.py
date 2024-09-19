@@ -1,6 +1,7 @@
-from basin3d.core.plugin import DataSourcePluginPoint
+from basin3d.core.plugin import DataSourcePluginPoint, basin3d_plugin
 
 
+@basin3d_plugin
 class ComplexmapSourcePlugin(DataSourcePluginPoint):
     class DataSourceMeta:
         location = 'https://asource.foo/'

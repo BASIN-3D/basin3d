@@ -59,8 +59,8 @@ def plugin_access_alpha():
     from basin3d.core.models import MeasurementTimeseriesTVPObservation
 
     from tests.testplugins import alpha
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    catalog = CatalogSqlAlchemy()
     plugins = [alpha.AlphaSourcePlugin(catalog)]
     catalog.initialize(plugins)
     return plugins[0].access_classes[MeasurementTimeseriesTVPObservation]
@@ -74,8 +74,8 @@ def plugin_access():
     from basin3d.plugins.usgs import USGSMeasurementTimeseriesTVPObservationAccess
 
     from basin3d.plugins import usgs
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    catalog = CatalogSqlAlchemy()
     plugins = [usgs.USGSDataSourcePlugin(catalog)]
     catalog.initialize(plugins)
     return USGSMeasurementTimeseriesTVPObservationAccess(plugins[0].datasource, catalog)

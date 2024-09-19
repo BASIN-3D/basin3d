@@ -9,20 +9,24 @@ from basin3d.core.schema.query import QueryMonitoringFeature, QueryMeasurementTi
 from tests.testplugins import alpha, complexmap
 
 
-@pytest.fixture
 def alpha_plugin_access():
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
+    """
+    Create a DataSourcePluginAccess object for the Alpha plugin
+    """
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    catalog = CatalogSqlAlchemy()
     catalog.initialize([p(catalog) for p in [alpha.AlphaSourcePlugin]])
     alpha_ds = DataSource(id='Alpha', name='Alpha', id_prefix='A', location='https://asource.foo/')
 
     return DataSourcePluginAccess(alpha_ds, catalog)
 
 
-@pytest.fixture
 def complex_plugin_access():
-    from basin3d.core.catalog import CatalogTinyDb
-    catalog = CatalogTinyDb()
+    """
+    Create a DataSourcePluginAccess object for the Complexmap plugin
+    """
+    from basin3d.core.catalog import CatalogSqlAlchemy
+    catalog = CatalogSqlAlchemy()
     catalog.initialize([p(catalog) for p in [complexmap.ComplexmapSourcePlugin]])
     complex_ds = DataSource(id='Complexmap', name='Complexmap', id_prefix='C', location='https://asource.foo/')
 
@@ -73,11 +77,11 @@ def complex_plugin_access():
          'compound-compound_query_lists', 'compound-compound_query_no_match',
          'non-compound_non-query-class', 'compound-simple_query_non-query-class',
          'compound-compound_query_non-query-class-lists', 'compound_non-query-class_str-value'])
-def test_find_datasource_vocab(alpha_plugin_access, caplog, attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs):
+def test_find_datasource_vocab(caplog, attr_type, basin3d_vocab, basin3d_query, expected_results, expected_msgs):
     caplog.set_level(logging.INFO)
     caplog.clear()
 
-    results = translate._translate_to_datasource_vocab(alpha_plugin_access, attr_type, basin3d_vocab, basin3d_query)
+    results = translate._translate_to_datasource_vocab(alpha_plugin_access(), attr_type, basin3d_vocab, basin3d_query)
     assert sorted(results) == sorted(expected_results)
 
     if expected_msgs:
@@ -116,12 +120,12 @@ def test_find_datasource_vocab(alpha_plugin_access, caplog, attr_type, basin3d_v
                           # multi-mapped
                           ('Alpha',
                            QueryMeasurementTimeseriesTVP(observed_property=['Al'], start_date='2019-01-01', monitoring_feature=['A-3']),
-                           QueryMeasurementTimeseriesTVP(observed_property=['Aluminum', 'Al'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Al', 'Aluminum'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY']}),
                           # multi-mapped-complex
                           ('Alpha',
                            QueryMeasurementTimeseriesTVP(observed_property=['Al'], sampling_medium=['WATER'], start_date='2019-01-01', monitoring_feature=['A-3']),
-                           QueryMeasurementTimeseriesTVP(observed_property=['Aluminum', 'Al'], start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Al', 'Aluminum'], start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY']}),
                           # complex-single-compound
                           ('Complexmap',
@@ -136,7 +140,7 @@ def test_find_datasource_vocab(alpha_plugin_access, caplog, attr_type, basin3d_v
                           # complex-other-two-compound
                           ('Complexmap',
                            QueryMeasurementTimeseriesTVP(observed_property=['Al'], statistic=['MEAN'], start_date='2019-01-01', monitoring_feature=['A-3']),
-                           QueryMeasurementTimeseriesTVP(observed_property=['Mean Aluminum', 'Mean Al'], sampling_medium=None, statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Mean Al', 'Mean Aluminum'], sampling_medium=None, statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY']}),
                           # complex-all-compound
                           ('Complexmap',
@@ -151,22 +155,22 @@ def test_find_datasource_vocab(alpha_plugin_access, caplog, attr_type, basin3d_v
                           # complex-all-compound-multiple-values
                           ('Complexmap',
                            QueryMeasurementTimeseriesTVP(observed_property=['Ag', 'Al'], sampling_medium=['WATER', 'GAS'], statistic=['MIN', 'MEAN'], start_date='2019-01-01', monitoring_feature=['A-3']),
-                           QueryMeasurementTimeseriesTVP(observed_property=['Mean Ag', 'Min Ag_gas', 'Minimum Aluminum', 'Mean Aluminum', 'Mean Al'], sampling_medium=None, statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
+                           QueryMeasurementTimeseriesTVP(observed_property=['Mean Ag', 'Min Ag_gas', 'Minimum Aluminum', 'Mean Al', 'Mean Aluminum'], sampling_medium=None, statistic=None, start_date='2019-01-01', monitoring_feature=['A-3']),
                            {'aggregation_duration': ['DAY']}),
                           ],
                          ids=['single-compound', 'both-compound', 'single-compound+non-compound', 'not_supported', 'not_supported-opv', 'multi-mapped', 'multi-mapped-complex',
                               'complex-single-compound', 'complex-two-compound', 'complex-other-two-compound', 'complex-all-compound', 'complex-all-compound-no-mapping',
                               'complex-all-compound-multiple-values'])
-def test_translator_translate_mapped_query_attrs(alpha_plugin_access, complex_plugin_access, ds, query, expected_results, set_transformed_attr):
-    plugin_access = complex_plugin_access if ds == 'Complexmap' else alpha_plugin_access
+def test_translator_translate_mapped_query_attrs(ds, query, expected_results, set_transformed_attr):
+    plugin_access = ds == "Complexmap" and complex_plugin_access() or alpha_plugin_access()
     results = translate._translate_mapped_query_attrs(plugin_access, query)
     for attr, value in set_transformed_attr.items():
         setattr(expected_results, attr, value)
     assert results == expected_results
 
 
-def test_translator_order_mapped_fields(alpha_plugin_access):
-    ordered_fields = translate._order_mapped_fields(alpha_plugin_access, ['statistic', 'aggregation_duration', 'sampling_medium', 'observed_property'])
+def test_translator_order_mapped_fields():
+    ordered_fields = translate._order_mapped_fields(alpha_plugin_access(), ['statistic', 'aggregation_duration', 'sampling_medium', 'observed_property'])
     assert ordered_fields == ['observed_property', 'sampling_medium', 'statistic', 'aggregation_duration']
 
 
@@ -204,12 +208,12 @@ def test_translator_is_translated_query_valid(query, set_translated_attr, expect
                            {'monitoring_feature': ['9237'], 'parent_feature': ['00000'], 'id': '345aa'}),
                           ],
                          ids=["single", "multiple", "none", "monitoring_feature_query"])
-def test_translator_prefixed_query_attrs(alpha_plugin_access, query, set_translated_attr):
+def test_translator_prefixed_query_attrs(query, set_translated_attr):
     """Filtering of query arguments"""
     translated_query = query.copy()
     for attr, value in set_translated_attr.items():
         setattr(translated_query, attr, value)
-    assert translate._translate_prefixed_query_attrs(alpha_plugin_access, query) == translated_query
+    assert translate._translate_prefixed_query_attrs(alpha_plugin_access(), query) == translated_query
 
 
 @pytest.mark.parametrize('query, set_translated_attr, set_cleaned_query_attr',
