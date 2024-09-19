@@ -80,7 +80,7 @@ def mapped_attribute_agg_dur_not_supported(datasource):
                                basin3d_vocab='NOT_SUPPORTED',
                                basin3d_desc=[],
                                datasource_vocab='daily',
-                               datasource_desc='No mapping was found for datasource vocab: "daily" in datasource: "Alpha".',
+                               datasource_desc='No mapping was found for attr: "AGGREGATION_DURATION" and for datasource vocab: "daily" in datasource: "Alpha".',
                                datasource=datasource))
 
 
@@ -140,7 +140,8 @@ def test_mapped_attribute_not_supported(mapped_attribute_agg_dur_not_supported, 
     assert attr_mapping.basin3d_vocab == 'NOT_SUPPORTED'
     assert attr_mapping.basin3d_desc == []
     assert attr_mapping.datasource_vocab == 'daily'
-    assert attr_mapping.datasource_desc == 'No mapping was found for datasource vocab: "daily" in datasource: "Alpha".'
+    assert attr_mapping.datasource_desc == 'No mapping was found for attr: "AGGREGATION_DURATION" and for ' \
+                                           'datasource vocab: "daily" in datasource: "Alpha".'
     assert attr_mapping.datasource == datasource
 
 

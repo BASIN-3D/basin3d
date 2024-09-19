@@ -74,7 +74,7 @@ Once logging is configured, all BASIN-3D logging is outputted.
 
    >>> synthesizer = synthesis.register()
    2022-04-14T16:59:31.082 INFO * basin3d.core.synthesis * - Loading Plugin = USGSDataSourcePlugin
-   2022-04-14T16:59:31.083 DEBUG * basin3d.core.catalog * - Initializing CatalogTinyDb metadata catalog
+   2022-04-14T16:59:31.083 DEBUG * basin3d.core.catalog * - Initializing CatalogSqlAlchemy metadata catalog
    2022-04-14T16:59:31.084 INFO * basin3d.core.catalog * - Loading metadata catalog for Plugin USGS
    2022-04-14T16:59:31.085 DEBUG * basin3d.core.catalog * - Mapping file mapping_usgs.csv for plugin package basin3d.plugins
    2022-04-14T16:59:31.086 DEBUG * basin3d.core.catalog * - Mapped 00400 to pH
@@ -114,4 +114,4 @@ Write log messages to a file called `basin3d.log`:
     >>> synthesizer = synthesis.register()
     2022-04-14T17:32:50.502 INFO * basin3d.core.synthesis * - Loading Plugin = USGSDataSourcePlugin
     2022-04-14T17:32:50.507 INFO * basin3d.core.catalog * - Loading metadata catalog for Plugin USGS
-    2022-04-14T17:32:50.509 INFO * basin3d.core.catalog * - Initialized CatalogTinyDb metadata catalog
+    2022-04-14T17:32:50.509 INFO * basin3d.core.catalog * - Initialized CatalogSqlAlchemy metadata catalog

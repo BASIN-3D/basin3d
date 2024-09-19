@@ -3,6 +3,8 @@ exclude_lines =
    NotImplementedError
    logger
    def __repr__
+   def __unicode__
+   def __str__
    version
    release
    logger.info
@@ -10,6 +12,10 @@ exclude_lines =
    pass
    ImportError
    self.log
+   logger.error
+   logger.debug
+   except PackageNotFoundError:
+   except Exception
 omit =
    */asgi.py
    */formparser.py

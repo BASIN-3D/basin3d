@@ -28,7 +28,7 @@ synthesis.DataSynthesizer Functions
 from importlib import import_module
 from typing import List, Union, cast
 
-from basin3d.core.catalog import CatalogTinyDb
+from basin3d.core.catalog import CatalogSqlAlchemy
 from basin3d.core.models import DataSource
 from basin3d.core.plugin import PluginMount
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, SynthesisResponse
@@ -63,7 +63,7 @@ def register(plugins: List[str] = None):
         raise SynthesisException("There are no plugins to register")
 
     plugin_dict = {}
-    catalog = CatalogTinyDb()
+    catalog = CatalogSqlAlchemy()
     for plugin in plugins:
         if isinstance(plugin, str):
             # If this is a string  convert to module and class then load
@@ -90,7 +90,7 @@ class DataSynthesizer:
     Synthesis API
     """
 
-    def __init__(self, plugins: dict, catalog: CatalogTinyDb):
+    def __init__(self, plugins: dict, catalog: CatalogSqlAlchemy):
         self._plugins = plugins
         self._catalog = catalog
         self._datasources = {}
@@ -155,17 +155,19 @@ class DataSynthesizer:
         >>> response = synthesizer.attribute_mappings(datasource_id='USGS', attr_type='STATISTIC')
         >>> for attr_mapping in response:
         ...     print(f'{attr_mapping.attr_type} | {attr_mapping.basin3d_vocab} -- {attr_mapping.datasource_vocab}')
-        STATISTIC | MEAN -- 00003
-        STATISTIC | MIN -- 00002
         STATISTIC | MAX -- 00001
+        STATISTIC | MIN -- 00002
+        STATISTIC | MEAN -- 00003
         STATISTIC | TOTAL -- 00006
+
 
         >>> response = synthesizer.attribute_mappings(datasource_id='USGS', attr_type='RESULT_QUALITY', attr_vocab=['VALIDATED', 'ESTIMATED'], from_basin3d=True)
         >>> for attr_mapping in response:
         ...     print(f'{attr_mapping.attr_type} | {attr_mapping.basin3d_vocab} -- {attr_mapping.datasource_vocab}, {attr_mapping.datasource_desc}')
-        RESULT_QUALITY | ESTIMATED -- e, Value has been edited or estimated by USGS personnel and is write protected
-        RESULT_QUALITY | ESTIMATED -- E, Value was computed from estimated unit values.
         RESULT_QUALITY | VALIDATED -- A, Approved for publication -- Processing and review completed.
+        RESULT_QUALITY | ESTIMATED -- E, Value was computed from estimated unit values.
+        RESULT_QUALITY | ESTIMATED -- e, Value has been edited or estimated by USGS personnel and is write protected
+
 
         Return all the :class:`basin3d.core.models.AttributMapping` registered or those that match the specified fields.
 

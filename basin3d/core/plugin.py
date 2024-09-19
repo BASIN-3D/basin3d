@@ -17,7 +17,7 @@ from types import MethodType
 from typing import Dict
 
 from basin3d.core import monitor
-from basin3d.core.catalog import CatalogTinyDb
+from basin3d.core.catalog import CatalogSqlAlchemy
 from basin3d.core.models import DataSource
 from basin3d.core.schema.enum import FeatureTypeEnum
 
@@ -48,7 +48,7 @@ class DataSourcePluginAccess:
     Metaclass for DataSource plugin views.  The should be registered in a subclass of
     :class:`basin3d.plugins.DataSourcePluginPoint` in attribute `plugin_access_classes`.
     """
-    def __init__(self, datasource: DataSource, catalog: CatalogTinyDb):
+    def __init__(self, datasource: DataSource, catalog: CatalogSqlAlchemy):
         """
 
         :param datasource: The data source object
@@ -125,7 +125,7 @@ class DataSourcePluginPoint:
     Base class for DataSourcePlugins.
     """
 
-    def __init__(self, catalog: CatalogTinyDb):
+    def __init__(self, catalog: CatalogSqlAlchemy):
         """
         Instantiate the plugin with the catalog
         :param catalog:

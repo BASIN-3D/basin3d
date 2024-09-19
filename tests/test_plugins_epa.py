@@ -223,7 +223,16 @@ site_list_test = ['EPA-CCWC-COAL-26', 'EPA-CORIVWCH_WQX-650', 'EPA-CCWC-COAL-00'
                               'filter-test-estimated', 'filter-test-stat-total', 'filter-test-stat-multiple', "filter-multiple",
                               'aggregation-day', 'empty_return'])
 def test_measurement_timeseries_tvp_observations_epa(additional_filters, epa_data_resource, epa_loc_resource, expected_results, monkeypatch):
-    # Test EPA Timeseries data query
+    """
+    Test EPA Timeseries data query
+
+    :param additional_filters: additional query parameters
+    :param epa_data_resource: resource file containing the EPA data
+    :param epa_loc_resource: resource file containing the EPA location data
+    :param expected_results: expected results
+    :param monkeypatch: pytest fixture
+
+    """
 
     def get_csv_dict(dummyvar):
         with open(os.path.join(dirname(__file__), "resources", epa_data_resource)) as data_file:

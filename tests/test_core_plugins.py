@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 import basin3d
-from basin3d.core.catalog import CatalogTinyDb
+from basin3d.core.catalog import CatalogSqlAlchemy
 from basin3d.core.models import MonitoringFeature
 from basin3d.core.plugin import get_feature_type
 from basin3d.core.schema.enum import FeatureTypeEnum
@@ -28,8 +28,8 @@ def test_plugin_attribs():
 def test_plugin_access_objects():
     """Test the plugin and check the access objects available"""
     from tests.testplugins import alpha
-    assert isinstance(alpha.AlphaSourcePlugin(CatalogTinyDb()).get_plugin_access(), dict)
-    plugin_access_objects = alpha.AlphaSourcePlugin(CatalogTinyDb()).get_plugin_access()
+    assert isinstance(alpha.AlphaSourcePlugin(CatalogSqlAlchemy()).get_plugin_access(), dict)
+    plugin_access_objects = alpha.AlphaSourcePlugin(CatalogSqlAlchemy()).get_plugin_access()
     assert list(plugin_access_objects.keys()) == [
         basin3d.core.models.MeasurementTimeseriesTVPObservation,
         basin3d.core.models.MonitoringFeature]
@@ -69,7 +69,7 @@ def test_plugin_views(monkeypatch):
     from tests.testplugins import alpha
 
     monkeypatch.setattr(alpha.AlphaSourcePlugin, 'get_datasource', Mock())
-    plugin_views = alpha.AlphaSourcePlugin(CatalogTinyDb()).get_plugin_access()
+    plugin_views = alpha.AlphaSourcePlugin(CatalogSqlAlchemy()).get_plugin_access()
     assert isinstance(plugin_views, dict)
     assert basin3d.core.models.MeasurementTimeseriesTVPObservation in plugin_views
     assert basin3d.core.models.MonitoringFeature in plugin_views
