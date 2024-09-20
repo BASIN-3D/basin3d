@@ -12,9 +12,11 @@
 """
 import csv
 import json
+import os
 import requests
 import urllib.parse
 
+from copy import deepcopy
 from typing import Iterator, List, Optional, Union
 from datetime import datetime as dt, date
 
@@ -30,6 +32,7 @@ from basin3d.core.translate import get_datasource_mapped_attribute
 from basin3d.core.types import SpatialSamplingShapes
 
 logger = monitor.get_logger(__name__)
+
 
 # https://www.epa.gov/waterdata/storage-and-retrieval-and-water-quality-exchange-domain-services-and-downloads
 # Download link: https://cdx.epa.gov/wqx/download/DomainValues/TimeZone.csv
@@ -63,14 +66,61 @@ TIMEZONE_MAP = {
     "YST": {"utc_offset": "-09:00", "name": "Yukon Standard Time: U.S.-Yukatat (*retired: >1983 use AKST)"}  # -9,8/11/2006 10:57:50 AM
 }
 
+EPA_WQP_API_VERSION = os.environ.get('EPA_WQP_API_VERSION', '2.2')
 
-def _post_wqp_data_search(query_data: dict) -> Optional[requests.Response]:
+# mapping of EPA WQP API v2.2 to v3.0
+# https://www.epa.gov/waterdata/water-quality-portal-quick-reference-guide
+# accessed 2024-09-23
+FIELD_NAMES = {
+    'loc_id': {'2.2': 'MonitoringLocationIdentifier', '3.0': 'Location_Identifier'},
+    'lat': {'2.2': 'LatitudeMeasure', '3.0': 'Location_Latitude'},
+    'long': {'2.2': 'LongitudeMeasure', '3.0': 'Location_Longitude'},
+    'org_name': {'2.2': 'OrganizationFormalName', '3.0': 'Org_FormalName'},
+    'loc_name': {'2.2': 'MonitoringLocationName', '3.0': 'Location_Name'},
+    'huc_8_code': {'2.2': 'HUCEightDigitCode', '3.0': 'Location_HUCEightDigitCode'},
+    'provider': {'2.2': 'ProviderName', '3.0': 'ProviderName'},
+    'phys_chem_results': {'2.2': 'resultPhysChem', '3.0': 'fullPhysChem'},
+    'observed_property': {'2.2': 'CharacteristicName', '3.0': 'Result_Characteristic'},
+    'sampling_media': {'2.2': 'ActivityMediaName', '3.0': 'Activity_Media'},
+    'sample_fraction': {'2.2': 'ResultSampleFractionText', '3.0': 'Result_SampleFraction'},
+    'depth_height': {'2.2': 'ResultDepthHeightMeasure/MeasureValue', '3.0': 'ResultDepthHeight_Measure'},
+    'aggregation_duration': {'2.2': 'ResultTimeBasisText', '3.0': 'Result_TimeBasis'},
+    'sampling_temp': {'2.2': 'ResultTemperatureBasisText', '3.0': 'Result_MeasureTemperatureBasis'},
+    'statistic': {'2.2': 'StatisticalBaseCode', '3.0': 'Result_StatisticalBase'},
+    'start_date': {'2.2': 'ActivityStartDate', '3.0': 'Activity_StartDate'},
+    'start_time': {'2.2': 'ActivityStartTime/Time', '3.0': 'Activity_StartTime'},
+    'start_time_zone': {'2.2': 'ActivityStartTime/TimeZoneCode', '3.0': 'Activity_StartTimeZone'},
+    'end_date': {'2.2': 'ActivityEndDate', '3.0': 'Activity_EndDate'},
+    'end_time': {'2.2': 'ActivityEndTime/Time', '3.0': 'Activity_EndTime'},
+    'end_time_zone': {'2.2': 'ActivityEndTime/TimeZoneCode', '3.0': 'Activity_EndTimeZone'},
+    'result': {'2.2': 'ResultMeasureValue', '3.0': 'Result_Measure'},
+    'result_unit': {'2.2': 'ResultMeasure/MeasureUnitCode', '3.0': 'Result_MeasureUnit'},
+    'result_status': {'2.2': 'ResultStatusIdentifier', '3.0': 'Result_MeasureStatusIdentifier'},
+    'result_type': {'2.2': 'ResultValueTypeName', '3.0': 'Result_MeasureType'},
+    'activity_type': {'2.2': 'ActivityTypeCode', '3.0': 'Activity_TypeCode'},
+    'depth_height_unit': {'2.2': 'ResultDepthHeightMeasure/MeasureUnitCode', '3.0': 'ResultDepthHeight_MeasureUnit'},
+    'depth_height_ref': {'2.2': 'ResultDepthAltitudeReferencePointText', '3.0': 'ResultDepthHeight_AltitudeReferencePoint'}
+}
+
+EPA_GEOSERVER_WFS_TIMEOUT_LIMIT = os.environ.get('EPA_GEOSERVER_WFS_TIMEOUT_LIMIT', 5)
+
+
+def _post_wqp_search(search_type: str, query_data: dict,
+                     api_version: str = EPA_WQP_API_VERSION) -> Optional[requests.Response]:
     """
     Request the locations information
-    :param query_data:
-    :return:
+    :param search_type: EPA WQP Data Profile type: Physical / Chemical (See FIELD_NAMES key 'phys_chem_results' for vocab, or Station (for locations)
+    :param query_data: query in WQP vocabulary for the request
+    :param api_version: EPA WQP API version: '2.2' and '3.0' currently supported; otherwise the url will be invalid.
     """
-    url_with_params = 'https://www.waterqualitydata.us/data/Result/search?mimeType=csv'
+    url_api_version = 'INVALID_API_VERSION'
+
+    if api_version == '2.2':
+        url_api_version = 'data'
+    elif api_version == '3.0':
+        url_api_version = 'wqx3'
+
+    url_with_params = f'https://www.waterqualitydata.us/{url_api_version}/{search_type}/search?mimeType=csv'
     headers = {'content-type': 'application/json'}
     data = {'providers': ['STORET']}
     data.update(query_data)
@@ -86,30 +136,126 @@ def _post_wqp_data_search(query_data: dict) -> Optional[requests.Response]:
         return None
 
 
-def _get_location_info(loc_str: str) -> list:
+def _get_location_info(loc_type: str, loc_list: list, synthesis_messages: list = []) -> list:
     """
-    Get location information from the EPA Data Source for specified loctions
-    :param loc_str:
-    :return:
+    Get location information. First try the GeoServer WFS endpoint and if is not available
+       within the timeout limit, fail over to a WQP Station request.
+    :param loc_type: siteid or huc
+    :param loc_list: list of location identifiers
+    :param synthesis_messages: list of messages to report warning / error messages
+    """
+    loc_info_list = []
+    fail_over = False
+    msg: Optional[str] = None
+
+    # try the ogc approach
+    try:
+        if loc_type == 'siteid':
+            id_list_str = _make_mf_query_str(loc_list)
+            loc_info_list = _get_location_info_ogc(id_list_str, synthesis_messages)
+        else:
+            for huc in loc_list:
+                huc_query_str = f'huc%3A{huc}'
+                loc_info_results = _get_location_info_ogc(huc_query_str, synthesis_messages)
+                loc_info_list.extend(loc_info_results)
+    # if fails, stream the csv file
+    except TimeoutError as e:
+        fail_over = True
+        msg = f'WFS Geoserver timed out, fail over to WQP Station request\nError: {e}'
+    except Exception as e:
+        fail_over = True
+        msg = f'WFS Geoserver did not respond appropriately, fail over to WQP Station request\nError: {e}'
+
+    if fail_over:
+        logger.warning(msg)
+        synthesis_messages.append(msg)
+        print(msg)
+        loc_info_list.extend(_get_location_info_csv(loc_type, loc_list, synthesis_messages))
+
+    return loc_info_list
+
+
+def _get_location_info_csv(loc_type: str, loc_list: list, synthesis_messages: list) -> list:
+    """
+    Get location information from the EPA Data Source using the Station WQP request type
+    :param loc_type: siteid or huc
+    :param loc_list: list of location identifiers
+    :param synthesis_messages: list of messages to report warning / error messages
+    """
+
+    api_version = EPA_WQP_API_VERSION
+    loc_info: List[dict] = []
+    wqp_response = _post_wqp_search('Station', {loc_type: loc_list}, api_version)
+
+    if not wqp_response or (wqp_response.status_code and wqp_response.status_code != 200):
+        msg = 'No or invalid response to WQP Station request'
+        logger.error(msg)
+        synthesis_messages.append(msg)
+        return loc_info
+
+    wqp_csv = _get_csv_dict_reader(wqp_response)
+
+    # Build a dictionary object that looks like the OGC WFS structure so have one parsing code
+    for idx, row_dict in enumerate(wqp_csv):
+        properties_name = row_dict.get(FIELD_NAMES['loc_id'][api_version])
+
+        if not properties_name:
+            msg = f'Row {idx} of the response csv does not have an identifier, skipping'
+            logger.warning(msg)
+            synthesis_messages.append(msg)
+            continue
+
+        geometry_coord_lat = row_dict.get(FIELD_NAMES['lat'][api_version])
+        geometry_coord_long = row_dict.get(FIELD_NAMES['long'][api_version])
+
+        if not geometry_coord_lat or not geometry_coord_long:
+            msg = f'Row {idx} with identifier {properties_name} does not have both lat / long coordinates. skipping'
+            logger.warning(msg)
+            synthesis_messages.append(msg)
+            continue
+
+        properties_org_name = row_dict.get(FIELD_NAMES['org_name'][api_version])
+        properties_loc_name = row_dict.get(FIELD_NAMES['loc_name'][api_version])
+        properties_huc8 = row_dict.get(FIELD_NAMES['huc_8_code'][api_version])
+        properties_provider = row_dict.get(FIELD_NAMES['provider'][api_version])
+
+        loc_info.append({
+            'geometry': {'type': 'Point', 'coordinates': [geometry_coord_lat, geometry_coord_long]},
+            'properties': {'name': properties_name, 'locName': properties_loc_name,
+                           'huc8': properties_huc8, 'orgName': properties_org_name,
+                           'provider': properties_provider}})
+
+    return loc_info
+
+
+def _get_location_info_ogc(loc_str: str, synthesis_messages: list) -> list:
+    """
+    Get location information from the EPA Data Source for specified locations from WFS in OGC format
+    :param loc_str: query string for the GeoServer WFS request
+    :param synthesis_messages: list of messages to report warning / error messages
     """
     loc_info_list = []
     url = ('https://www.waterqualitydata.us/ogcservices/wfs/?request=GetFeature&service=wfs&version=2.0.0&typeNames=wqp_sites'
            f'&SEARCHPARAMS={loc_str}%3Bproviders%3ASTORET&outputFormat=application%2Fjson')
 
     # ToDo: Enhancements -- stream and chunk for expected large returns, chunk site_ids into multiple calls if large list
-    result = get_url(url)
+    result = get_url(url, timeout=EPA_GEOSERVER_WFS_TIMEOUT_LIMIT)
 
     if result and result.status_code and result.status_code == 200:
         try:
             result_data = json.loads(result.content)
             loc_info_list = result_data.get('features', [])
         except Exception as e:
-            logger.warning(f'EPA WQX {url} result could not be parsed {e}')
+            msg = f'EPA WQX {url} result could not be parsed {e}'
+            logger.warning(msg)
+            synthesis_messages.append(msg)
     else:
         error_code = 'NO RESPONSE'
         if result and result.status_code:
             error_code = result.status_code
-        logger.warning(f'EPA WQX {url} returned error code {error_code}')
+        msg = f'EPA WQX {url} returned error code {error_code}'
+        logger.warning(msg)
+        synthesis_messages.append(msg)
 
     return loc_info_list
 
@@ -191,6 +337,7 @@ class EPAMonitoringFeatureAccess(DataSourcePluginAccess):
     :class:`~basin3d.core.models.MonitoringFeature` objects.
 
     Using WFS OGC Mapping service: '~/ogcservices/wfs/?request=GetFeature&service=wfs&version=2.0.0&typeNames=wqp_sites&SEARCHPARAMS=providers%3ASTORET&outputFormat=application%2Fjson'
+    Backup: WQP Station endpoint: 'https://www.waterqualitydata.us/{url_api_version}/Station/search?mimeType=csv'
 
     ============== === ====================================================
     EPA WQX            BASIN-3D
@@ -228,6 +375,7 @@ class EPAMonitoringFeatureAccess(DataSourcePluginAccess):
             logger.warning(msg)
         else:
             loc_list = []
+            loc_type = None
             if query.parent_feature:
                 for parent_feature in query.parent_feature:
                     if len(parent_feature) not in [2, 4, 6, 8, 10, 12] or not parent_feature.isdigit():
@@ -238,14 +386,16 @@ class EPAMonitoringFeatureAccess(DataSourcePluginAccess):
                     wildcard = '*'
                     if len(parent_feature) >= 8:
                         wildcard = ''
-                    loc_list.append(f'huc%3A{parent_feature}{wildcard}')
+                    loc_list.append(f'{parent_feature}{wildcard}')
+                if loc_list:
+                    loc_type = 'huc'
 
             elif query.monitoring_feature:
-                id_list_str = _make_mf_query_str(query.monitoring_feature)
-                loc_list.append(''.join(id_list_str))
+                loc_list = deepcopy(query.monitoring_feature)
+                loc_type = 'siteid'
 
-            for loc_str in loc_list:
-                loc_info_list = _get_location_info(loc_str)
+            if loc_type:
+                loc_info_list = _get_location_info(loc_type, loc_list, synthesis_messages)  # type: ignore
                 for loc_info in loc_info_list:
                     mf_obj = _make_monitoring_feature_object(self, loc_info)
                     if mf_obj:
@@ -261,12 +411,12 @@ class EPAMonitoringFeatureAccess(DataSourcePluginAccess):
         """
         # query.id will always be a string at this point with validation upstream, thus ignoring the type checking
 
-        site_id = f'siteid%3A{query.id}'
-        loc_info = _get_location_info(site_id)
+        loc_info = _get_location_info('siteid', [query.id])
 
         if loc_info:
             if len(loc_info) > 1:
-                logger.warning(f'{self.datasource.id}: monitoring feature query by id {query.id} yielded too many site_id results from WQP. Cannot report single site.')
+                msg = f'{self.datasource.id}: monitoring feature query by id {query.id} yielded too many site_id results from WQP. Cannot report single site.'
+                logger.warning(msg)
                 return None
             return _make_monitoring_feature_object(self, loc_info[0])
 
@@ -301,42 +451,42 @@ def _convert_distance_unit_to_meters(unit: str) -> Optional[float]:
 
 
 def _parse_epa_results_phys_chem(wqp_response: requests.Response, query: QueryMeasurementTimeseriesTVP, op_map: dict,
-                                 results: dict, synthesis_messages: list) -> set:
+                                 results: dict, synthesis_messages: list, api_version: str = EPA_WQP_API_VERSION) -> set:
     """
     Helper to parse the resultsPhysChem data.
     See https://www.waterqualitydata.us/portal_userguide/#table-7-sample-results-physicalchemical-result-retrieval-metadata
 
-    Combo to find repeated measures in time
-      MonitoringLocationIdentifier -- endpoint query
-      CharacteristicName -- endpoint query
-      ActivityMediaName -- endpoint query
-      ResultSampleFractionText
-      ResultDepthHeightMeasure/MeasureValue
-      ResultTimeBasisText -- filter response | aggregation_duration, assume no value is instantaneous
-      ResultTemperatureBasisText
-      StatisticalBaseCode -- filter response | statistic
+    Combo to find repeated measures in time (api_version = '2.2' | '3.0')
+      MonitoringLocationIdentifier | Location_Identifier -- endpoint query
+      CharacteristicName | Result_Characteristic -- endpoint query
+      ActivityMediaName | Activity_Media -- endpoint query
+      ResultSampleFractionText | Result_SampleFraction
+      ResultDepthHeightMeasure/MeasureValue | ResultDepthHeight_Measure
+      ResultTimeBasisText | Result_TimeBasis -- filter response | aggregation_duration, assume no value is instantaneous
+      ResultTemperatureBasisText | Result_MeasureTemperatureBasis
+      StatisticalBaseCode | Result_StatisticalBase -- filter response | statistic
 
-    Time
+    Time (api_version = '2.2' | '3.0')
       NOTE: combo these start time values to report in the TVP time. Set time position to start.
-      ActivityStartDate -- endpoint query
-      ActivityStartTime/Time
-      ActivityStartTime/TimeZoneCode
+      ActivityStartDate | Activity_StartDate-- endpoint query
+      ActivityStartTime/Time | Activity_StartTime
+      ActivityStartTime/TimeZoneCode | Activity_StartTimeZone
 
-      # Using start date only, but including here for completeness
-      ActivityEndDate -- endpoint query
-      ActivityEndTime/Time
-      ActivityEndTime/TimeZoneCode
+      # Using start date only, but including here for completeness (api_version = '2.2' | '3.0')
+      ActivityEndDate | Activity_EndDate -- endpoint query
+      ActivityEndTime/Time | Activity_EndTime
+      ActivityEndTime/TimeZoneCode | Activity_EndTimeZone
 
-    Measurement results
-      ResultMeasureValue = value
-      ResultMeasure/MeasureUnitCode = unit
-      MeasureQualifierCode -- filter response | result_quality
-      ResultValueTypeName -- filter response for Estimated ONLY | result_quality
+    Measurement results (api_version = '2.2' | '3.0')
+      ResultMeasureValue | Result_Measure = value
+      ResultMeasure/MeasureUnitCode | Result_MeasureUnit = unit
+      ResultStatusIdentifier | Result_MeasureStatusIdentifier -- filter response | result_quality
+      ResultValueTypeName | Result_MeasureType -- filter response for Estimated ONLY | result_quality
 
-    Additional info
-      ActivityTypeCode, e.g. Field Msr/Obs, Sample-Routine
-      ResultDepthHeightMeasure/MeasureUnitCode
-      ResultDepthAltitudeReferencePointText
+    Additional info (api_version = '2.2' | '3.0')
+      ActivityTypeCode | Activity_TypeCode, e.g. Field Msr/Obs, Sample-Routine
+      ResultDepthHeightMeasure/MeasureUnitCode | ResultDepthHeight_MeasureUnit
+      ResultDepthAltitudeReferencePointText | ResultDepthHeight_AltitudeReferencePoint
 
     :param wqp_response:
     :param query:
@@ -360,19 +510,19 @@ def _parse_epa_results_phys_chem(wqp_response: requests.Response, query: QueryMe
         return value
 
     def make_timestamp(row_dict: dict) -> Optional[str]:
-        start_date = row_dict.get('ActivityStartDate')
+        start_date = row_dict.get(FIELD_NAMES['start_date'][api_version])
         if not start_date:
             return None
 
         start_timestamp_str = f'{start_date}'
         timestamp_str_format = '%Y-%m-%d'
 
-        start_time = row_dict.get('ActivityStartTime/Time')
+        start_time = row_dict.get(FIELD_NAMES['start_time'][api_version])
         if start_time:
             timestamp_str_format += ' %H:%M:%S'
             start_timestamp_str += f' {start_time}'
 
-        start_time_zone = row_dict.get('ActivityStartTime/TimeZoneCode')
+        start_time_zone = row_dict.get(FIELD_NAMES['start_time_zone'][api_version])
         if start_time_zone:
             mapped_time_zone = TIMEZONE_MAP.get(start_time_zone)
             if mapped_time_zone:
@@ -411,10 +561,11 @@ def _parse_epa_results_phys_chem(wqp_response: requests.Response, query: QueryMe
 
     def is_in_query(row_dict: dict, query: QueryMeasurementTimeseriesTVP) -> bool:
         """
-        ResultTimeBasisText -- filter response | aggregation_duration, assume empty value is instantaneous
-        StatisticalBaseCode -- filter response | statistic
-        MeasureQualifierCode -- filter response | result_quality
-        ResultValueType -- filter response for Estimated ONLY | result_quality
+        (api version = '2.2' | '3.0')
+        ResultTimeBasisText | Result_TimeBasis -- filter response | aggregation_duration, assume empty value is instantaneous
+        StatisticalBaseCode | Result_StatisticalBase -- filter response | statistic
+        ResultStatusIdentifier | Result_MeasureStatusIdentifier -- filter response | result_quality
+        ResultValueTypeName | Result_MeasureType -- filter response for Estimated ONLY | result_quality
 
         :param row_dict:
         :param query:
@@ -422,30 +573,30 @@ def _parse_epa_results_phys_chem(wqp_response: requests.Response, query: QueryMe
         """
 
         if query.aggregation_duration and query.aggregation_duration[0] != 'NONE':
-            ds_aggregation_duration = row_dict.get('ResultTimeBasisText')
+            ds_aggregation_duration = row_dict.get(FIELD_NAMES['aggregation_duration'][api_version])
             if not ds_aggregation_duration or ds_aggregation_duration and ds_aggregation_duration not in query.aggregation_duration:
                 return False
         elif query.aggregation_duration[0] == 'NONE':
-            if row_dict.get('ResultTimeBasisText'):
+            if row_dict.get(FIELD_NAMES['aggregation_duration'][api_version]):
                 return False
 
         if query.statistic:
-            ds_statistic = row_dict.get('StatisticalBaseCode')
+            ds_statistic = row_dict.get(FIELD_NAMES['statistic'][api_version])
             if not ds_statistic or ds_statistic and ds_statistic not in query.statistic:
                 return False
 
         # EPA estimated vocab is in vocabulary list separate from the rest of the result quality terms.
         # Revisit if BASIN-3D adds a ResultValueType
         if query.result_quality and EPA_ESTIMATED_VOCAB in query.result_quality:
-            ds_result_value_type = row_dict.get('ResultValueTypeName')
+            ds_result_value_type = row_dict.get(FIELD_NAMES['result_type'][api_version])
             if ds_result_value_type == EPA_ESTIMATED_VOCAB:
                 return True
 
         if query.result_quality:
-            ds_result_value_type = row_dict.get('ResultValueTypeName')
+            ds_result_value_type = row_dict.get(FIELD_NAMES['result_type'][api_version])
             if ds_result_value_type == EPA_ESTIMATED_VOCAB:
                 return False
-            ds_result_quality = row_dict.get('ResultStatusIdentifier')
+            ds_result_quality = row_dict.get(FIELD_NAMES['result_status'][api_version])
             if not ds_result_quality or ds_result_quality and ds_result_quality not in query.result_quality:
                 return False
 
@@ -463,9 +614,10 @@ def _parse_epa_results_phys_chem(wqp_response: requests.Response, query: QueryMe
             continue
 
         # make the dictionary key
-        mf_id = translate_empty_value(row_dict.get('MonitoringLocationIdentifier'))
-        epa_observed_property = translate_empty_value(row_dict.get('CharacteristicName'))
-        measurement = str_to_numeric(row_dict.get('ResultMeasureValue'))
+        mf_id = translate_empty_value(row_dict.get(FIELD_NAMES['loc_id'][api_version]))
+        # epa_observed_property = translate_empty_value(row_dict.get('CharacteristicName'))
+        epa_observed_property = translate_empty_value(row_dict.get(FIELD_NAMES['observed_property'][api_version]))
+        measurement = str_to_numeric(row_dict.get(FIELD_NAMES['result'][api_version]))
 
         # check first set of required info
         if any([x is None for x in [mf_id, epa_observed_property, measurement]]):
@@ -487,35 +639,35 @@ def _parse_epa_results_phys_chem(wqp_response: requests.Response, query: QueryMe
 
         tvp = TimeValuePair(timestamp=start_timestamp, value=measurement)
 
-        epa_sampling_medium = row_dict.get('ActivityMediaName')
-        epa_sample_fraction = row_dict.get('ResultSampleFractionText')
+        epa_sampling_medium = row_dict.get(FIELD_NAMES['sampling_media'][api_version])
+        epa_sample_fraction = row_dict.get(FIELD_NAMES['sample_fraction'][api_version])
         # Note there are also Activity DepthHeight fields
-        epa_depth_height = row_dict.get('ResultDepthHeightMeasure/MeasureValue')
-        epa_depth_height_unit = row_dict.get('ResultDepthHeightMeasure/MeasureUnitCode')
-        epa_depth_height_ref = row_dict.get('ResultDepthAltitudeReferencePointText')
-        epa_aggregation_duration = row_dict.get('ResultTimeBasisText')
-        epa_temp = row_dict.get('ResultTemperatureBasisText')
-        epa_statistic = row_dict.get('StatisticalBaseCode')
-        epa_unit = translate_empty_value(row_dict.get('ResultMeasure/MeasureUnitCode'))
+        epa_depth_height = row_dict.get(FIELD_NAMES['depth_height'][api_version])
+        epa_depth_height_unit = row_dict.get(FIELD_NAMES['depth_height_unit'][api_version])
+        epa_depth_height_ref = row_dict.get(FIELD_NAMES['depth_height_ref'][api_version])
+        epa_aggregation_duration = row_dict.get(FIELD_NAMES['aggregation_duration'][api_version])
+        epa_sampling_temp = row_dict.get(FIELD_NAMES['sampling_temp'][api_version])
+        epa_statistic = row_dict.get(FIELD_NAMES['statistic'][api_version])
+        epa_unit = translate_empty_value(row_dict.get(FIELD_NAMES['result_unit'][api_version]))
 
         # result_quality lives in 2 fields so first look in one field that has priority over the others.
         # If not, translate the the other field.
-        epa_result_quality = translate_empty_value(row_dict.get('ResultValueTypeName'))
+        epa_result_quality = translate_empty_value(row_dict.get(FIELD_NAMES['result_type'][api_version]))
         if epa_result_quality is None or epa_result_quality != EPA_ESTIMATED_VOCAB:
-            epa_result_quality = translate_empty_value(row_dict.get('ResultStatusIdentifier'))
+            epa_result_quality = translate_empty_value(row_dict.get(FIELD_NAMES['result_status'][api_version]))
 
         # The data return are a mix of siteids, variables, dates, etc because the data are not timeseries.
         # so make a unique key out of the fields that would define a single time series. Add timestamps / data to that
         # unique timeseries as the return is streamed.
         result_key = (f'{mf_id}-{basin3d_vocab}-{epa_sampling_medium}-{epa_unit}-{epa_depth_height}'
-                      f'-{epa_depth_height_unit}-{epa_aggregation_duration}-{epa_statistic}-{epa_temp}')
+                      f'-{epa_depth_height_unit}-{epa_aggregation_duration}-{epa_statistic}-{epa_sampling_temp}')
         combo_dict = results.setdefault(result_key, {})
         if 'metadata' not in combo_dict.keys():
             id_info = f'{mf_id}-{epa_observed_property}'
             if translate_empty_value(epa_sample_fraction):
                 id_info = f'{id_info}-sample_fraction:{epa_sample_fraction}'
-            if translate_empty_value(epa_temp):
-                id_info = f'{id_info}-activity_temp:{epa_temp}'
+            if translate_empty_value(epa_sampling_temp):
+                id_info = f'{id_info}-activity_temp:{epa_sampling_temp}'
             if translate_empty_value(epa_depth_height_ref):
                 id_info = f'{id_info}-depth_ref:{epa_depth_height_ref}'
 
@@ -559,9 +711,11 @@ class EPAMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         :param query:
         :return:
         """
+        api_version = EPA_WQP_API_VERSION
+
         synthesis_messages: List[str] = []
 
-        params = {'dataProfile': 'resultPhysChem',
+        params = {'dataProfile': FIELD_NAMES['phys_chem_results'][api_version],
                   'siteid': query.monitoring_feature,
                   'characteristicName': query.observed_property,
                   'startDateLo': _reformat_date_for_epa_query(query.start_date)}
@@ -573,7 +727,7 @@ class EPAMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             params.update({"startDateHi": _reformat_date_for_epa_query(query.end_date)})
 
         # get data from resultPhysChem; possible extension biological results (sample based data)
-        epa_data = _post_wqp_data_search(params)
+        epa_data = _post_wqp_search('Result', params, api_version)
 
         mf_list = []
         if epa_data and epa_data.status_code == 200:
@@ -582,12 +736,12 @@ class EPAMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             op_map = self._get_observed_property_map(query.observed_property)
 
             results = {}  # type: ignore[var-annotated]
-            mf_set = _parse_epa_results_phys_chem(epa_data, query, op_map, results, synthesis_messages)
+            mf_set = _parse_epa_results_phys_chem(epa_data, query, op_map, results, synthesis_messages, api_version)
             mf_list = list(mf_set)
 
         if mf_list:
-            mf_query_str = _make_mf_query_str(mf_list)
-            loc_info = _get_location_info(mf_query_str)
+            # mf_query_str = _make_mf_query_str(mf_list)
+            loc_info = _get_location_info('siteid', mf_list, synthesis_messages)
             loc_info_store = {}
             for loc_info_obj in loc_info:
                 loc_properties = loc_info_obj.get('properties')
