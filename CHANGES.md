@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 1.1.0
+Refactor core/catalog to use SQLite + SQLAlchemy, enhance EPA Plugin
+
++ Issue #191 - EPA plugin: Add support for WQP v3.0 web services
++ Issue #192 - EPA plugin: Add failover for GeoServer WFS service
++ Issue #193 - Refactor Metadata Catalog to Use SQLite and SQLAlchemy
+
 ## Version 1.0.3
 Bug fix to correct EPA plugin for empty results.
 
