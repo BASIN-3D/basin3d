@@ -185,11 +185,11 @@ Section 1: Data Source Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 1. You may configure BASIN-3D to source the beta version 3.0 of the Water Quality Portal Web Services API. As of this release, version 2.2 is the official version and is the default. To change to version 3.0:
 
-    $ export $EPA_WQP_API_VERSION=3.0
+    $ export EPA_WQP_API_VERSION=3.0
 
 2. You may also configure an http request timeout limit for the GeoService WFS Web Service API which is the primary source for location information. If that service is unavailable within the time out limit, BASIN-3D will attempt to acquire the location information via the WQP Web Service "Station" option. The default value is 5 seconds. To set a custom time out limit in seconds:
 
-    $ export $EPA_GEOSERVER_WFS_TIMEOUT_LIMIT=1
+    $ export EPA_GEOSERVER_WFS_TIMEOUT_LIMIT=1
 
 Data are publicly available and accessed via the `Water Quality Portal Web Services <https://www.waterqualitydata.us/webservices_documentation/>`_.
 Please follow data usage guidelines at `User Guide <https://www.waterqualitydata.us/portal_userguide/>`_ .
@@ -391,7 +391,7 @@ Section 1: Data Source Configuration
 
 5. The top-level directory path must be configured as an environmental variable in the environment where you are running basin3d::
 
-    $ export $ESSDIVE_DATASETS_PATH=<top_level_directory_path>
+    $ export ESSDIVE_DATASETS_PATH=<top_level_directory_path>
 
 
 Section 2: Using the ESSDIVE plugin in BASIN-3D
