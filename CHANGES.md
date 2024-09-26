@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.1.1
+Bug fix to set and handle environment variables properly 
+
++ Issue #205 - Correct documentation and EPA plugin for numeric envionment variable
+
 ## Version 1.1.0
 Refactor core/catalog to use SQLite + SQLAlchemy, enhance EPA Plugin
 
