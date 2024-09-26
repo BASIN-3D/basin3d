@@ -238,8 +238,24 @@ def _get_location_info_ogc(loc_str: str, synthesis_messages: list) -> list:
     url = ('https://www.waterqualitydata.us/ogcservices/wfs/?request=GetFeature&service=wfs&version=2.0.0&typeNames=wqp_sites'
            f'&SEARCHPARAMS={loc_str}%3Bproviders%3ASTORET&outputFormat=application%2Fjson')
 
+    # if the timeout limit is set via an environmental variable it will be a str. Convert it to float.
+    # if the conversion fails, then set value to str and get_url will throw an exception which will result
+    #     in the get_loc_info method will fail over to the WQP Station request.
+    try:
+        geoserver_timeout_limit: Union[str, float, int] = float(EPA_GEOSERVER_WFS_TIMEOUT_LIMIT)
+    except ValueError as e:
+        msg = f'EPA_GEOSERVER_WFS_TIMEOUT_LIMIT: {e}'
+        logger.warning(msg)
+        synthesis_messages.append(msg)
+        geoserver_timeout_limit = EPA_GEOSERVER_WFS_TIMEOUT_LIMIT
+    except Exception as e:
+        msg = f'EPA_GEOSERVER_WFS_TIMEOUT_LIMIT: Unknown exception while trying to convert value to float: {e}'
+        logger.error(msg)
+        synthesis_messages.append(msg)
+        raise Exception(msg)
+
     # ToDo: Enhancements -- stream and chunk for expected large returns, chunk site_ids into multiple calls if large list
-    result = get_url(url, timeout=EPA_GEOSERVER_WFS_TIMEOUT_LIMIT)
+    result = get_url(url, timeout=geoserver_timeout_limit)
 
     if result and result.status_code and result.status_code == 200:
         try:
