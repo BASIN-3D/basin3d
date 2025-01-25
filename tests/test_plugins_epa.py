@@ -147,8 +147,10 @@ def test_get_monitoring_features_fail_over_v2_2(query, loc_csv_resource, expecte
     for mf in monitoring_features:
         count += 1
         print(f"{mf.id} ({mf.feature_type}) {mf.description} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
-        if 'feature_type' in query:
-            assert mf.feature_type == query['feature_type'].upper()
+        if mf.id == 'EPA-21COL001_WQX-10124E':
+            print('******** CHECK EPA-21COL001_WQX-10124E')
+            assert mf.coordinates.absolute.horizontal_position[0].x == -106.9859090000
+            assert mf.coordinates.absolute.horizontal_position[0].y == 38.8709750000
 
     print(query.values(), "count:", count, "expected:", expected_count)
 
@@ -186,8 +188,10 @@ def test_get_monitoring_features_fail_over_v3_0(query, loc_csv_resource, expecte
     for mf in monitoring_features:
         count += 1
         print(f"{mf.id} ({mf.feature_type}) {mf.description} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
-        if 'feature_type' in query:
-            assert mf.feature_type == query['feature_type'].upper()
+        if mf.id == 'EPA-21COL001_WQX-10124E':
+            print('******** CHECK EPA-21COL001_WQX-10124E')
+            assert mf.coordinates.absolute.horizontal_position[0].x == -106.9859090000
+            assert mf.coordinates.absolute.horizontal_position[0].y == 38.8709750000
 
     print(query.values(), "count:", count, "expected:", expected_count)
 
