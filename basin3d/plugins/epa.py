@@ -23,7 +23,7 @@ from datetime import datetime as dt, date
 from basin3d.core import monitor
 from basin3d.core.schema.enum import FeatureTypeEnum, MappedAttributeEnum
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
-from basin3d.core.access import get_url
+from basin3d.core.access import get_url, AccessIssueException
 from basin3d.core.models import AbsoluteCoordinate, RepresentativeCoordinate, Coordinate, GeographicCoordinate, \
     DepthCoordinate, VerticalCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, \
     TimeMetadataMixin, TimeValuePair, ResultListTVP, AttributeMapping
@@ -162,6 +162,9 @@ def _get_location_info(loc_type: str, loc_list: list, synthesis_messages: list =
     except TimeoutError as e:
         fail_over = True
         msg = f'WFS Geoserver timed out, fail over to WQP Station request\nError: {e}'
+    except AccessIssueException as e:
+        fail_over = True
+        msg = f'WFS Geoserver did not respond appropriately, fail over to WQP Station request\nError: {e}'
     except Exception as e:
         fail_over = True
         msg = f'WFS Geoserver did not respond appropriately, fail over to WQP Station request\nError: {e}'
@@ -169,7 +172,6 @@ def _get_location_info(loc_type: str, loc_list: list, synthesis_messages: list =
     if fail_over:
         logger.warning(msg)
         synthesis_messages.append(msg)
-        print(msg)
         loc_info_list.extend(_get_location_info_csv(loc_type, loc_list, synthesis_messages))
 
     return loc_info_list
@@ -269,9 +271,10 @@ def _get_location_info_ogc(loc_str: str, synthesis_messages: list) -> list:
         error_code = 'NO RESPONSE'
         if result and result.status_code:
             error_code = result.status_code
-        msg = f'EPA WQX {url} returned error code {error_code}'
-        logger.warning(msg)
-        synthesis_messages.append(msg)
+        msg = f'EPA WQX {url} returned error code {error_code}. Trying fail over.'
+        # Raise exception that will be caught in the _get_location_info try/except code block.
+        #   The exception will be caught and the msg will be reported in the failover attempt.
+        raise AccessIssueException(msg)
 
     return loc_info_list
 
