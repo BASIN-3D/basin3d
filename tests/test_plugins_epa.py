@@ -53,6 +53,13 @@ def mock_post_wqp(dummyarg1, dummyarg2, dummyarg3):
         "url": "/testurl"})
 
 
+def mock_get_url_400(dummyarg, **kwargs):
+    return type('Dummy', (object,), {
+        # "iter_lines": response_iter_lines,
+        "status_code": 400,
+        "url": "/testurl"})
+
+
 @pytest.mark.parametrize("query, expected_msg",
                          [({"feature_type": "region"}, "Feature type REGION not supported by EPA Water Quality eXchange."),
                           ({"feature_type": "point"}, "EPA Water Quality eXchange requires either a parent feature or monitoring feature be specified in the query."),
@@ -121,15 +128,23 @@ def test_epa_monitoring_features(query, resource_file, loc_csv_resource, expecte
     assert count == expected_count
 
 
-@pytest.mark.parametrize("query, loc_csv_resource, expected_count, expected_synthesis_messages",
-                         [({"parent_feature": "EPA-14020001"}, "epa_station14020001.csv", 365,
+@pytest.mark.parametrize("fail_over_type, query, loc_csv_resource, expected_count, expected_synthesis_messages",
+                         [("timeout", {"parent_feature": "EPA-14020001"}, "epa_station14020001.csv", 365,
                            ['WFS Geoserver timed out, fail over to WQP Station request\nError: mock time_out']),
+                          ("bad_return", {"parent_feature": "EPA-14020001"}, "epa_station14020001.csv", 365,
+                           ['WFS Geoserver did not respond appropriately, fail over to WQP Station request\nError: '
+                            'EPA WQX https://www.waterqualitydata.us/ogcservices/wfs/?request=GetFeature&service=wfs&'
+                            'version=2.0.0&typeNames=wqp_sites&SEARCHPARAMS=huc%3A14020001%3Bproviders%3ASTORET&output'
+                            'Format=application%2Fjson returned error code 400. Trying fail over.']),
                           ],
-                         ids=["huc-14020001"])
-def test_get_monitoring_features_fail_over_v2_2(query, loc_csv_resource, expected_count, expected_synthesis_messages, monkeypatch):
+                         ids=["timeout", "bad_return"])
+def test_get_monitoring_features_fail_over_v2_2(fail_over_type, query, loc_csv_resource, expected_count, expected_synthesis_messages, monkeypatch):
 
     monkeypatch.setattr(basin3d.plugins.epa, 'EPA_WQP_API_VERSION', '2.2')
-    monkeypatch.setattr(basin3d.plugins.epa, 'get_url', mock_timeout_error)
+    if fail_over_type == "timeout":
+        monkeypatch.setattr(basin3d.plugins.epa, 'get_url', mock_timeout_error)
+    else:
+        monkeypatch.setattr(basin3d.plugins.epa, 'get_url', mock_get_url_400)
 
     def get_csv_dict(dummyvar):
         with open(os.path.join(dirname(__file__), "resources", "epa_v2-2", loc_csv_resource)) as data_file:

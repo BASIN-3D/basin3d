@@ -17,6 +17,11 @@ from basin3d.core import monitor
 logger = monitor.get_logger(__name__)
 
 
+class AccessIssueException(Exception):
+    """ Special exception for data source access issues """
+    pass
+
+
 def get_url(url, params=None, headers=None, verify=True, **kwargs):
     """
     Send a GET request to the specified URL.  Note look up extra

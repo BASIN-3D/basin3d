@@ -13,7 +13,7 @@ from basin3d.synthesis import register
 
 @pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count",
-                         [({"parent_feature": "EPA-1402"}, 2485),
+                         [({"parent_feature": "EPA-1402"}, 2488),
                           ({"parent_feature": "EPA-14020001"}, 365),
                           ({"parent_feature": "EPA-1402000101"}, 40),
                           ({"parent_feature": "EPA-140200010101"}, 3),
@@ -168,10 +168,16 @@ def test_measurement_timeseries_tvp_observations_epa_v2_2(additional_filters, ex
             if expected_msgs and 'EPA: No resultPhysChem results matched the query' in expected_msgs:
                 assert 'EPA: No resultPhysChem results matched the query' in msg.msg
             else:
+                if 'WFS Geoserver did not respond' in msg.msg:
+                    # ignore the fail over if present
+                    continue
                 assert msg.msg in expected_msgs
             print(msg.msg)
         if not expected_msgs:
-            assert msgs == []
+            if msgs:
+                assert len(msgs) == 1 and 'WFS Geoserver did not respond' in msgs[0].msg
+            else:
+                assert msgs == []
     else:
         pytest.fail("Returned object must be iterator")
 
