@@ -220,7 +220,7 @@ def _get_location_info_csv(loc_type: str, loc_list: list, synthesis_messages: li
         properties_provider = row_dict.get(FIELD_NAMES['provider'][api_version])
 
         loc_info.append({
-            'geometry': {'type': 'Point', 'coordinates': [geometry_coord_lat, geometry_coord_long]},
+            'geometry': {'type': 'Point', 'coordinates': [geometry_coord_long, geometry_coord_lat]},
             'properties': {'name': properties_name, 'locName': properties_loc_name,
                            'huc8': properties_huc8, 'orgName': properties_org_name,
                            'provider': properties_provider}})
@@ -309,7 +309,7 @@ def _make_monitoring_feature_object(plugin_access: DataSourcePluginAccess, loc_i
         feature_type=FeatureTypeEnum.POINT,
         shape=SpatialSamplingShapes.SHAPE_POINT)
 
-    coord: list = loc_geometry.get('coordinates')
+    coord: list = loc_geometry.get('coordinates')  # type: ignore
     if coord:
         monitoring_feature.coordinates = Coordinate(
             absolute=AbsoluteCoordinate(horizontal_position=GeographicCoordinate(
