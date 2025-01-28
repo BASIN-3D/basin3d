@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.1.2
+Bug fix and enhancement to correctly handle locations acquisition in EPA plugin  
+
++ Issue #209 - Catch 400 response status in fail over to csv locations query
++ Issue #210 - EPA plugin: csv endpoint for locations - lat long switched
+
 ## Version 1.1.1
 Bug fix to set and handle environment variables properly 
 
