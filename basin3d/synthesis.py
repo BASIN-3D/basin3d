@@ -221,6 +221,16 @@ class DataSynthesizer:
         USGS-13010000 [(-110.6647222, 44.1336111)]
         USGS-13010450 [(-110.5874305, 43.9038296)]
 
+        **Search for USGS points by monitoring feature bounding boxes:**
+
+        >>> for mf in synthesizer.monitoring_features(feature_type='point', monitoring_feature=[(-90.6, -90.5, 34.4, 34.6), (-106.7, -106.5, 38.9, 39.0)]): # doctest: +ELLIPSIS
+        ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
+        USGS-07047970 [(-90.583994, 34.52399175)]
+        USGS-07287700 [(-90.5302222, 34.48425)]
+        USGS-09106800 [(-106.6009444, 38.92469444)]
+
+        Note: Monitoring feature identifiers and bounding boxes can be combined in the monitoring_feature argument.
+
         **Unsupported feature types warning:**
 
         The code below is an example of what you will see if a registered plugin does not support
@@ -256,7 +266,7 @@ class DataSynthesizer:
             | Only one of the following can be specified in a query:
             |
             |    * **id** A single Monitoring Feature ID for the Monitoring Feature desired. Returns a single Synthesis Response object.
-            |    * **monitoring_feature** List of Monitoring Feature IDs for the Monitoring Features desired. Returns iterator of MonitoringFeature objects.
+            |    * **monitoring_feature** List of Monitoring Feature IDs for the Monitoring Features desired and / or sets of bounding box coordinates (WGS84: western longitude, eastern longitude, southern latitude, northern latitude). Returns iterator of MonitoringFeature objects.
             |    * **parent_feature** List of Monitoring Feature IDs for the parent features of the desired Monitoring Features. Returns iterator of MonitoringFeature objects.
 
 
@@ -311,16 +321,16 @@ class DataSynthesizer:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
 
-            **Search with aggregation duration NONE:**
+            **Search with aggregation duration NONE, using both a monitoring feature identifier and bounding box:**
 
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
             >>> synthesizer = synthesis.register()
-            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=["USGS-09110990", "USGS-09111250"],observed_property=['RDC','WT'],start_date='2020-04-01',end_date='2020-04-30',aggregation_duration='NONE')
+            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=["USGS-09110990", (-106.7, -106.5, 38.9, 39.0)],observed_property=['RDC','WT'],start_date='2024-04-01',end_date='2024-04-30',aggregation_duration='NONE')
             >>> for timeseries in timeseries:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
-            USGS-09111250 - RDC
+            USGS-09106800 - RDC
 
         :param query: (optional) :class:`basin3d.core.schema.query.QueryMeasurementTimeseriesTVP` object
         :param kwargs: (required) Measurement Timeseries TVP Query parameters. See Query info below.
@@ -332,7 +342,7 @@ class DataSynthesizer:
 
             | Required arguments:
             |
-            |    * **monitoring_feature** List of monitoring features id(s)
+            |    * **monitoring_feature** List of monitoring features id(s) and / or sets of bounding box coordinates (WGS84: western longitude, eastern longitude, southern latitude, northern latitude)
             |    * **observed_property** List of observed property(ies), i.e., BASIN-3D observed property vocabulary. See :func:`basin3d.synthesis.DataSynthesizer.observed_properties`
             |    * **start_date** Start date YYYY-MM-DD
             |

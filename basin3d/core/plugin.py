@@ -43,6 +43,27 @@ def get_feature_type(feature_type, return_format="enum"):
     return None
 
 
+def separate_list_types(input_list: list, separate_types: dict) -> dict:
+    """
+    Utility function to separate types in a list.
+    Initial use case: separate text and tuples in montoring_features
+
+    :param input_list: list to separate
+    :param separate_types: dictionary of types; key: type
+    :return: dict
+    """
+    separated_lists = {}  # type: ignore[var-annotated]
+    for type_name in separate_types.keys():
+        separated_lists.update({type_name: []})
+
+    for list_element in input_list:
+        for type_name, element_type in separate_types.items():
+            if isinstance(list_element, element_type):
+                separated_lists[type_name].append(list_element)
+
+    return separated_lists
+
+
 class DataSourcePluginAccess:
     """
     Metaclass for DataSource plugin views.  The should be registered in a subclass of

@@ -13,7 +13,7 @@ from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordina
     GeographicCoordinate, HorizontalCoordinate, RepresentativeCoordinate, \
     MeasurementTimeseriesTVPObservation, MonitoringFeature, \
     TimeMetadataMixin, TimeValuePair, ResultListTVP
-from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin
+from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, separate_list_types
 from basin3d.core.types import SpatialSamplingShapes
 
 logger = monitor.get_logger(__name__)
@@ -1439,7 +1439,12 @@ class ESSDIVEMonitoringFeatureAccess(DataSourcePluginAccess):
 
         mf_ids = []
         if query.monitoring_feature:
-            mf_ids = query.monitoring_feature
+            mf_separated_lists = separate_list_types(query.monitoring_feature, {'ids': str, 'tuple': tuple})
+            mf_ids = mf_separated_lists.get('ids', [])
+
+            if mf_separated_lists.get('tuple', []):
+                logger.info(f'Data source {self.datasource.id} does not support filtering by geographic bounding boxes. The specified bounding box criteria will be ignored.')
+
         elif query.id:
             mf_ids = [query.id]
 
@@ -1493,12 +1498,22 @@ class ESSDIVEMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         end_date: Optional[pd.Timestamp] = None
         if query.end_date:
             end_date = pd.Timestamp(query.end_date)
-        mf_locations = query.monitoring_feature
+
+        mf_separated_list = separate_list_types(query.monitoring_feature, {'ids': str, 'tuple': tuple})
+        mf_locations = mf_separated_list.get('ids', [])
+
+        if mf_separated_list.get('tuple', []):
+            logger.info(f'Data source {self.datasource.id} does not support filtering by geographic bounding boxes. The specified bounding box criteria will be ignored.')
+
+        if not mf_locations:
+            logger.info(f'Data source {self.datasource.id} requires specification of monitoring feature identifier.')
+            yield
+
         mf_datasets = _extract_ds_id(mf_locations)
 
         datasets = _ess_dive_datasets_handler()
 
-        location_store = _build_locations_store(datasets, mf_locations=query.monitoring_feature)
+        location_store = _build_locations_store(datasets, mf_locations=mf_locations)
 
         for ds_key, ds_info in datasets.items():
             ds_id, ds_pid = ds_key

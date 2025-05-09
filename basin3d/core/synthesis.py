@@ -333,7 +333,7 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
     * *datasource (optional):* str, a single data source id prefix
     * *id (optional):* str, a single monitoring feature id. Cannot be combined with monitoring_feature
     * *parent_feature (optional)*: list, a list of parent feature ids. Plugin must have this functionality enabled.
-    * *monitoring_feature (optional)*: list, a list of monitoring feature ids. Cannot be combined with id, which will take precedence.
+    * *monitoring_feature (optional)*: list, a list of monitoring feature ids and / or bounding box coordinates (WGS84: western longitude, eastern longitude, southern latitude, northern latitude). Cannot be combined with id, which will take precedence.
 
     """
     synthesis_model = MonitoringFeature
@@ -369,10 +369,19 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
 
         # remove monitoring_feature specification (i.e., id takes precedence)
         if query.monitoring_feature:
-            mf_text = ', '.join(query.monitoring_feature)
+            mf_strs = []
+            for idx, mf in enumerate(query.monitoring_feature):
+                try:
+                    mf_strs.append(str(mf))
+                except Exception:
+                    mf_strs.append('Cannot parse monitoring_feature value')
+
+            mf_text = ', '.join(mf_strs)
+
             query.monitoring_feature = None
             msg.append(self.log(f'Monitoring Feature query has both id {query.id} and monitoring_feature {mf_text} '
-                                f'specified. Removing monitoring_feature and using id.', MessageLevelEnum.WARN))
+                                f'specified. Removing monitoring_feature'
+                                f' and using id.', MessageLevelEnum.WARN))
 
         # retrieve / get method order should be: MonitoringFeatureAccess, DataSourceModelAccess, <plugin>MonitoringFeatureAccess.get
         synthesis_response: SynthesisResponse = super().retrieve(query=query, messages=msg)
@@ -402,7 +411,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
 
     **Filter** by the following attributes:
 
-    * *monitoring_feature (required):* List of monitoring_features ids
+    * *monitoring_feature (required):* List of monitoring_features ids, and / or bounding box coordinates (WGS84: western longitude, eastern longitude, southern latitude, northern latitude)
     * *observed_property (required):* List of observed property variable ids
     * *start_date (required):* date YYYY-MM-DD
     * *end_date (optional):* date YYYY-MM-DD

@@ -13,7 +13,7 @@ from basin3d.synthesis import register
 
 @pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count",
-                         [({"parent_feature": "EPA-1402"}, 2488),
+                         [({"parent_feature": "EPA-1402"}, 2492),
                           ({"parent_feature": "EPA-14020001"}, 365),
                           ({"parent_feature": "EPA-1402000101"}, 40),
                           ({"parent_feature": "EPA-140200010101"}, 3),
@@ -21,10 +21,11 @@ from basin3d.synthesis import register
                           ({"monitoring_feature": ['EPA-WIDNR_WQX-001', 'EPA-11NPSWRD_WQX-BLCA_NURE_0002', 'EPA-CCWC-MM-29 WASH #3']}, 3),
                           ({"monitoring_feature": ['EPA-WIDNR_WQX-001', 'EPA-invalid']}, 1),
                           ({"monitoring_feature": ['EPA-invalid']}, 0),
-                          ({"parent_feature": ['EPA-1402001']}, 0)
+                          ({"parent_feature": ['EPA-1402001']}, 0),
+                          ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)]}, 0),
                           ],
                          ids=["huc-wildcard", "huc-8", "huc-10", "huc-12", "single-mf", "multiple-mf", "one-invalid-mf",
-                              "mf-invalid", "huc-invalid"])
+                              "mf-invalid", "huc-invalid", "unsupported-geocoord"])
 def test_epa_monitoring_features(query, expected_count):
     """ Test EPA monitoring feature list """
 
@@ -109,8 +110,12 @@ site_list_test = ['EPA-CCWC-COAL-26', 'EPA-CORIVWCH_WQX-650', 'EPA-CCWC-COAL-00'
                              ({"monitoring_feature": ["EPA-21COL001-00058"], "observed_property": ["Hg"]},
                               {"statistic": None, "result_quality": [], "aggregation_duration": None, "count": 0,
                                "synthesis_msgs": ["EPA: No resultPhysChem results matched the query"]}),
+                             # unsupported-geocoord
+                             ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "observed_property": ["Hg"]},
+                              {"statistic": None, "result_quality": [], "aggregation_duration": None, "count": 0,
+                               "synthesis_msgs": ["Data source EPA requires specification of monitoring feature identifier."]}),
                          ],
-                         ids=['all-good', 'all-good-2', 'filter-stat-no-spec', 'empty_return'])
+                         ids=['all-good', 'all-good-2', 'filter-stat-no-spec', 'empty_return', 'unsupported-geocoord'])
 def test_measurement_timeseries_tvp_observations_epa_v2_2(additional_filters, expected_results, monkeypatch):
     """
     Test EPA Timeseries data query for API version 2.2

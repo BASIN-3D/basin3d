@@ -72,15 +72,16 @@ Option 1: Specify a `USGS HUC <https://water.usgs.gov/GIS/huc.html>`_ 2, 4, 6, 8
     USGS-09107500 --- TEXAS CREEK AT TAYLOR PARK, CO
     ...
 
-Option 2: Specify one or more USGS HUC codes, prefixed by "USGS-", in the monitoring_feature argument, and the feature_type.
+Option 2: Specify one or more USGS HUC codes, prefixed by "USGS-", and / or sets of bounding box coordinates (WGS84: western longitude, eastern longitude, southern latitude, northern latitude) in the monitoring_feature argument, and the feature_type.
 
 .. code-block::
 
-    >>> monitoring_features = synthesizer.monitoring_features(monitoring_feature=['USGS-13010000', 'USGS-385508107021201'], feature_type='POINT')
+    >>> monitoring_features = synthesizer.monitoring_features(monitoring_feature=['USGS-13010000', 'USGS-385508107021201', (-106.7, -106.5, 38.9, 39.0)], feature_type='POINT')
     >>> for monitoring_feature in monitoring_features:
     >>>     print(f'{monitoring_feature.id} --- {monitoring_feature.name}')
     USGS-13010000 --- SNAKE RIVER AT S BOUNDARY OF YELLOWSTONE NATL PARK
     USGS-385508107021201 --- SLATE RIVER ABV O-B-J CREEK (SR2) NR CRESTED BUTTE
+    USGS-09106800 --- TAYLOR RIVER ABOVE TRAIL CREEK NR TAYLOR PARK, CO
 
 Option 3: Specify a feature_type. For example, to find the USGS REGIONs (2-digit huc codes):
 
@@ -296,6 +297,7 @@ Location Considerations
   * All locations are considered POINT locations.
   * Height and depth references do not seem to be standardized and are not consistently reported. When it is, it is not captured in the BASIN-3D objects.
   * EPA location identifiers may be acquired using USGS HUC codes in the :class:`basin3d.core.schema.query.QueryMonitoringFeature` parent_feature attribute. See example above.
+  * Selecting locations by bounding box coordinates is not yet enabled.
 
 
 Section 4: Data Source Info
@@ -464,6 +466,7 @@ Location considerations
   * BASIN-3D monitoring feature identifiers are constructed as follows: ESSDIVE-<location_grouping_code>-<dataset_location_id>, where the *dataset_location_identifier* is either the provided Site_ID or the constructed lat / long ID. *location_grouping_code* is described in Section 1.
   * Sensor_ID is not considered a unique location identifier. Different lat, long, depth/elevation values must be used to distinguish separate locations. If multiple sensors are deployed as replicates at the same location, their data will be returned in separate time series objects with the same location information.
   * The plugin does not validate consistency of Site_ID and lat / long coordinates. The reporting format allows for location information to be specified repeatedly in multiple places within the various files. Only one location per Site_ID is generated. All others with the same Site_ID that encountered afterward are ignored.
+  * Selecting locations by bounding box coordinates is not supported.
 
 Section 4: Data Source Info
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
