@@ -17,10 +17,22 @@ from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonito
                                            ({"feature_type": 'FOO'}, True),
                                            ({"datasource": 'FOO'}, False),
                                            ({"id": 'foo'}, False),
-                                           ({"id": ['foo']}, True)],
+                                           ({"id": ['foo']}, True),
+                                           ({"monitoring_feature": ['hey']}, False),
+                                           ({"monitoring_feature": [(1, 2, 3, 4)]}, False),
+                                           ({"monitoring_feature": [(1, 2, 3, 4), 'hey']}, False),
+                                           ({"monitoring_feature": [(1, 2, 3)]}, True),
+                                           ({"monitoring_feature": [(1, 2, 3, 'hey')]}, True),
+                                           ({"monitoring_feature": [('one', '2', '3', '4')]}, True),
+                                           ({"monitoring_feature": [('1', '2', '3', '4')]}, True),  # ToDo: figure out why [('1', '2', '3', '4')] is valid
+                                           ({"monitoring_feature": [(2, 1, 2, 3)]}, True),
+                                           ({"monitoring_feature": [(1, 2, 3, 4), (-14, 5, 4, 5)]}, False),
+                                           ],
                          ids=["empty", "valid1", "valid2", "feature-type-valid", "feature-type-invalid",
-                              "datasource-invalid", "id-valid", "id-invalid"])
-def test_query_monitoring_feature(params, error):
+                              "datasource-invalid", "id-valid", "id-invalid", "mf-valid", "bbox-valid", "mf-mix-valid",
+                              "bbox-short-tuple-invalid", "bbox-malformed-invalid", "bbox-str-tuple",
+                              "bbox-str-float-tuple", "bbox-bad-coord-invalid", "bboxes-valid"])  # , "bbox-true"
+def test_query_schema_monitoring_feature(params, error):
     """Test the monitoring feature query dataclass"""
     if not error:
         query = QueryMonitoringFeature(**params)

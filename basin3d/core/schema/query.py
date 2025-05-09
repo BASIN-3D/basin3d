@@ -14,7 +14,7 @@
 
 """
 from datetime import date
-from typing import ClassVar, List, Optional, Union
+from typing import ClassVar, List, Optional, Union, Tuple, Dict, Any
 
 from pydantic import BaseModel, Field
 
@@ -29,6 +29,54 @@ def _to_camelcase(string) -> str:
         :return:
         """
     return "".join(i and s[0].upper() + s[1:] or s for i, s in enumerate(string.split("_")))
+
+
+class MonitoringFeatureIdentifier(str):
+
+    @classmethod
+    def __modify_schema__(cls, field_schema: Dict[str, Any]) -> None:
+        field_schema.update(
+            type="str",
+            description="Monitoring feature identifier prefixed by the datasource")
+
+
+class WGS84BoundingBox(Tuple[float, float, float, float]):
+    """
+    Custom type for a geographic bounding box in WGS84 (ESPG:4326) defined by
+    west longitude, east longitude, south latitude, north latitude
+    (or left side, right side, bottom side, top side)
+    """
+
+    @classmethod
+    def __modify_schema__(cls, field_schema: Dict[str, Any]) -> None:
+        field_schema.update(
+            type="array",
+            items={"type": "number"},
+            minItems=4,
+            maxItems=4,
+            description="Geographic bounding box defined by WGS84 (ESPG:4326) "
+                        "west longitude, east longitude, south latitude, north latitude "
+                        "(or left side, right side, bottom side, top side)"
+        )
+
+
+class BoundingBox(BaseModel):
+    value: WGS84BoundingBox = Field(description='Geographical bounding box')
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate_bounding_box
+
+    @staticmethod
+    def validate_bounding_box(value: WGS84BoundingBox) -> WGS84BoundingBox:
+        min_long, max_long, min_lat, max_lat = value
+        if any([not isinstance(coord, float) and not isinstance(coord, int) for coord in [min_long, max_long, min_lat, max_lat]]):
+            raise ValueError("Bounding Box coordinate values must be numeric")
+        if min_long > max_long:
+            raise ValueError("west longitude must be less than east longitude")
+        if min_lat > max_lat:
+            raise ValueError("south latitude must be less than north latitude")
+        return value
 
 
 class QueryBase(BaseModel):
@@ -76,8 +124,8 @@ class QueryMonitoringFeature(QueryBase):
     # optional but id (QueryBase) is required to query by named monitoring feature
     feature_type: Optional[FeatureTypeEnum] = Field(title="Feature Type",
                                                     description="Filter results by the specified feature type.")
-    monitoring_feature: Optional[List[str]] = Field(title="Monitoring Features",
-                                                    description="Filter by the list of monitoring feature identifiers")
+    monitoring_feature: Optional[List[Union[MonitoringFeatureIdentifier, BoundingBox]]] = Field(title="Monitoring Features",
+                                                                                                description="Filter by the list of monitoring feature identifiers")
     parent_feature: Optional[List[str]] = Field(title="Parent Monitoring Features",
                                                 description="Filter by the list of parent monitoring feature identifiers")
 
@@ -93,6 +141,11 @@ class QueryMonitoringFeature(QueryBase):
             if field in data and data[field] and isinstance(data[field], str):
                 data[field] = list([data[field]])
 
+        # convert tuple to lists for some fields; the camel case is for Pydantic validation
+        for field in ["monitoring_feature", "monitoringFeature"]:
+            if field in data and data[field] and isinstance(data[field], tuple):
+                data[field] = list([data[field]])
+
         # To upper for feature type
         for field in ["featureType", "feature_type"]:
             if field in data and data[field]:
@@ -105,8 +158,11 @@ class QueryMonitoringFeature(QueryBase):
 class QueryMeasurementTimeseriesTVP(QueryBase):
     """Query :class:`basin3d.core.models.MeasurementTimeseriesTVP`"""
     # required
-    monitoring_feature: List[str] = Field(min_items=1, title="Monitoring Features",
-                                          description="Filter by the list of monitoring feature identifiers")
+    monitoring_feature: List[Union[MonitoringFeatureIdentifier, BoundingBox]] = Field(min_items=1, title="Monitoring Features",
+                                                                                      description="Filter by the list of monitoring feature identifiers "
+                                                                                                  "and / or tuples that describe a location bounding box in WGS84 (ESPG:4326): "
+                                                                                                  "(west longitude, east longitude, south latitude, north latitude) "
+                                                                                                  "or (left side, right side, bottom side, top side)")
     observed_property: List[str] = Field(min_items=1, title="Observed Property Variables",
                                          description="Filter by the list of observed property variables")
     start_date: date = Field(title="Start Date", description="Filter by data taken on or after the start date")

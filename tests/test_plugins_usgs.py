@@ -45,8 +45,10 @@ def get_url_text(text, status=200):
 
 @pytest.mark.parametrize('additional_query_params',
                          [({"monitoring_feature": ["USGS-09110990", "USGS-09111250"], "observed_property": []}),
+                          ({"monitoring_feature": [(4, 2, 2)], "observed_property": ["RDC"]}),
+                          ({"monitoring_feature": [(4, 2, 2, 3)], "observed_property": ["RDC"]}),
                           ({"observed_property": ["RDC"]})],
-                         ids=['missing-variables', 'missing-monitoring_features'])
+                         ids=['missing-variables', 'malformed_mf', 'malformed_bbox-mf', 'missing-monitoring_features'])
 def test_measurement_timeseries_tvp_observations_usgs_errors(additional_query_params, monkeypatch):
     """ Test USGS Timeseries data query"""
 
@@ -67,32 +69,50 @@ def test_measurement_timeseries_tvp_observations_usgs_errors(additional_query_pa
         synthesizer.measurement_timeseries_tvp_observations(**query)
 
 
-@pytest.mark.parametrize('additional_filters, usgs_response, expected_results',
+@pytest.mark.parametrize('additional_filters, usgs_response, usgs_resources2, expected_results',
                          [
-                          # all-good
+                          # all-good-mf-single-bbox
+                          ({"monitoring_feature": [(-106.9, -106.8, 38.65, 38.67)], "observed_property": ["RDC"], "result_quality": [ResultQualityEnum.VALIDATED], "start_date": "2023-04-01", "end_date": "2023-04-10"},
+                           ["usgs_mtvp_bbox1.rdb", "usgs_get_data_bbox1.json"], [],
+                           {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED, ResultQualityEnum.VALIDATED], "mvp_count": 2, "result_count": [10, 10], "missing_values_count": [0, 0]}),
+                          # all-good-mf-multi-bbox
+                          ({"monitoring_feature": [(-106.9, -106.8, 38.65, 38.67), (-106.7, -106.5, 38.9, 39.0)], "observed_property": ["RDC"], "start_date": "2024-04-01", "end_date": "2024-04-10"},
+                           ["usgs_mtvp_bbox1.rdb", "usgs_get_data_bbox1_202404.json"], ["usgs_mf_query_point_single_bbox.rdb", "usgs_get_data_bbox2_202404.json"],
+                           {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED, ResultQualityEnum.VALIDATED, ResultQualityEnum.UNVALIDATED], "mvp_count": 3, "result_count": [10, 10, 10], "missing_values_count": [0, 0, 0]}),
+                          # all-good-mf-full-overlap
+                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09106800"], "observed_property": ["RDC"], "start_date": "2024-04-01", "end_date": "2024-04-10"},
+                           ["usgs_monitoring_feature_query_mix_overlap_09106800.rdb", "usgs_get_data_bbox2_202404.json"], ["usgs_mf_query_point_single_bbox.rdb", "usgs_get_data_bbox2_202404.json"],
+                           {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.UNVALIDATED], "mvp_count": 1, "result_count": [10], "missing_values_count": [0]}),
+                          # all-good-mf-strings
                           ({"monitoring_feature": ["USGS-09110990", "USGS-09111250"], "observed_property": ["RDC"], "result_quality": [ResultQualityEnum.VALIDATED], "start_date": "2020-04-01", "end_date": "2020-04-30"},
-                           "usgs_nwis_dv_p00060_l09110990_l09111250.json", {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED], "mvp_count": 2, "result_count": [30, 30], "missing_values_count": [0, 0]}),
+                            ["usgs_mtvp_sites.rdb", "usgs_nwis_dv_p00060_l09110990_l09111250.json"], [],
+                            {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED, ResultQualityEnum.VALIDATED], "mvp_count": 2, "result_count": [30, 30], "missing_values_count": [0, 0]}),
                           # some-quality-filtered-data
                           ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["WT"], "result_quality": [ResultQualityEnum.UNVALIDATED], "start_date": "2020-04-01", "end_date": "2020-04-30"},
-                           "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json",
+                           ["usgs_mtvp_sites.rdb", "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json"], [],
                            {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.UNVALIDATED], "mvp_count": 1, "result_count": [2], "missing_values_count": [0],
                             "synthesis_msgs": ['09110000 - 00010: 2 timestamps did not match data quality query.']}),
                           # all-data-filtered
                           ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["WT"], "result_quality": [ResultQualityEnum.REJECTED], "start_date": "2020-04-01", "end_date": "2020-04-30"},
-                           "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json",
+                           ["usgs_mtvp_sites.rdb", "usgs_get_data_09110000_VALIDATED_UNVALIDATED_WT_only.json"], [],
                            {"mvp_count": 0, "result_count": [0], "missing_values_count": [0], "synthesis_msgs": []}),
                           # all-data-filtered
                           ({"monitoring_feature": ["USGS-09110990"], "observed_property": ["RDC"], "start_date": "2023-04-01", "end_date": "2023-04-10"},
-                           "usgs_get_data_09110000_missing_vals.json",
+                           ["usgs_mtvp_sites.rdb", "usgs_get_data_09110000_missing_vals.json"], [],
                            {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.UNVALIDATED], "mvp_count": 1, "result_count": [10], "missing_values_count": [7],
                             "synthesis_msgs": []}),
                          ],
-                         ids=['all-good', 'some-quality-filtered-data', 'missing-mapping', 'missing-values'])
-def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_response, expected_results, monkeypatch):
+                         ids=['all-good-mf-single-bbox', 'all-good-mf-multi-bbox', 'all-good-mf-full-overlap',
+                              'all-good-mf-strings', 'some-quality-filtered-data', 'missing-mapping', 'missing-values'])
+def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_response, usgs_resources2, expected_results, monkeypatch):
     """ Test USGS Timeseries data query"""
 
-    mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("usgs_mtvp_sites.rdb")),
-                                               get_url(get_json(usgs_response))]))
+    resources = [get_url_text(get_text(usgs_response[0])), get_url(get_json(usgs_response[1]))]
+    if usgs_resources2:
+        resources = [get_url_text(get_text(usgs_response[0])), get_url_text(get_text(usgs_resources2[0])),
+                     get_url(get_json(usgs_response[1])), get_url(get_json(usgs_resources2[1]))]
+
+    mock_get_url = MagicMock(side_effect=list(resources))
 
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
@@ -110,8 +130,8 @@ def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_r
         for timeseries in measurement_timeseries_tvp_observations:
             data = json.loads(timeseries.to_json())
             assert data["statistic"]["attr_mapping"]["basin3d_vocab"] == expected_results.get("statistic")
-            for idx, result_quality in enumerate(data["result_quality"]):
-                assert result_quality["attr_mapping"]["basin3d_vocab"] == expected_results.get("result_quality")[idx]
+            for result_quality in data["result_quality"]:
+                assert result_quality["attr_mapping"]["basin3d_vocab"] == expected_results.get("result_quality")[mvp_count]
             result_count = 0
             missing_value_count = 0
             for result_value in data["result"]["value"]:
@@ -192,7 +212,7 @@ def test_usgs_monitoring_feature2(query, feature_type, monkeypatch):
                          ids=["all", "region_by_id", "region", "subregion", "basin", "subbasin", "watershed", "subwatershed",
                               "site", "plot", "vertical_path", "horizontal_path", "all_by_region", "subbasin_by_subregion"])
 def test_usgs_monitoring_features(query, expected_count, monkeypatch):
-    """Test USGS search by region  """
+    """Test USGS non-point features"""
 
     mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("new_huc_rdb.txt"))]))
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
@@ -214,10 +234,10 @@ def test_usgs_monitoring_features(query, expected_count, monkeypatch):
     assert count == expected_count
 
 
-@pytest.mark.parametrize("query, expected_count", [({"parent_feature": ['USGS-02020004'], "feature_type": "point"}, 52)],
+@pytest.mark.parametrize("query, expected_count", [({"parent_feature": ['USGS-02020004'], "feature_type": "point"}, 54)],
                          ids=["points_by_subbasin"])
 def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
-    """Test USGS search by region  """
+    """Test USGS points by subbasin"""
 
     mock_get_url = MagicMock(side_effect=list([
         get_url_text(get_text("usgs_monitoring_features_query_point_02020004.rdb"))]))
@@ -238,28 +258,51 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
     assert count == expected_count
 
 
-@pytest.mark.parametrize("query, expected_count", [({"monitoring_feature": ["USGS-09129600"], "feature_type": "point"}, 1)],
-                         ids=["point_by_id"])
-def test_usgs_monitoring_features3(query, expected_count, monkeypatch):
-    """Test USGS search by region  """
+@pytest.mark.parametrize("query, resource, resource2, expected_count, expected_site_set",
+                         [({"monitoring_feature": ["USGS-09129600"], "feature_type": "point"}, "usgs_monitoring_feature_query_point_rdb_09129600.rdb", [], 1, ("USGS-09129600", )),
+                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0)], "feature_type": "point"}, "usgs_mf_query_point_single_bbox.rdb", [], 1, ("USGS-09106800", )),  # bbox with single return
+                          ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "feature_type": "point"}, "usgs_mf_query_point_single_bbox_many_sites.rdb", [], 57, None),  # bbox with multiple returns
+                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), (-106.7, -106.5, 38.5, 39.0)], "feature_type": "point"},
+                            "usgs_mf_query_point_single_bbox.rdb", ["usgs_mf_query_point_2_bbox_overlap.rdb"], 8, None),  # bbox with complete overlap
+                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09129600"], "feature_type": "point"},
+                            "usgs_monitoring_feature_query_point_rdb_09129600.rdb", ["usgs_mf_query_point_single_bbox.rdb"], 2, ("USGS-09106800", "USGS-09129600")),  # bbox and string mix
+                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09106800"], "feature_type": "point"},
+                           "usgs_monitoring_feature_query_mix_overlap_09106800.rdb", ["usgs_mf_query_point_single_bbox.rdb"], 1, ("USGS-09106800", )),  # bbox and string overlap
+                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09106800", "USGS-09110000", (-90.6, -90.5, 34.4, 34.6), "USGS-09107000"], "feature_type": "point"},
+                           "usgs_mf_query_point_3_strings.rdb", ["usgs_mf_query_point_single_bbox.rdb", "usgs_mf_query_point_single_bbox2.rdb"],
+                           5, ("USGS-09106800", "USGS-09107000", "USGS-09110000", "USGS-07047970", "USGS-07287700")),  # bboxs and strs with overlap
+                          ({"monitoring_feature": [(-106.71, -106.7, 38.58, 39.59)], "feature_type": "point"}, "usgs_mf_query_bbox_empty.rdb", [], 0, None),  # bbox with no returns
+                          ({"datasource": "FOO", "monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "feature_type": "point"}, "usgs_mf_query_bbox_empty.rdb", [], 0, None),  # bbox and wrong datasource
+                          ],
+                         ids=["point_by_id", "single_bbox_one_site", "single_bbox_many_sites", "2_bbox_overlap", "mix", "mix_overlap", "mix_many_overlap", "empty", "wrong-datasource"])
+def test_usgs_monitoring_features3(query, resource, resource2, expected_count, expected_site_set, monkeypatch):
+    """Test USGS point by id"""
 
-    mock_get_url = MagicMock(side_effect=list([
-        get_url_text(get_text("usgs_monitoring_feature_query_point_rdb_09129600.rdb"))]))
+    resources = [get_url_text(get_text(resource))]
+    if resource2:
+        for rr in resource2:
+            resources.append(get_url_text(get_text(rr)))
+
+    mock_get_url = MagicMock(side_effect=list(resources))
 
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     monitoring_features = synthesizer.monitoring_features(**query)
 
     count = 0
+    site_set = set()
 
     for mf in monitoring_features:
         count += 1
+        site_set.add(mf.id)
         print(
             f"{mf.id} ({mf.feature_type}) {mf.description} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
         if 'feature_type' in query:
             assert mf.feature_type == query['feature_type'].upper()
 
     assert count == expected_count
+    if expected_site_set:
+        assert site_set == set(expected_site_set)
 
 
 @pytest.mark.parametrize("query, expected_count", [({"feature_type": "point"}, 0),

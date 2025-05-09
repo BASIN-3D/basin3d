@@ -121,9 +121,9 @@ def _is_translated_query_valid(datasource_id, query, translated_query) -> Option
             b3d_attr_value = getattr(query, attr)
             msg_prefix = ''
             if field_type == 'mapped':
-                msg_prefix = 'No vocabulary found for attribute {attr} with values: {b3d_attr_value}.'
-            if isinstance(b3d_attr_value, list):
-                b3d_attr_value = ', '.join(b3d_attr_value)
+                if isinstance(b3d_attr_value, list):
+                    b3d_attr_value = ', '.join(b3d_attr_value)
+                msg_prefix = f'No vocabulary found for attribute {attr} with values: {b3d_attr_value}.'
             if translated_attr_value and isinstance(translated_attr_value, list):
                 # if list and all of list == NOT_SUPPORTED, False
                 if all([x == NO_MAPPING_TEXT for x in translated_attr_value]):
@@ -248,9 +248,15 @@ def _translate_prefixed_query_attrs(plugin_access, query: Union[QueryMeasurement
                 if translated_value == attr_value:
                     translated_value = NO_MAPPING_TEXT
 
-            # otherwise assume it is a list
+            # otherwise assume it is a list -- pass any non-string values through through
             else:
-                translated_value = [extract_id(x) for x in attr_value if x.startswith("{}-".format(id_prefix))]
+                translated_value = []
+                for x in attr_value:
+                    if isinstance(x, str):
+                        if x.startswith("{}-".format(id_prefix)):
+                            translated_value.append(extract_id(x))
+                    else:
+                        translated_value.append(x)
 
             setattr(query, attr, translated_value)
 

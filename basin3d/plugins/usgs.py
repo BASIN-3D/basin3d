@@ -58,7 +58,7 @@ from basin3d.core.access import get_url
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, GeographicCoordinate, \
     MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
     TimeMetadataMixin, TimeValuePair, ResultListTVP
-from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin
+from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, separate_list_types
 from basin3d.core.types import SpatialSamplingShapes
 from basin3d.plugins import usgs_huc_codes
 
@@ -87,6 +87,43 @@ def convert_discharge(data, data_str, parameter, units):
     return data, units
 
 
+def _translate_bbox(a_tuple: tuple) -> tuple:
+    """
+    Translate the basin3d bbox to USGS bbox
+    -- eventually this should be done in the translate module but need more use cases
+    -- ALSO: USGS is NAD83 and basin3d is WGS84 -- eventually need to convert. For now, they are close enough.
+
+    basin3d order = west longitude, east longitude, south latitude, north latitude
+    USGS order = west longitude, south latitude, east longitude, north latitude
+
+    :param a_tuple:
+    :return: tuple in correct order
+    """
+    reordered_tuple = (a_tuple[0], a_tuple[2], a_tuple[1], a_tuple[3])
+    return reordered_tuple
+
+
+def _convert_tuple_to_str(a_tuple: tuple, synthesis_msg=[]) -> Optional[str]:
+    """Helper function to convert a tuple of float to a str
+    :param a_tuple: tuple
+    """
+    output: Optional[str] = None
+    msg: Optional[str] = None
+    try:
+        tuple_str_list = [str(v) for v in a_tuple]
+        output = ','.join(tuple_str_list)
+    except TypeError:
+        msg = f'Could not convert {a_tuple} to str'
+    except Exception as e:
+        msg = f'Some other error {e} while trying to convert {a_tuple} to str'
+
+    if msg:
+        logger.warning(msg)
+        synthesis_msg.append(msg)
+
+    return output
+
+
 def generator_usgs_measurement_timeseries_tvp_observation(view,
                                                           query: QueryMeasurementTimeseriesTVP,
                                                           synthesis_messages):
@@ -95,6 +132,7 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
 
     :param view: Access class
     :param query: Query information for this request
+    :param synthesis_messages: list to hold any processing messages
     :returns: a generator object that yields data from the request in json form
     """
 
@@ -122,46 +160,72 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
     else:
         search_params.append(("siteStatus", "all"))
 
-    if len(query.monitoring_feature[0]) > 2:
-        # search for stations
-        search_params.append(("sites", ",".join(query.monitoring_feature)))
-    else:
-        # search for stations by specifying the huc
-        search_params.append(("huc", ",".join(query.monitoring_feature)))
-
     # look for station locations only
+    # THIS IS Stream tupe locations only
     search_params.append(("siteType", "ST"))
 
     # JSON format
     search_params.append(("format", "json"))
 
+    # handle the monitoring features
+    monitoring_feature_types = separate_list_types(query.monitoring_feature, {'named': str, 'bbox': tuple})
+    monitoring_feature_named = monitoring_feature_types.get('named', [])
+    monitoring_feature_filters = []  # overall list of monitoring feature query elements
+
+    if monitoring_feature_named and len(monitoring_feature_named[0]) > 2:
+        # search for stations
+        monitoring_feature_filters.append(("sites", ",".join(monitoring_feature_named)))
+    elif monitoring_feature_named:
+        # search for stations by specifying the huc
+        monitoring_feature_filters.append(("huc", ",".join(monitoring_feature_named)))
+
+    # translate the bounding box coordinates to the usgs API format. Note the usgs parameter name is bBox.
+    monitoring_features_bbox = monitoring_feature_types.get('bbox', [])
+    monitoring_features_bbox = [_translate_bbox(bbox_value) for bbox_value in monitoring_features_bbox]
+    monitoring_features_bbox = [_convert_tuple_to_str(bbox_coord) for bbox_coord in monitoring_features_bbox]
+    monitoring_feature_filters.extend([('bBox', bbox_coord) for bbox_coord in monitoring_features_bbox if bbox_coord is not None])
+
+    if not monitoring_feature_filters:
+        msg = 'no monitoring features extracted from the query'
+        logger.error(msg)
+        synthesis_messages.append(msg)
+
     # Request the data points, calls IV or DV depending on aggregation duration passed in param
     # Default to DV service if aggregation duration is DAY or when nothing is specified
     # Calls IV service in aggregation duration is NONE
     endpoint = query.aggregation_duration[0] == AggregationDurationEnum.NONE and "iv" or "dv"
-    response = get_url(f'{{}}{endpoint}'.format(view.datasource.location), params=search_params)
+    url = f'{view.datasource.location}{endpoint}'
 
-    if response.status_code == 200:
-        try:
+    for idx, mf_filter in enumerate(monitoring_feature_filters):
+        # if not the first filter in the list, remove the last element in the search params.
+        if idx > 0:
+            search_params = search_params[:-1]
 
-            json_obj = response.json()
+        search_params.append(mf_filter)
 
-            # There is a valid json response
-            if json_obj:
-                timeseries_json = json_obj['value']['timeSeries']
+        response = get_url(url, params=search_params)
 
-                # Iterate over monitoring_features
-                for data_json in timeseries_json:
-                    yield data_json
+        if response.status_code == 200:
+            try:
 
-        except json.decoder.JSONDecodeError:
-            synthesis_messages.append("JSON Not Returned: {}".format(response.content))
-            logger.error("JSON Not Returned: {}".format(response.content))
-    else:
-        import re
-        p = re.compile(r'<.*?>')
-        synthesis_messages.append("HTTP {}: {}".format(response.status_code, p.sub(' ', response.text)))
-        logger.error("HTTP {}: {}".format(response.status_code, p.sub(' ', response.text)))
+                json_obj = response.json()
+
+                # There is a valid json response
+                if json_obj:
+                    timeseries_json = json_obj['value']['timeSeries']
+
+                    # Iterate over monitoring_features
+                    for data_json in timeseries_json:
+                        yield data_json
+
+            except json.decoder.JSONDecodeError:
+                synthesis_messages.append("JSON Not Returned: {}".format(response.content))
+                logger.error("JSON Not Returned: {}".format(response.content))
+        else:
+            import re
+            p = re.compile(r'<.*?>')
+            synthesis_messages.append("HTTP {}: {}".format(response.status_code, p.sub(' ', response.text)))
+            logger.error("HTTP {}: {}".format(response.status_code, p.sub(' ', response.text)))
 
 
 def iter_rdb_to_json(rdb_text):
@@ -268,15 +332,14 @@ def _load_point_obj(datasource, json_obj, observed_property_variables, synthesis
         return monitoring_feature
 
 
-def _parse_sites_response(usgs_site_response):
+def _parse_sites_response(usgs_site_response, observed_properties_variables, unique_usgs_sites):
     """
     Get a dictionary of location variables for the given location results and
     get a dictionary of unique sites or subbasins
+
     :param usgs_site_response: datasource JSON object of the locations
     :return observed_properties_variables, unique_usgs_sites: a tuple of a dictionary of observed property variables for the given location results and a dictionary of unique sites or subbasins
     """
-    observed_properties_variables = {}
-    unique_usgs_sites = {}
 
     for v in iter_rdb_to_json(usgs_site_response.text):
         param, site, stat = v['parm_cd'], v['site_no'], v['stat_cd']
@@ -383,24 +446,56 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                             yield monitoring_feature
                         elif not query.monitoring_feature:
                             yield monitoring_feature
-
+            # no feature_type specified and/or feature_type == POINT
             else:
-                base_url = '{}site/?{}={}&seriesCatalogOutput=true&outputDataTypeCd=iv,dv&siteStatus=all&format=rdb'
+                base_url = '{}site/?{}&seriesCatalogOutput=true&outputDataTypeCd=iv,dv&siteStatus=all&format=rdb'
+
+                # initiate variables for looping thru requests for multiple location filters
+                unique_sites = {}  # type: ignore[var-annotated]
+                observed_properties = {}  # type: ignore[var-annotated]
+                loc_filters = []
+
                 # Points by id: USGS calls these sites
                 if query.monitoring_feature is not None:
-                    usgs_sites = ",".join(query.monitoring_feature)
-                    url = base_url.format(self.datasource.location, 'sites', usgs_sites)
+
+                    # split up mf query types
+                    mf_types = separate_list_types(query.monitoring_feature, {'named': str, 'bbox': tuple})
+                    mf_named = mf_types.get('named', [])
+                    mf_bbox = mf_types.get('bbox', [])
+                    mf_bbox = [_translate_bbox(bbox_value) for bbox_value in mf_bbox]
+
+                    if mf_named:
+                        usgs_sites = ','.join(mf_named)
+                        loc_filters.append(f'sites={usgs_sites}')
+
+                    if mf_bbox:
+                        bbox_coords = [_convert_tuple_to_str(bbox_tuple) for bbox_tuple in mf_bbox]
+                        loc_filters.extend([f'bBox={bbox_cc}' for bbox_cc in bbox_coords])
+
                 else:
                     # Point by subbasin: USGS calls subbasin as huc (instead of sites) to retrieve all subbasins
                     usgs_subbasin = ",".join(usgs_subbasins)
-                    url = base_url.format(self.datasource.location, 'huc', usgs_subbasin)
+                    loc_filters.append(f'huc={usgs_subbasin}')
+                    # url = base_url.format(self.datasource.location, f'huc={usgs_subbasin}')
 
-                # Filter by locations with data
-                usgs_site_response = get_url(url)
-                logger.debug(f"{self.__class__.__name__}.list url:{url}")
+                for a_filter in loc_filters:
 
-                if usgs_site_response and usgs_site_response.status_code == 200:
-                    observed_properties, unique_sites = _parse_sites_response(usgs_site_response)
+                    url = base_url.format(self.datasource.location, a_filter)
+                    logger.debug(f"{self.__class__.__name__}.list url:{url}")
+
+                    usgs_site_response = get_url(url)
+
+                    if usgs_site_response and usgs_site_response.status_code == 200:
+                        observed_properties, unique_sites = _parse_sites_response(
+                            usgs_site_response, observed_properties, unique_sites)
+                    else:
+                        msg = f'Problem with request to {url}'
+                        if usgs_site_response:
+                            msg = f'{msg}; {usgs_site_response.status_code}: {usgs_site_response.json}'
+                        logger.warning(msg)
+                        synthesis_messages.append(msg)
+
+                if unique_sites:
                     for v in unique_sites.values():
                         yield _load_point_obj(datasource=self, json_obj=v,
                                               observed_property_variables=observed_properties,
@@ -538,32 +633,54 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         if not query.monitoring_feature:
             return None
 
-        search_params = ",".join(query.monitoring_feature)
+        loc_filters = []
 
-        base_url = '{}site/?{}={}&seriesCatalogOutput=true&outputDataTypeCd=iv,dv&siteStatus=all&format=rdb'
-        url = base_url.format(self.datasource.location, 'sites', search_params)
+        # split up mf query types
+        mf_types = separate_list_types(query.monitoring_feature, {'named': str, 'bbox': tuple})
+        mf_named = mf_types.get('named', [])
+        mf_bbox = mf_types.get('bbox', [])
+        mf_bbox = [_translate_bbox(bbox_value) for bbox_value in mf_bbox]
 
-        if len(search_params) < 3:
-            url = base_url.format(self.datasource.location, 'huc', search_params)
+        if mf_named:
+            usgs_sites = ','.join(mf_named)
+            loc_filter = f'sites={usgs_sites}'
+            if len(usgs_sites) < 3:
+                loc_filter = f'huc={usgs_sites}'
+            loc_filters.append(loc_filter)
 
-        usgs_site_response = None
-        try:
-            usgs_site_response = get_url(url)
+        if mf_bbox:
+            bbox_coords = [_convert_tuple_to_str(bbox_tuple) for bbox_tuple in mf_bbox]
+            loc_filters.extend([f'bBox={bbox_cc}' for bbox_cc in bbox_coords])
+
+        base_url = '{}site/?{}&seriesCatalogOutput=true&outputDataTypeCd=iv,dv&siteStatus=all&format=rdb'
+
+        observed_properties = {}  # type: ignore[var-annotated]
+        unique_sites = {}  # type: ignore[var-annotated]
+
+        for a_filter in loc_filters:
+
+            url = base_url.format(self.datasource.location, a_filter)
             logger.debug(f"{self.__class__.__name__}.list url:{url}")
-        except Exception as e:
-            synthesis_messages.append("Could not connect to USGS site info: {}".format(e))
-            logger.warning("Could not connect to USGS site info: {}".format(e))
-            logger.warning("url: ", url)
-            synthesis_messages.append(f"Url: {url}")
 
-        if usgs_site_response:
-            # Get observed property variables and unique sites from parse_site_response
-            observed_properties, sites = _parse_sites_response(usgs_site_response)
-            for v in sites.values():
+            usgs_site_response = get_url(url)
+
+            if usgs_site_response and usgs_site_response.status_code == 200:
+                observed_properties, unique_sites = _parse_sites_response(
+                    usgs_site_response, observed_properties, unique_sites)
+            else:
+                msg = f'Problem with request to {url}'
+                if usgs_site_response:
+                    msg = f'{msg}; {usgs_site_response.status_code}: {usgs_site_response.json}'
+                logger.warning(msg)
+                synthesis_messages.append(msg)
+
+        if unique_sites:
+            for v in unique_sites.values():
                 if v["site_no"]:
                     feature_obj_dict[v["site_no"]] = v
 
         # Iterate over data objects returned
+        processed_sites = []
         for data_json in generator_usgs_measurement_timeseries_tvp_observation(self, query, synthesis_messages):
             unit_of_measurement = data_json["variable"]["unit"]['unitCode']
             timezone_offset = data_json["sourceInfo"]["timeZoneInfo"]["defaultTimeZone"]["zoneOffset"]
@@ -571,6 +688,11 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             # name has agency, sitecode, parameter id and stat code
             #   e.g. "USGS:385106106571000:00060:00003"
             _, feature_id, parameter, statistic = data_json["name"].split(":")
+
+            if feature_id in processed_sites:
+                continue
+
+            processed_sites.append(feature_id)
 
             if feature_id in feature_obj_dict.keys():
                 monitoring_feature = _load_point_obj(

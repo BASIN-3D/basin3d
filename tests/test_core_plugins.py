@@ -5,7 +5,7 @@ import pytest
 import basin3d
 from basin3d.core.catalog import CatalogSqlAlchemy
 from basin3d.core.models import MonitoringFeature
-from basin3d.core.plugin import get_feature_type
+from basin3d.core.plugin import get_feature_type, separate_list_types
 from basin3d.core.schema.enum import FeatureTypeEnum
 from basin3d.core.synthesis import DataSourceModelIterator
 from basin3d.synthesis import register
@@ -84,6 +84,18 @@ def test_get_feature_type(feature_name, return_format, result):
 
     feature_type = get_feature_type(feature_name, return_format)
     assert result == feature_type
+
+
+@pytest.mark.parametrize("in_list, separation_dict, expected_result",
+                         [(['0000', '1000', (1, 1, 1, 1)], {'text': str, 'tuple': tuple}, {'text': ['0000', '1000'], 'tuple': [(1, 1, 1, 1)]}),
+                          (['0000', '1000', (1, 1, 1, 1), 5, '2000', (2, 2, 2, 2), 1.1], {'text': str, 'tuple': tuple}, {'text': ['0000', '1000', '2000'], 'tuple': [(1, 1, 1, 1), (2, 2, 2, 2)]}),
+                          ([], {'text': str, 'tuple': tuple}, {'text': [], 'tuple': []}),
+                          (['0000', '1000', (1, 1, 1, 1)], {'int': int, 'float': float}, {'int': [], 'float': []})],
+                         ids=["text-tuple", "with-int", "empty-input", "empty-results"])
+def test_separate_list_types(in_list, separation_dict, expected_result):
+    """Test separate list types"""
+    separated_list = separate_list_types(in_list, separation_dict)
+    assert separated_list == expected_result
 
 
 @pytest.mark.parametrize("plugin, messages, synthesis_call, synthesis_args", [

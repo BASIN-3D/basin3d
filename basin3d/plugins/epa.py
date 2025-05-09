@@ -17,7 +17,7 @@ import requests
 import urllib.parse
 
 from copy import deepcopy
-from typing import Iterator, List, Optional, Union
+from typing import List, Optional, Union
 from datetime import datetime as dt, date
 
 from basin3d.core import monitor
@@ -27,7 +27,7 @@ from basin3d.core.access import get_url, AccessIssueException
 from basin3d.core.models import AbsoluteCoordinate, RepresentativeCoordinate, Coordinate, GeographicCoordinate, \
     DepthCoordinate, VerticalCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, \
     TimeMetadataMixin, TimeValuePair, ResultListTVP, AttributeMapping
-from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin
+from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, separate_list_types
 from basin3d.core.translate import get_datasource_mapped_attribute
 from basin3d.core.types import SpatialSamplingShapes
 
@@ -367,7 +367,7 @@ class EPAMonitoringFeatureAccess(DataSourcePluginAccess):
     """
     synthesis_model_class = MonitoringFeature
 
-    def list(self, query: QueryMonitoringFeature) -> Iterator[Optional[MonitoringFeature]]:
+    def list(self, query: QueryMonitoringFeature):
         """
         Return measurement locations based on the query parameters
         Either a parent_feature list or monitoring_feature list should be specified.
@@ -410,7 +410,15 @@ class EPAMonitoringFeatureAccess(DataSourcePluginAccess):
                     loc_type = 'huc'
 
             elif query.monitoring_feature:
-                loc_list = deepcopy(query.monitoring_feature)
+                mf_separate_list = separate_list_types(query.monitoring_feature, {'named': str, 'bbox': tuple})
+                named_mf_list = mf_separate_list.get('named', [])
+
+                # ToDo: future, enable bbox query
+                if not named_mf_list:
+                    logger.info(f'Data source {self.datasource.id} requires specification of monitoring feature identifier.')
+                    yield
+
+                loc_list = deepcopy(named_mf_list)
                 loc_type = 'siteid'
 
             if loc_type:
@@ -734,8 +742,16 @@ class EPAMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
         synthesis_messages: List[str] = []
 
+        mf_separated_lists = separate_list_types(query.monitoring_feature, {'named': str, 'bbox': tuple})
+        named_monitoring_features = mf_separated_lists.get('named', [])
+
+        # ToDo: future, expand to support bbox
+        if not named_monitoring_features:
+            logger.info(f'Data source {self.datasource.id} requires specification of monitoring feature identifier.')
+            yield
+
         params = {'dataProfile': FIELD_NAMES['phys_chem_results'][api_version],
-                  'siteid': query.monitoring_feature,
+                  'siteid': named_monitoring_features,
                   'characteristicName': query.observed_property,
                   'startDateLo': _reformat_date_for_epa_query(query.start_date)}
 

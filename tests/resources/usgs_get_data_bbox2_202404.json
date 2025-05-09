@@ -1,0 +1,236 @@
+{
+  "name": "ns1:timeSeriesResponseType",
+  "declaredType": "org.cuahsi.waterml.TimeSeriesResponseType",
+  "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+  "value": {
+    "queryInfo": {
+      "queryURL": "http://waterservices.usgs.gov/nwis/dvstartDT=2024-04-01&endDT=2024-04-10&parameterCd=00060&siteStatus=all&siteType=ST&format=json&bBox=-106.7%2C38.9%2C-106.5%2C39.0",
+      "criteria": {
+        "locationParam": "[-106.7,38.9,-106.5,39.0]",
+        "variableParam": "[00060]",
+        "timeParam": {
+          "beginDateTime": "2024-04-01T00:00:00.000",
+          "endDateTime": "2024-04-10T00:00:00.000"
+        },
+        "parameter": []
+      },
+      "note": [
+        {
+          "value": "[-106.7,38.9,-106.5,39.0]",
+          "title": "filter:bbox"
+        },
+        {
+          "value": "[ST]",
+          "title": "filter:siteType"
+        },
+        {
+          "value": "[mode=RANGE, modifiedSince=null] interval={INTERVAL[2024-04-01T00:00:00.000-04:00/2024-04-10T00:00:00.000-04:00]}",
+          "title": "filter:timeRange"
+        },
+        {
+          "value": "methodIds=[ALL]",
+          "title": "filter:methodId"
+        },
+        {
+          "value": "2025-05-15T18:00:11.677Z",
+          "title": "requestDT"
+        },
+        {
+          "value": "721bd180-31b6-11f0-a7a8-2cea7f58f5ca",
+          "title": "requestId"
+        },
+        {
+          "value": "Provisional data are subject to revision. Go to http://waterdata.usgs.gov/nwis/help/?provisional for more information.",
+          "title": "disclaimer"
+        },
+        {
+          "value": "vaas01",
+          "title": "server"
+        }
+      ]
+    },
+    "timeSeries": [
+      {
+        "sourceInfo": {
+          "siteName": "TAYLOR RIVER ABOVE TRAIL CREEK NR TAYLOR PARK, CO",
+          "siteCode": [
+            {
+              "value": "09106800",
+              "network": "NWIS",
+              "agencyCode": "USGS"
+            }
+          ],
+          "timeZoneInfo": {
+            "defaultTimeZone": {
+              "zoneOffset": "-07:00",
+              "zoneAbbreviation": "MST"
+            },
+            "daylightSavingsTimeZone": {
+              "zoneOffset": "-06:00",
+              "zoneAbbreviation": "MDT"
+            },
+            "siteUsesDaylightSavingsTime": true
+          },
+          "geoLocation": {
+            "geogLocation": {
+              "srs": "EPSG:4326",
+              "latitude": 38.92469444,
+              "longitude": -106.6009444
+            },
+            "localSiteXY": []
+          },
+          "note": [],
+          "siteType": [],
+          "siteProperty": [
+            {
+              "value": "ST",
+              "name": "siteTypeCd"
+            },
+            {
+              "value": "14020001",
+              "name": "hucCd"
+            },
+            {
+              "value": "08",
+              "name": "stateCd"
+            },
+            {
+              "value": "08051",
+              "name": "countyCd"
+            }
+          ]
+        },
+        "variable": {
+          "variableCode": [
+            {
+              "value": "00060",
+              "network": "NWIS",
+              "vocabulary": "NWIS:UnitValues",
+              "variableID": 45807197,
+              "default": true
+            }
+          ],
+          "variableName": "Streamflow, ft&#179;/s",
+          "variableDescription": "Discharge, cubic feet per second",
+          "valueType": "Derived Value",
+          "unit": {
+            "unitCode": "ft3/s"
+          },
+          "options": {
+            "option": [
+              {
+                "value": "Mean",
+                "name": "Statistic",
+                "optionCode": "00003"
+              }
+            ]
+          },
+          "note": [],
+          "noDataValue": -999999.0,
+          "variableProperty": [],
+          "oid": "45807197"
+        },
+        "values": [
+          {
+            "value": [
+              {
+                "value": "23.6",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-01T00:00:00.000"
+              },
+              {
+                "value": "23.3",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-02T00:00:00.000"
+              },
+              {
+                "value": "23.7",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-03T00:00:00.000"
+              },
+              {
+                "value": "27.0",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-04T00:00:00.000"
+              },
+              {
+                "value": "30.4",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-05T00:00:00.000"
+              },
+              {
+                "value": "31.1",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-06T00:00:00.000"
+              },
+              {
+                "value": "28.6",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-07T00:00:00.000"
+              },
+              {
+                "value": "26.5",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-08T00:00:00.000"
+              },
+              {
+                "value": "25.0",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-09T00:00:00.000"
+              },
+              {
+                "value": "25.4",
+                "qualifiers": [
+                  "P"
+                ],
+                "dateTime": "2024-04-10T00:00:00.000"
+              }
+            ],
+            "qualifier": [
+              {
+                "qualifierCode": "P",
+                "qualifierDescription": "Provisional data subject to revision.",
+                "qualifierID": 0,
+                "network": "NWIS",
+                "vocabulary": "uv_rmk_cd"
+              }
+            ],
+            "qualityControlLevel": [],
+            "method": [
+              {
+                "methodDescription": "",
+                "methodID": 347696
+              }
+            ],
+            "source": [],
+            "offset": [],
+            "sample": [],
+            "censorCode": []
+          }
+        ],
+        "name": "USGS:09106800:00060:00003"
+      }
+    ]
+  },
+  "nil": false,
+  "globalScope": true,
+  "typeSubstituted": false
+}

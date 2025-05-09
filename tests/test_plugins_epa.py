@@ -101,11 +101,12 @@ def test_epa_monitoring_features_invalid_query(query, expected_msg, monkeypatch)
                           ({"feature_type": "site"}, "epa_mock.json", None, 0),
                           ({"feature_type": "plot"}, "epa_mock.json", None, 0),
                           ({"feature_type": "vertical_path"}, "epa_mock.json", None, 0),
-                          ({"feature_type": "horizontal_path"}, "epa_mock.json", None, 0)
+                          ({"feature_type": "horizontal_path"}, "epa_mock.json", None, 0),
+                          ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "feature_type": "point"}, "epa_mock.json", None, 0),
                           ],
                          ids=["huc-wildcard", "huc-8", "huc-10", "huc-12", "single-mf", "multiple-mf", "one-invalid-mf",
                               "mf-invalid", "huc-invalid", "region", "subregion", "basin", "subbasin", "watershed",
-                              "subwatershed", "site", "plot", "vertical_path", "horizontal_path"])
+                              "subwatershed", "site", "plot", "vertical_path", "horizontal_path", "unsupported-geocoord"])
 def test_epa_monitoring_features(query, resource_file, loc_csv_resource, expected_count, monkeypatch):
     """ Test EPA monitoring feature list """
 
@@ -320,15 +321,20 @@ site_list_test = ['EPA-CCWC-COAL-26', 'EPA-CORIVWCH_WQX-650', 'EPA-CCWC-COAL-00'
                               "epa_data1.csv", "epa_data1_locs.json",
                               {"statistic": None, "result_quality": [], "aggregation_duration": "DAY", "count": 1,
                                "synthesis_msgs": ["Could not parse expected numerical measurement value <0.500", "Could not parse expected numerical measurement value <2.50"]}),
-                             # filter-stat-no-spec
+                             # empty-return
                              ({"monitoring_feature": ["EPA-21COL001-00058"], "observed_property": ["Hg"]},
                               "epa_empty_data.csv", "epa_loc_not_called.json",
                               {"statistic": None, "result_quality": [], "aggregation_duration": None, "count": 0,
                                "synthesis_msgs": ["EPA: No resultPhysChem results matched the query"]}),
+                             # unsupported-geocoord
+                             ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "observed_property": ["Hg"]},
+                              "epa_empty_data.csv", "epa_loc_not_called.json",
+                              {"statistic": None, "result_quality": [], "aggregation_duration": None, "count": 0,
+                               "synthesis_msgs": ["Data source EPA requires specification of monitoring feature identifier."]}),
                          ],
                          ids=['all-good', 'all-good-2', 'filter-stat-no-spec', 'filter-result_quality', 'filter-test-validated',
                               'filter-test-estimated', 'filter-test-stat-total', 'filter-test-stat-multiple', "filter-multiple",
-                              'aggregation-day', 'empty_return'])
+                              'aggregation-day', 'empty_return', 'unsupported-geocoord'])
 def test_measurement_timeseries_tvp_observations_epa_v2_2(additional_filters, epa_data_resource, epa_loc_resource, expected_results, monkeypatch):
     """
     Test EPA Timeseries data query for API version 2.2
