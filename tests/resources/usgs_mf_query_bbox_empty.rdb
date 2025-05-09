@@ -1,7 +1,7 @@
 #
 #
 # US Geological Survey
-# retrieved: 2025-05-12 16:30:08 -04:00	(caas01)
+# retrieved: 2025-05-12 09:15:54 -04:00	(caas01)
 #
 # The Site File stores location and general information about groundwater,
 # surface water, and meteorological sites
@@ -11,6 +11,7 @@
 # Automated-retrieval info: http://waterservices.usgs.gov/rest/Site-Service.html
 #
 # Contact:   gs-w_support_nwisweb@usgs.gov
+# Warning: A site search criterion has been used for which the data may be unavailable.
 #
 # The following selected fields are included in this output:
 #
@@ -41,10 +42,3 @@
 #
 agency_cd	site_no	station_nm	site_tp_cd	dec_lat_va	dec_long_va	coord_acy_cd	dec_coord_datum_cd	alt_va	alt_acy_va	alt_datum_cd	huc_cd	data_type_cd	parm_cd	stat_cd	ts_id	loc_web_ds	medium_grp_cd	parm_grp_cd	srs_id	access_cd	begin_date	end_date	count_nu
 5s	15s	50s	7s	16s	16s	1s	10s	8s	3s	10s	16s	2s	5s	5s	5n	30s	3s	3s	5n	4n	20d	20d	5n
-USGS	09110990	ELK CREEK AT COAL CREEK ABV CRESTED BUTTE, CO	ST	38.85665	-107.0597722	F	NAD83	9568.63	.13	NAVD88	14020001	dv	00060	00003	243415		wat		1645423	0	2017-10-17	2025-05-11	1523
-USGS	09110990	ELK CREEK AT COAL CREEK ABV CRESTED BUTTE, CO	ST	38.85665	-107.0597722	F	NAD83	9568.63	.13	NAVD88	14020001	uv	00060		219373		wat		1645423	0	2017-10-17	2025-05-12	2764
-USGS	09110990	ELK CREEK AT COAL CREEK ABV CRESTED BUTTE, CO	ST	38.85665	-107.0597722	F	NAD83	9568.63	.13	NAVD88	14020001	uv	00065		219372		wat		17164583	0	2018-04-24	2025-05-12	2575
-USGS	09110990	ELK CREEK AT COAL CREEK ABV CRESTED BUTTE, CO	ST	38.85665	-107.0597722	F	NAD83	9568.63	.13	NAVD88	14020001	uv	63160		346585		wat		1642503	0	2025-04-30	2025-05-12	12
-USGS	09111250	COAL CREEK ABV MCCORMICK DTCH AT CRESTED BUTTE, CO	ST	38.87155556	-106.9852972	T	NAD83	 8903	4.3	NAVD88	14020001	dv	00060	00003	18843		wat		1645423	0	2014-10-01	2025-05-11	2378
-USGS	09111250	COAL CREEK ABV MCCORMICK DTCH AT CRESTED BUTTE, CO	ST	38.87155556	-106.9852972	T	NAD83	 8903	4.3	NAVD88	14020001	uv	00060		211791		wat		1645423	0	2014-10-01	2025-05-12	3876
-USGS	09111250	COAL CREEK ABV MCCORMICK DTCH AT CRESTED BUTTE, CO	ST	38.87155556	-106.9852972	T	NAD83	 8903	4.3	NAVD88	14020001	uv	00065		282011		wat		17164583	0	2021-04-05	2025-05-12	1498

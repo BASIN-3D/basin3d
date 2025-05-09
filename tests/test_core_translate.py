@@ -204,10 +204,16 @@ def test_translator_is_translated_query_valid(query, set_translated_attr, expect
                            {'monitoring_feature': ['9237', '00000']}),
                           (QueryMeasurementTimeseriesTVP(monitoring_feature=['F-9237'], observed_property=['Ag'], start_date='2019-01-01'),
                            {'monitoring_feature': []}),
+                          (QueryMeasurementTimeseriesTVP(monitoring_feature=['9237'], observed_property=['Ag'], start_date='2019-01-01'),
+                           {'monitoring_feature': []}),
+                          (QueryMeasurementTimeseriesTVP(monitoring_feature=[(-99.6, -99.4, 34.1, 34.3), (-100.4, -100.3, 38.5, 38.7)], observed_property=['Ag'], start_date='2019-01-01'),
+                           {'monitoring_feature': [(-99.6, -99.4, 34.1, 34.3), (-100.4, -100.3, 38.5, 38.7)]}),
+                          (QueryMeasurementTimeseriesTVP(monitoring_feature=['A-9237-AX', (-100.4, -100.3, 38.5, 38.7), 'F-abc'], observed_property=['Ag'], start_date='2019-01-01'),
+                           {'monitoring_feature': ['9237-AX', (-100.4, -100.3, 38.5, 38.7)]}),
                           (QueryMonitoringFeature(monitoring_feature=['A-9237', 'R-8e3838'], parent_feature=['A-00000'], id='A-345aa'),
                            {'monitoring_feature': ['9237'], 'parent_feature': ['00000'], 'id': '345aa'}),
                           ],
-                         ids=["single", "multiple", "none", "monitoring_feature_query"])
+                         ids=["single", "multiple", "none", "no-prefix", "tuples", "mixed", "monitoring_feature_query"])
 def test_translator_prefixed_query_attrs(query, set_translated_attr):
     """Filtering of query arguments"""
     translated_query = query.copy()
