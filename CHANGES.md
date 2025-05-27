@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 1.2.0
+Add specification of monitoring features (locations) by geographic bounding box.
+The USGS data source supports this new feature as detailed in the documentation.
+
++ Issue #194 - Support query by geographic coordinates
++ Issue #215 - Update to GitHub actions
+
 ## Version 1.1.2
 Bug fix and enhancement to correctly handle locations acquisition in EPA plugin  
 
