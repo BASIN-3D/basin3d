@@ -102,7 +102,7 @@ def test_epa_monitoring_features_invalid_query(query, expected_msg, monkeypatch)
                           ({"feature_type": "plot"}, "epa_mock.json", None, 0),
                           ({"feature_type": "vertical_path"}, "epa_mock.json", None, 0),
                           ({"feature_type": "horizontal_path"}, "epa_mock.json", None, 0),
-                          ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "feature_type": "point"}, "epa_mock.json", None, 0),
+                          ({"monitoring_feature": [(-106.7, 38.5, -106.5, 39.9)], "feature_type": "point"}, "epa_mock.json", None, 0),
                           ],
                          ids=["huc-wildcard", "huc-8", "huc-10", "huc-12", "single-mf", "multiple-mf", "one-invalid-mf",
                               "mf-invalid", "huc-invalid", "region", "subregion", "basin", "subbasin", "watershed",

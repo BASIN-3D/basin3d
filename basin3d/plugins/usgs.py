@@ -87,22 +87,6 @@ def convert_discharge(data, data_str, parameter, units):
     return data, units
 
 
-def _translate_bbox(a_tuple: tuple) -> tuple:
-    """
-    Translate the basin3d bbox to USGS bbox
-    -- eventually this should be done in the translate module but need more use cases
-    -- ALSO: USGS is NAD83 and basin3d is WGS84 -- eventually need to convert. For now, they are close enough.
-
-    basin3d order = west longitude, east longitude, south latitude, north latitude
-    USGS order = west longitude, south latitude, east longitude, north latitude
-
-    :param a_tuple:
-    :return: tuple in correct order
-    """
-    reordered_tuple = (a_tuple[0], a_tuple[2], a_tuple[1], a_tuple[3])
-    return reordered_tuple
-
-
 def _convert_tuple_to_str(a_tuple: tuple, synthesis_msg=[]) -> Optional[str]:
     """Helper function to convert a tuple of float to a str
     :param a_tuple: tuple
@@ -180,8 +164,8 @@ def generator_usgs_measurement_timeseries_tvp_observation(view,
         monitoring_feature_filters.append(("huc", ",".join(monitoring_feature_named)))
 
     # translate the bounding box coordinates to the usgs API format. Note the usgs parameter name is bBox.
+    # Note: USGS is NAD83 and basin3d is WGS84 -- eventually need to convert. For now, they are close enough.
     monitoring_features_bbox = monitoring_feature_types.get('bbox', [])
-    monitoring_features_bbox = [_translate_bbox(bbox_value) for bbox_value in monitoring_features_bbox]
     monitoring_features_bbox = [_convert_tuple_to_str(bbox_coord) for bbox_coord in monitoring_features_bbox]
     monitoring_feature_filters.extend([('bBox', bbox_coord) for bbox_coord in monitoring_features_bbox if bbox_coord is not None])
 
@@ -462,7 +446,6 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                     mf_types = separate_list_types(query.monitoring_feature, {'named': str, 'bbox': tuple})
                     mf_named = mf_types.get('named', [])
                     mf_bbox = mf_types.get('bbox', [])
-                    mf_bbox = [_translate_bbox(bbox_value) for bbox_value in mf_bbox]
 
                     if mf_named:
                         usgs_sites = ','.join(mf_named)
@@ -639,7 +622,6 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         mf_types = separate_list_types(query.monitoring_feature, {'named': str, 'bbox': tuple})
         mf_named = mf_types.get('named', [])
         mf_bbox = mf_types.get('bbox', [])
-        mf_bbox = [_translate_bbox(bbox_value) for bbox_value in mf_bbox]
 
         if mf_named:
             usgs_sites = ','.join(mf_named)

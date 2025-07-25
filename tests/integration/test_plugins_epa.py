@@ -22,7 +22,7 @@ from basin3d.synthesis import register
                           ({"monitoring_feature": ['EPA-WIDNR_WQX-001', 'EPA-invalid']}, 1),
                           ({"monitoring_feature": ['EPA-invalid']}, 0),
                           ({"parent_feature": ['EPA-1402001']}, 0),
-                          ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)]}, 0),
+                          ({"monitoring_feature": [(-106.7, 38.5, -106.5, 39.9)]}, 0),
                           ],
                          ids=["huc-wildcard", "huc-8", "huc-10", "huc-12", "single-mf", "multiple-mf", "one-invalid-mf",
                               "mf-invalid", "huc-invalid", "unsupported-geocoord"])
@@ -111,7 +111,7 @@ site_list_test = ['EPA-CCWC-COAL-26', 'EPA-CORIVWCH_WQX-650', 'EPA-CCWC-COAL-00'
                               {"statistic": None, "result_quality": [], "aggregation_duration": None, "count": 0,
                                "synthesis_msgs": ["EPA: No resultPhysChem results matched the query"]}),
                              # unsupported-geocoord
-                             ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "observed_property": ["Hg"]},
+                             ({"monitoring_feature": [(-106.7, 38.5, -106.5, 39.9)], "observed_property": ["Hg"]},
                               {"statistic": None, "result_quality": [], "aggregation_duration": None, "count": 0,
                                "synthesis_msgs": ["Data source EPA requires specification of monitoring feature identifier."]}),
                          ],

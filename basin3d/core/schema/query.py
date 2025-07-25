@@ -43,8 +43,8 @@ class MonitoringFeatureIdentifier(str):
 class WGS84BoundingBox(Tuple[float, float, float, float]):
     """
     Custom type for a geographic bounding box in WGS84 (ESPG:4326) defined by
-    west longitude, east longitude, south latitude, north latitude
-    (or left side, right side, bottom side, top side)
+    west longitude, south latitude, east longitude, north latitude
+    (or left side, bottom side, right side, top side)
     """
 
     @classmethod
@@ -55,8 +55,8 @@ class WGS84BoundingBox(Tuple[float, float, float, float]):
             minItems=4,
             maxItems=4,
             description="Geographic bounding box defined by WGS84 (ESPG:4326) "
-                        "west longitude, east longitude, south latitude, north latitude "
-                        "(or left side, right side, bottom side, top side)"
+                        "west longitude, south latitude, east longitude, north latitude "
+                        "(or left side, bottom side, right side, top side)"
         )
 
 
@@ -69,8 +69,8 @@ class BoundingBox(BaseModel):
 
     @staticmethod
     def validate_bounding_box(value: WGS84BoundingBox) -> WGS84BoundingBox:
-        min_long, max_long, min_lat, max_lat = value
-        if any([not isinstance(coord, float) and not isinstance(coord, int) for coord in [min_long, max_long, min_lat, max_lat]]):
+        min_long, min_lat, max_long, max_lat = value
+        if any([not isinstance(coord, float) and not isinstance(coord, int) for coord in [min_long, min_lat, max_long, max_lat]]):
             raise ValueError("Bounding Box coordinate values must be numeric")
         if min_long > max_long:
             raise ValueError("west longitude must be less than east longitude")
@@ -161,8 +161,8 @@ class QueryMeasurementTimeseriesTVP(QueryBase):
     monitoring_feature: List[Union[MonitoringFeatureIdentifier, BoundingBox]] = Field(min_items=1, title="Monitoring Features",
                                                                                       description="Filter by the list of monitoring feature identifiers "
                                                                                                   "and / or tuples that describe a location bounding box in WGS84 (ESPG:4326): "
-                                                                                                  "(west longitude, east longitude, south latitude, north latitude) "
-                                                                                                  "or (left side, right side, bottom side, top side)")
+                                                                                                  "(west longitude, south latitude, east longitude, north latitude) "
+                                                                                                  "or (left side, bottom side, right side, top side)")
     observed_property: List[str] = Field(min_items=1, title="Observed Property Variables",
                                          description="Filter by the list of observed property variables")
     start_date: date = Field(title="Start Date", description="Filter by data taken on or after the start date")

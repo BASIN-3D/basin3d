@@ -15,7 +15,7 @@ The structure of a Monitoring Feature object is shown below for the first object
     >>> from basin3d.plugins import usgs
     >>> from basin3d import synthesis
     >>> synthesizer = synthesis.register()
-    >>> monitoring_features = synthesizer.monitoring_features(feature_type='point', monitoring_feature=['USGS-13010000', 'USGS-385508107021201', (-106.7, -106.5, 38.9, 39.0), (-90.6, -90.5, 34.4, 34.6)])
+    >>> monitoring_features = synthesizer.monitoring_features(feature_type='point', monitoring_feature=['USGS-13010000', 'USGS-385508107021201', (-106.7, 38.9, -106.5, 39.0), (-90.6, 34.4, -90.5, 34.6)])
     >>> for mf in monitoring_features:
     ...     print(mf.to_json())
     {
