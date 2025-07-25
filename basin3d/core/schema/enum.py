@@ -113,6 +113,25 @@ FEATURE_SHAPE_TYPES = {
 }
 
 
+class GeoDatumEnum(str, BaseEnum):
+    """ Georeference Datum """
+
+    #: World Geodetic System 1984 (WGS84)
+    WGS84 = "WGS84"
+
+    #: North American Datum of 1983 (NAD 83)
+    NAD83 = "NAD83"
+
+    #: North American Datum 1927 (NAD27)
+    NAD27 = "NAD27"
+
+
+class GeoProjectionEnum(str, BaseEnum):
+    """ Georeference Projection """
+
+    LAMBERT_CONFORMAL_CONIC = "LAMBERT_CONFORMAL_CONIC"
+
+
 class ResultQualityEnum(str, BaseEnum):
     """Enumeration for Result Quality"""
 

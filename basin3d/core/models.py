@@ -23,7 +23,8 @@ from numbers import Number
 from typing import List, Optional, Union
 
 from basin3d.core import monitor
-from basin3d.core.schema.enum import FeatureTypeEnum, FEATURE_SHAPE_TYPES, MappedAttributeEnum, MAPPING_DELIMITER, NO_MAPPING_TEXT
+from basin3d.core.schema.enum import (FeatureTypeEnum, FEATURE_SHAPE_TYPES, MappedAttributeEnum, MAPPING_DELIMITER,
+                                      NO_MAPPING_TEXT, GeoDatumEnum, GeoProjectionEnum)
 from basin3d.core.translate import get_datasource_mapped_attribute, translate_attributes
 from basin3d.core.types import SpatialSamplingShapes
 
@@ -899,6 +900,44 @@ class GeographicCoordinate(HorizontalCoordinate):
         self._units = value
 
 
+class CoordinateReferenceSystem(Base):
+    """ Coordinate Reference System for Coverage Observations """
+    # ToDo: acquire ISO19111 to understand SC_CRS object and potentially add more info
+
+    def __init__(self, **kwargs):
+        self._datum: str = None
+        self._projection: str = None
+
+        # Initialize after the attributes have been set
+        super().__init__(**kwargs)
+
+    def __validate__(self):
+        """
+        Validate attributes
+        """
+
+        if self.datum is not None and self.datum not in GeoDatumEnum.values():
+            raise AttributeError("Feature attr feature_type must be FeatureTypeEnum.")
+
+    @property
+    def datum(self) -> str:
+        """ Coordinate Reference System Datum """
+        return self._datum
+
+    @datum.setter
+    def datum(self, value: str):
+        self._datum = value
+
+    @property
+    def projection(self) -> str:
+        """ Coordinate Reference System Projection """
+        return self._projection
+
+    @projection.setter
+    def projection(self, value: str):
+        self._projection = value
+
+
 class Feature(Base):
     """
     A general feature upon which an observation can be made. Loosely after GF_Feature (ISO).
@@ -1383,6 +1422,41 @@ class TimeMetadataMixin(object):
     @time_reference_position.setter
     def time_reference_position(self, value: str):
         self._time_reference_position = value
+
+
+class SpatialCoverageMixin(object):
+    """
+    Metadata attribute for Spatial Coverage Observation
+    """
+
+    # Grid Point
+    SPATIAL_COVERAGE_GRID_POINT = 'GRID_POINT'
+
+    def __init__(self, *args, **kwargs):
+        self._spatial_coverage_type: str = None
+        self._spatial_units: dict = None
+        self._coordinate_reference_system: CoordinateReferenceSystem
+
+        # Instantiate the serializer superclass
+        super(SpatialCoverageMixin, self).__init__(*args, **kwargs)
+
+    @property
+    def spatial_coverage_type(self) -> str:
+        """ The type of spatial coverage following OGC CV_Coverage lineage """
+        return self._spatial_coverage_type
+
+    @spatial_coverage_type.setter
+    def spatial_coverage_type(self, value: str):
+        self._spatial_coverage_type = value
+
+    @property
+    def spatial_units(self) -> dict:
+        """ Dictionary with the units for the spatial coverage axes and elements """
+        return self._spatial_units
+
+    @spatial_units.setter
+    def spatial_units(self, value: dict):
+        self._spatial_units = value
 
 
 class MeasurementMetadataMixin(object):
