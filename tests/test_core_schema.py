@@ -25,7 +25,7 @@ from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonito
                                            ({"monitoring_feature": [(1, 2, 3, 'hey')]}, True),
                                            ({"monitoring_feature": [('one', '2', '3', '4')]}, True),
                                            ({"monitoring_feature": [('1', '2', '3', '4')]}, True),  # ToDo: figure out why [('1', '2', '3', '4')] is valid
-                                           ({"monitoring_feature": [(2, 1, 2, 3)]}, True),
+                                           ({"monitoring_feature": [(2, 2, 1, 3)]}, True),
                                            ({"monitoring_feature": [(1, 2, 3, 4), (-14, 5, 4, 5)]}, False),
                                            ],
                          ids=["empty", "valid1", "valid2", "feature-type-valid", "feature-type-invalid",

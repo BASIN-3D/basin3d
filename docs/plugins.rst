@@ -72,11 +72,11 @@ Option 1: Specify a `USGS HUC <https://water.usgs.gov/GIS/huc.html>`_ 2, 4, 6, 8
     USGS-09107500 --- TEXAS CREEK AT TAYLOR PARK, CO
     ...
 
-Option 2: Specify one or more USGS HUC codes, prefixed by "USGS-", and / or sets of bounding box coordinates (WGS84: western longitude, eastern longitude, southern latitude, northern latitude) in the monitoring_feature argument, and the feature_type.
+Option 2: Specify one or more USGS HUC codes, prefixed by "USGS-", and / or sets of bounding box coordinates (WGS84: western longitude, southern latitude, eastern longitude, northern latitude) in the monitoring_feature argument, and the feature_type.
 
 .. code-block::
 
-    >>> monitoring_features = synthesizer.monitoring_features(monitoring_feature=['USGS-13010000', 'USGS-385508107021201', (-106.7, -106.5, 38.9, 39.0)], feature_type='POINT')
+    >>> monitoring_features = synthesizer.monitoring_features(monitoring_feature=['USGS-13010000', 'USGS-385508107021201', (-106.7, 38.9, -106.5, 39.0)], feature_type='POINT')
     >>> for monitoring_feature in monitoring_features:
     >>>     print(f'{monitoring_feature.id} --- {monitoring_feature.name}')
     USGS-13010000 --- SNAKE RIVER AT S BOUNDARY OF YELLOWSTONE NATL PARK
@@ -136,6 +136,7 @@ Data Considerations
 Location Considerations
 """""""""""""""""""""""
   * An attempt to read the HUC Codes from USGS at https://water.usgs.gov/GIS/new_huc_rdb.txt is made. If the service times out, a static version of the file is read. The static version is confirmed to be up-to-date periodically.
+  * The USGS Daily and Instantaneous Values Service uses NAD83 datum for bounding box filters. BASIN-3D uses WGS84 datum and does not translate specified bounding box filters to NAD83 because the difference is small, especially in North America.
 
 Section 4: Data Source Info
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

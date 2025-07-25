@@ -72,15 +72,15 @@ def test_measurement_timeseries_tvp_observations_usgs_errors(additional_query_pa
 @pytest.mark.parametrize('additional_filters, usgs_response, usgs_resources2, expected_results',
                          [
                           # all-good-mf-single-bbox
-                          ({"monitoring_feature": [(-106.9, -106.8, 38.65, 38.67)], "observed_property": ["RDC"], "result_quality": [ResultQualityEnum.VALIDATED], "start_date": "2023-04-01", "end_date": "2023-04-10"},
+                          ({"monitoring_feature": [(-106.9, 38.65, -106.8, 38.67)], "observed_property": ["RDC"], "result_quality": [ResultQualityEnum.VALIDATED], "start_date": "2023-04-01", "end_date": "2023-04-10"},
                            ["usgs_mtvp_bbox1.rdb", "usgs_get_data_bbox1.json"], [],
                            {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED, ResultQualityEnum.VALIDATED], "mvp_count": 2, "result_count": [10, 10], "missing_values_count": [0, 0]}),
                           # all-good-mf-multi-bbox
-                          ({"monitoring_feature": [(-106.9, -106.8, 38.65, 38.67), (-106.7, -106.5, 38.9, 39.0)], "observed_property": ["RDC"], "start_date": "2024-04-01", "end_date": "2024-04-10"},
+                          ({"monitoring_feature": [(-106.9, 38.65, -106.8, 38.67), (-106.7, 38.9, -106.5, 39.0)], "observed_property": ["RDC"], "start_date": "2024-04-01", "end_date": "2024-04-10"},
                            ["usgs_mtvp_bbox1.rdb", "usgs_get_data_bbox1_202404.json"], ["usgs_mf_query_point_single_bbox.rdb", "usgs_get_data_bbox2_202404.json"],
                            {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.VALIDATED, ResultQualityEnum.VALIDATED, ResultQualityEnum.UNVALIDATED], "mvp_count": 3, "result_count": [10, 10, 10], "missing_values_count": [0, 0, 0]}),
                           # all-good-mf-full-overlap
-                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09106800"], "observed_property": ["RDC"], "start_date": "2024-04-01", "end_date": "2024-04-10"},
+                          ({"monitoring_feature": [(-106.7, 38.9, -106.5, 39.0), "USGS-09106800"], "observed_property": ["RDC"], "start_date": "2024-04-01", "end_date": "2024-04-10"},
                            ["usgs_monitoring_feature_query_mix_overlap_09106800.rdb", "usgs_get_data_bbox2_202404.json"], ["usgs_mf_query_point_single_bbox.rdb", "usgs_get_data_bbox2_202404.json"],
                            {"statistic": StatisticEnum.MEAN, "result_quality": [ResultQualityEnum.UNVALIDATED], "mvp_count": 1, "result_count": [10], "missing_values_count": [0]}),
                           # all-good-mf-strings
@@ -260,19 +260,19 @@ def test_usgs_monitoring_features2(query, expected_count, monkeypatch):
 
 @pytest.mark.parametrize("query, resource, resource2, expected_count, expected_site_set",
                          [({"monitoring_feature": ["USGS-09129600"], "feature_type": "point"}, "usgs_monitoring_feature_query_point_rdb_09129600.rdb", [], 1, ("USGS-09129600", )),
-                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0)], "feature_type": "point"}, "usgs_mf_query_point_single_bbox.rdb", [], 1, ("USGS-09106800", )),  # bbox with single return
-                          ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "feature_type": "point"}, "usgs_mf_query_point_single_bbox_many_sites.rdb", [], 57, None),  # bbox with multiple returns
-                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), (-106.7, -106.5, 38.5, 39.0)], "feature_type": "point"},
+                          ({"monitoring_feature": [(-106.7, 38.9, -106.5, 39.0)], "feature_type": "point"}, "usgs_mf_query_point_single_bbox.rdb", [], 1, ("USGS-09106800", )),  # bbox with single return
+                          ({"monitoring_feature": [(-106.7, 38.5, -106.5, 39.9)], "feature_type": "point"}, "usgs_mf_query_point_single_bbox_many_sites.rdb", [], 57, None),  # bbox with multiple returns
+                          ({"monitoring_feature": [(-106.7, 38.9, -106.5, 39.0), (-106.7, 38.5, -106.5, 39.0)], "feature_type": "point"},
                             "usgs_mf_query_point_single_bbox.rdb", ["usgs_mf_query_point_2_bbox_overlap.rdb"], 8, None),  # bbox with complete overlap
-                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09129600"], "feature_type": "point"},
+                          ({"monitoring_feature": [(-106.7, 38.9, -106.5, 39.0), "USGS-09129600"], "feature_type": "point"},
                             "usgs_monitoring_feature_query_point_rdb_09129600.rdb", ["usgs_mf_query_point_single_bbox.rdb"], 2, ("USGS-09106800", "USGS-09129600")),  # bbox and string mix
-                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09106800"], "feature_type": "point"},
+                          ({"monitoring_feature": [(-106.7, 38.9, -106.5, 39.0), "USGS-09106800"], "feature_type": "point"},
                            "usgs_monitoring_feature_query_mix_overlap_09106800.rdb", ["usgs_mf_query_point_single_bbox.rdb"], 1, ("USGS-09106800", )),  # bbox and string overlap
-                          ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09106800", "USGS-09110000", (-90.6, -90.5, 34.4, 34.6), "USGS-09107000"], "feature_type": "point"},
+                          ({"monitoring_feature": [(-106.7, 38.9, -106.5, 39.0), "USGS-09106800", "USGS-09110000", (-90.6, 34.4, -90.5, 34.6), "USGS-09107000"], "feature_type": "point"},
                            "usgs_mf_query_point_3_strings.rdb", ["usgs_mf_query_point_single_bbox.rdb", "usgs_mf_query_point_single_bbox2.rdb"],
                            5, ("USGS-09106800", "USGS-09107000", "USGS-09110000", "USGS-07047970", "USGS-07287700")),  # bboxs and strs with overlap
-                          ({"monitoring_feature": [(-106.71, -106.7, 38.58, 39.59)], "feature_type": "point"}, "usgs_mf_query_bbox_empty.rdb", [], 0, None),  # bbox with no returns
-                          ({"datasource": "FOO", "monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "feature_type": "point"}, "usgs_mf_query_bbox_empty.rdb", [], 0, None),  # bbox and wrong datasource
+                          ({"monitoring_feature": [(-106.71, 38.58, -106.7, 39.59)], "feature_type": "point"}, "usgs_mf_query_bbox_empty.rdb", [], 0, None),  # bbox with no returns
+                          ({"datasource": "FOO", "monitoring_feature": [(-106.7, 38.5, -106.5, 39.9)], "feature_type": "point"}, "usgs_mf_query_bbox_empty.rdb", [], 0, None),  # bbox and wrong datasource
                           ],
                          ids=["point_by_id", "single_bbox_one_site", "single_bbox_many_sites", "2_bbox_overlap", "mix", "mix_overlap", "mix_many_overlap", "empty", "wrong-datasource"])
 def test_usgs_monitoring_features3(query, resource, resource2, expected_count, expected_site_set, monkeypatch):

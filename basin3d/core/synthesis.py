@@ -333,7 +333,7 @@ class MonitoringFeatureAccess(DataSourceModelAccess):
     * *datasource (optional):* str, a single data source id prefix
     * *id (optional):* str, a single monitoring feature id. Cannot be combined with monitoring_feature
     * *parent_feature (optional)*: list, a list of parent feature ids. Plugin must have this functionality enabled.
-    * *monitoring_feature (optional)*: list, a list of monitoring feature ids and / or bounding box coordinates (WGS84: western longitude, eastern longitude, southern latitude, northern latitude). Cannot be combined with id, which will take precedence.
+    * *monitoring_feature (optional)*: list, a list of monitoring feature ids and / or bounding box coordinates (WGS84: western longitude,  southern latitude, eastern longitude, northern latitude). Cannot be combined with id, which will take precedence.
 
     """
     synthesis_model = MonitoringFeature
@@ -411,7 +411,7 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
 
     **Filter** by the following attributes:
 
-    * *monitoring_feature (required):* List of monitoring_features ids, and / or bounding box coordinates (WGS84: western longitude, eastern longitude, southern latitude, northern latitude)
+    * *monitoring_feature (required):* List of monitoring_features ids, and / or bounding box coordinates (WGS84: western longitude, southern latitude, eastern longitude, northern latitude)
     * *observed_property (required):* List of observed property variable ids
     * *start_date (required):* date YYYY-MM-DD
     * *end_date (optional):* date YYYY-MM-DD

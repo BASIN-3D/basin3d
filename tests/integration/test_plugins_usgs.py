@@ -109,7 +109,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
         pytest.fail("Returned object must be iterator")
 
     query5 = {
-        "monitoring_feature": [(-106.9, -106.8, 38.65, 38.67), (-106.7, -106.5, 38.9, 39.0)],
+        "monitoring_feature": [(-106.9, 38.65, -106.8, 38.67), (-106.7, 38.9, -106.5, 39.0)],
         "observed_property": ["RDC"],
         "start_date": "2024-04-01",
         "end_date": "2024-04-10",
@@ -128,7 +128,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
         pytest.fail("Returned object must be iterator")
 
     query6 = {
-        "monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09106800"],
+        "monitoring_feature": [(-106.7, 38.9, -106.5, 39.0), "USGS-09106800"],
         "observed_property": ["RDC"],
         "start_date": "2024-04-01",
         "end_date": "2024-04-10",
@@ -206,10 +206,10 @@ def test_usgs_monitoring_feature(query, feature_type):
                                                    ({"parent_feature": ['USGS-02020004'], "feature_type": "point"}, 54),
                                                    ({"parent_feature": ['USGS-0202'], "feature_type": "subbasin"}, 8),
                                                    ({"parent_feature": ['USGS-020200'], "feature_type": "point"}, 0),
-                                                   ({"monitoring_feature": [(-106.7, -106.5, 38.5, 39.9)], "feature_type": "point"}, 57),
-                                                   ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), (-106.7, -106.5, 38.5, 39.0)], "feature_type": "point"}, 8),
-                                                   ({"monitoring_feature": [(-106.7, -106.5, 38.9, 39.0), "USGS-09129600"], "feature_type": "point"}, 2),
-                                                   ({"monitoring_feature": [(-106.71, -106.7, 39.58, 39.59)], "feature_type": "point"}, 0),
+                                                   ({"monitoring_feature": [(-106.7, 38.5, -106.5, 39.9)], "feature_type": "point"}, 57),
+                                                   ({"monitoring_feature": [(-106.7, 38.9, -106.5, 39.0), (-106.7, 38.5, -106.5, 39.0)], "feature_type": "point"}, 8),
+                                                   ({"monitoring_feature": [(-106.7, 38.9, -106.5, 39.0), "USGS-09129600"], "feature_type": "point"}, 2),
+                                                   ({"monitoring_feature": [(-106.71, 39.58, -106.7, 39.59)], "feature_type": "point"}, 0),
                                                    ],
                          ids=["all", "region_by_id", "region", "subregion",
                               "basin", "subbasin",
