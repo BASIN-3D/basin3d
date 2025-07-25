@@ -484,7 +484,7 @@ def _build_locations_store(datasets: dict, mf_locations: list) -> Dict[Tuple, lo
         loc_info = update_loc_info(loc_info, callable_obj=loc_callable_obj)
         return loc_info
 
-    def update_loc_info(loc_info_obj: locInfo, callable_obj: Union[pd.Series, dict]):
+    def update_loc_info(loc_info_obj: locInfo, callable_obj: Union[pd.Series, dict]) -> locInfo:
         """
         Update a locInfo object
         :param loc_info_obj:
