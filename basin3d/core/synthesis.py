@@ -19,7 +19,7 @@ from basin3d.core import monitor
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
 from basin3d.core.schema.enum import MessageLevelEnum, AggregationDurationEnum
-from basin3d.core.schema.query import QueryBase, QueryMeasurementTimeseriesTVP, \
+from basin3d.core.schema.query import QueryBase, QueryMeasurementTimeseries, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
 from basin3d.core.translate import translate_query
 
@@ -424,7 +424,68 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
     """
     synthesis_model = MeasurementTimeseriesTVPObservation
 
-    def synthesize_query(self, plugin_access: DataSourcePluginAccess, query: QueryMeasurementTimeseriesTVP) -> QueryBase:  # type: ignore[override]
+    def synthesize_query(self, plugin_access: DataSourcePluginAccess, query: QueryMeasurementTimeseries) -> QueryBase:  # type: ignore[override]
+        """
+        Synthesizes query parameters, if necessary
+
+        Parameters Synthesized:
+          + monitoring_feature
+          + observed_property
+          + aggregation_duration (default: DAY)
+          + statistic
+          + quality_checked
+
+        :param query:
+        :param plugin_access: The plugin view to synthesize query params for
+        :return: The query parameters
+        """
+
+        # only allow instantaneous data (NONE) or daily data (DAY) data
+        # NOTE: query at this point is still in BASIN-3D vocab
+        if query.aggregation_duration != AggregationDurationEnum.NONE:
+            query.aggregation_duration = AggregationDurationEnum.DAY
+
+        return translate_query(plugin_access, query)
+
+
+class MeasurementTimeseriesSpatialObservationAccess(DataSourceModelAccess):
+    """
+    MeasurementTimeseriesSpatialObservation: Series of measurement (numerical) observations for
+    a set of spatial-explicit observations.
+
+    **Properties**
+
+    * *id:* string, Observation identifier (optional)
+    * *type:* enum, MEASUREMENT_SPATIAL_TIMESERIES
+    * *observed_property:* url, URL for the observation's observed property
+    * *phenomenon_time:* datetime, datetime of the observation, for a timeseries the start and end times can be provided
+    * *utc_offset:* float, Coordinate Universal Time offset in hours (offset in hours), e.g., +9
+    * *feature_of_interest:* MonitoringFeature obj, feature on which the observation is being made
+    * *feature_of_interest_type:* enum (FeatureTypes), feature type of the feature of interest
+    * *result:* dictionary of spatiotemporal coverage elements of the observed property: "time" contains an array of timestamps, "x", "y", "z" ... "longitude", "latitude" ..., "value" contains measurement value and "result_quality" the corresponding quality assessment per value, observed values and their quality for the observed property being assessed
+    * *time_reference_position:* enum, position of timestamp in aggregated_duration (START, MIDDLE, END)
+    * *aggregation_duration:* enum, time period represented by observation (YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, NONE)
+    * *unit_of_measurement:* string, units in which the observation is reported
+    * *statistic:* list, statistical properties of the observation result (MEAN, MIN, MAX, TOTAL)
+    * *result_quality:* list, quality assessment values contained in the result (VALIDATED, UNVALIDATED, SUSPECTED, REJECTED, ESTIMATED)
+    * *MORE HERE for the new spatial stuff*
+
+    **Filter** by the following attributes [same as tvp for now]:
+
+    * *monitoring_feature (required):* List of monitoring_features ids, and / or bounding box coordinates (WGS84: western longitude, eastern longitude, southern latitude, northern latitude)
+    * *observed_property (required):* List of observed property variable ids
+    * *start_date (required):* date YYYY-MM-DD
+    * *end_date (optional):* date YYYY-MM-DD
+    * *aggregation_duration (default: DAY):* enum (YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|NONE)
+    * *statistic (optional):* List of statistic options, enum (INSTANT|MEAN|MIN|MAX|TOTAL)
+    * *datasource (optional):* a single data source id prefix (e.g ?datasource=`datasource.id_prefix`)
+    * *result_quality (optional):* enum (VALIDATED|UNVALIDATED|SUSPECTED|REJECTED|ESTIMATED)
+    * *sampling_medium (optional):* enum (SOLID_PHASE|WATER|GAS|OTHER)
+
+    """
+    synthesis_model = MeasurementTimeseriesTVPObservation
+
+    def synthesize_query(self, plugin_access: DataSourcePluginAccess, query: QueryMeasurementTimeseries) -> QueryBase:  # type: ignore[override]
         """
         Synthesizes query parameters, if necessary
 

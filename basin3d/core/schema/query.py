@@ -155,8 +155,8 @@ class QueryMonitoringFeature(QueryBase):
     prefixed_fields: ClassVar[List[str]] = ['id', 'monitoring_feature', 'parent_feature']
 
 
-class QueryMeasurementTimeseriesTVP(QueryBase):
-    """Query :class:`basin3d.core.models.MeasurementTimeseriesTVP`"""
+class QueryMeasurementTimeseries(QueryBase):
+    """Query :class:`basin3d.core.models.MeasurementTimeseriesTVP and :class: basin3d.core.models.MeasurementTimeseriesSpatial`"""
     # required
     monitoring_feature: List[Union[MonitoringFeatureIdentifier, BoundingBox]] = Field(min_items=1, title="Monitoring Features",
                                                                                       description="Filter by the list of monitoring feature identifiers "

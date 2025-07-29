@@ -16,6 +16,7 @@ import datetime
 import enum
 import json
 
+from array import array
 from collections import namedtuple
 from dataclasses import dataclass, field
 from itertools import repeat
@@ -1276,6 +1277,9 @@ class Observation(Base):
     #: A measurement
     TYPE_MEASUREMENT = "MEASUREMENT"
 
+    #: Measurement Spatial Coverage Timeseries
+    TYPE_MEASUREMENT_SPATIAL_TIMESERIES = "MEASUREMENT_SPATIAL_TIMESERIES"
+
     def __init__(self, plugin_access, **kwargs):
         self._id: str = None
         self._type: str = None
@@ -1429,8 +1433,9 @@ class SpatialCoverageMixin(object):
     Metadata attribute for Spatial Coverage Observation
     """
 
-    # Grid Point
-    SPATIAL_COVERAGE_GRID_POINT = 'GRID_POINT'
+    # Types
+    SURFACE_GRID_POINT = 'SURFACE_GRID_POINT'
+    SURFACE_GRID_CELL = 'SURFACE_GRID_CELL'
 
     def __init__(self, *args, **kwargs):
         self._spatial_coverage_type: str = None
@@ -1490,9 +1495,157 @@ class MeasurementMetadataMixin(object):
         self._statistic = value
 
 
+class ResultSpatialTimeseriesCoverage(Base):
+    """
+    Result for Spatial Timeseries Coverage
+    Follows OGC CV_Coverage lineage for DiscreteCoverageObservations
+    """
+
+    def __init__(self, plugin_access, **kwargs):
+        # temporalElement: array of timestamps or tuples of start + end timestamps
+        self._time: Union[List[str], List[tuple[str, str]]] = None
+
+        # spatialElements
+        self._x: array[float] = None
+        self._y: array[float] = None
+        self._z: array[float] = None
+        self._latitude: array = None   # Depending on the projection, this could be single or double array
+        self._longitude: array = None   # Depending on the projection, this could be single or double array
+
+        # rangeElement: CV_AttributeValue
+        self._value: array = None   # Depending on the projection, this could be double or triple array
+        self._result_quality: array = None   # Dimension must match value array
+
+        # translate quality
+        kwargs = self._translate_attributes(plugin_access, **kwargs)
+
+        # Initialize after the attributes have been set
+        super().__init__(plugin_access, **kwargs)
+        self.__validate__()
+
+    def __validate__(self):
+        """ Validation """
+
+        # Either x / y or lat / long must be specified
+        # If no x / y / z, then x / y is lat / log
+        # values array must have dimensions of x / y if SURFACE_GRID
+        # if lat / long is different than x / y, they must have the same or combo'd dimensions
+        # if result_quality, must be same dimension as value
+
+        pass
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        # ToDo: see note with TimeseriesTVPObservation
+        mapped_attrs = ('result_quality', )
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)
+
+    @property
+    def time(self) -> Union[List[str], List[tuple[str, str]]]:
+        """ Temporal element of the domain coverage """
+        return self._time
+
+    @time.setter
+    def time(self, value: Union[List[str], List[tuple[str, str]]]):
+        self._time = value
+
+    @property
+    def x(self) -> array[float]:
+        """ x-axis position of the CRS datum / projection """
+        return self._x
+
+    @x.setter
+    def x(self, value: array[float]):
+        self._x = value
+
+    @property
+    def y(self) -> array[float]:
+        """ y-axis position of the CRS datum / projection """
+        return self._y
+
+    @y.setter
+    def y(self, value: array[float]):
+        self._y = value
+
+    @property
+    def z(self) -> array[float]:
+        """ z-axis position of the CRS datum / projection """
+        return self._z
+
+    @z.setter
+    def z(self, value: array[float]):
+        self._z = value
+
+    @property
+    def latitude(self) -> array:
+        """ Latitude coordinate of the CRS datum """
+        return self._latitude
+
+    @latitude.setter
+    def latitude(self, value: array):
+        self._latitude = value
+
+    @property
+    def longitude(self) -> array:
+        """ Longitude coordinate of the CRS datum """
+        return self._longitude
+
+    @longitude.setter
+    def longitude(self, value: array):
+        self._longitude = value
+
+    @property
+    def value(self) -> array:
+        """Result that was measured"""
+        return self._value
+
+    @value.setter
+    def value(self, value: array):
+        self._value = value
+
+    @property
+    def result_quality(self) -> array:
+        """Result quality for the measured result """
+        return self._result_quality
+
+    @result_quality.setter
+    def result_quality(self, value: array):
+        self._result_quality = value
+
+
+class MeasurementTimeseriesSpatialResultMixin(object):
+    """
+    Result Mixin: Measurement Timeseries Spatial Coverage
+    """
+
+    def __init__(self, *args, **kwargs):
+        self._result: 'ResultSpatialTimeseriesCoverage' = None
+        self._unit_of_measurement: str = None
+
+        # Instantiate the serializer superclass
+        super(MeasurementTimeseriesSpatialResultMixin, self).__init__(*args, **kwargs)
+
+    @property
+    def result(self) -> 'ResultSpatialTimeseriesCoverage':
+        """A list of results """
+        return self._result
+
+    @result.setter
+    def result(self, value: 'ResultSpatialTimeseriesCoverage'):
+        self._result = value
+
+    @property
+    def unit_of_measurement(self) -> str:
+        """Unit of measurement"""
+        return self._unit_of_measurement
+
+    @unit_of_measurement.setter
+    def unit_of_measurement(self, value: str):
+        self._unit_of_measurement = value
+
+
 class ResultListTVP(Base):
     """
-    Result Point Float
+    Result List of TimeValuePair (TVP)
     """
     def __init__(self, plugin_access, **kwargs):
         self._value: List['TimeValuePair'] = []
@@ -1644,6 +1797,32 @@ class MeasurementTimeseriesTVPObservation(TimeMetadataMixin, MeasurementMetadata
 
         # Initialize after the attributes have been set
         super(MeasurementTimeseriesTVPObservation, self).__init__(plugin_access, **kwargs)
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def _translate_attributes(self, plugin_access, **kwargs):
+        # ToDo: Introspect which attributes are MappedAttributes. Cannot do this easily b/c using @property decorator.
+        # For a simple dataclass, typing.get_type_hints would work. As properties, the fget for each property can be introspected with typing.get_type_hints
+        mapped_attrs = ('observed_property', 'statistic', 'aggregation_duration', 'result_quality', 'sampling_medium')
+        return self._translate_mapped_attributes(plugin_access, mapped_attrs, **kwargs)
+
+
+class MeasurementTimeseriesSpatialObservation(TimeMetadataMixin, MeasurementMetadataMixin, SpatialCoverageMixin,
+                                              MeasurementTimeseriesSpatialResultMixin, Observation):
+    """
+    Series of measurement (numerical) observations in TVP format grouped by time (i.e., a timeseries).
+    Anything specified at the group level automatically applies to the individual observation.
+    """
+
+    # NOTE: Position Observation (the one inheriting from Base) last in the inheritance list.
+    def __init__(self, plugin_access, **kwargs):
+        kwargs["type"] = self.TYPE_MEASUREMENT_SPATIAL_TIMESERIES
+
+        self._translate_attributes(plugin_access, **kwargs)
+
+        # Initialize after the attributes have been set
+        super(MeasurementTimeseriesSpatialObservation, self).__init__(plugin_access, **kwargs)
 
     def __eq__(self, other):
         return self.id == other.id

@@ -20,6 +20,7 @@ synthesis.DataSynthesizer Functions
 
 * :func:`DataSynthesizer.attribute_mappings`- Search for attribute_mappings which describe how the datasource vocabularies are mapped to BASIN-3D vocabularies, including observed properties, statistics, result_quality, etc.
 * :func:`DataSynthesizer.measurement_timeseries_tvp_observations`- Search for Measurement Timeseries TVP Observations from specified Monitoring features and observed property variables
+* :func:`DataSynthesizer.measurement_timeseries_spatial_observations`- Search for Measurement Timeseries Spatial Observations from specified Monitoring features and observed property variables
 * :func:`DataSynthesizer.monitoring_features`- Search for all monitoring features, features by parent monitoring features, features by monitoring feature identifiers, or look for a single monitoring feature by id.
 * :func:`DataSynthesizer.observed_properties`- Search for observed properties
 
@@ -31,9 +32,9 @@ from typing import List, Union, cast
 from basin3d.core.catalog import CatalogSqlAlchemy
 from basin3d.core.models import DataSource
 from basin3d.core.plugin import PluginMount
-from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature, SynthesisResponse
+from basin3d.core.schema.query import QueryMeasurementTimeseries, QueryMonitoringFeature, SynthesisResponse
 from basin3d.core.synthesis import DataSourceModelIterator, MeasurementTimeseriesTVPObservationAccess, \
-    MonitoringFeatureAccess, logger
+    MeasurementTimeseriesSpatialObservationAccess, MonitoringFeatureAccess, logger
 
 
 class SynthesisException(Exception):
@@ -102,6 +103,8 @@ class DataSynthesizer:
         self._monitoring_feature_access = MonitoringFeatureAccess(plugins, self._catalog)
         self._measurement_timeseries_tvp_observation_access = \
             MeasurementTimeseriesTVPObservationAccess(plugins, self._catalog)
+        self._measurement_timeseries_spatial_observation_access = \
+            MeasurementTimeseriesSpatialObservationAccess(plugins, self._catalog)
 
     @property
     def datasources(self) -> List[DataSource]:
@@ -305,7 +308,7 @@ class DataSynthesizer:
             return cast(DataSourceModelIterator,
                         self._monitoring_feature_access.list(query=query))
 
-    def measurement_timeseries_tvp_observations(self, query: QueryMeasurementTimeseriesTVP = None, **kwargs) -> DataSourceModelIterator:
+    def measurement_timeseries_tvp_observations(self, query: QueryMeasurementTimeseries = None, **kwargs) -> DataSourceModelIterator:
         """
         Search for Measurement Timeseries TVP Observations for the specified query arguments.
 
@@ -384,10 +387,29 @@ class DataSynthesizer:
         """
         if not query:
             # Raises validation errors
-            query = QueryMeasurementTimeseriesTVP(**kwargs)
+            query = QueryMeasurementTimeseries(**kwargs)
 
         #  mypy casts are only used as hints for the type checker,
         #  and they don’t perform a runtime type check.
         return cast(DataSourceModelIterator,
                     self._measurement_timeseries_tvp_observation_access.list(
+                        query))
+
+
+    def measurement_timeseries_spatial_observations(self, query: QueryMeasurementTimeseries = None, **kwargs) -> DataSourceModelIterator:
+        """
+        TO BE ADDED
+        :param query:
+        :param kwargs:
+        :return:
+        """
+
+        if not query:
+            # Raises validation errors
+            query = QueryMeasurementTimeseries(**kwargs)
+
+        #  mypy casts are only used as hints for the type checker,
+        #  and they don’t perform a runtime type check.
+        return cast(DataSourceModelIterator,
+                    self._measurement_timeseries_spatial_observation_access.list(
                         query))
