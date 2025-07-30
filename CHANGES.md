@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.2.1
+Change order of coordinates in geographic bounding box to (min longitude, min latitude, max longitude, max latitude)
+
++ Issue #220 - Change bbox lat long specification order
+
 ## Version 1.2.0
 Add specification of monitoring features (locations) by geographic bounding box.
 The USGS data source supports this new feature as detailed in the documentation.
