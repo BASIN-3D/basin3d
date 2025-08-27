@@ -225,7 +225,7 @@ class DataSynthesizer:
 
         >>> for mf in synthesizer.monitoring_features(feature_type='point', monitoring_feature=[(-90.6, 34.4, -90.5, 34.6), (-106.7, 38.9, -106.5, 39.0)]): # doctest: +ELLIPSIS
         ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
-        USGS-07047970 [(-90.583994, 34.52399175)]
+        USGS-07047970 [(-90.58399367, 34.52400003)]
         USGS-07287700 [(-90.5302222, 34.48425)]
         USGS-09106800 [(-106.6009444, 38.92469444)]
 

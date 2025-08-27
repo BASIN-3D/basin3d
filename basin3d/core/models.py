@@ -128,7 +128,7 @@ class AttributeMapping(JSONSerializable):
     basin3d_desc: list
     datasource_vocab: str
     datasource_desc: str
-    datasource: DataSource = DataSource()
+    datasource: DataSource = field(default_factory=DataSource)
 
     def __str__(self):
         return self.__unicode__()

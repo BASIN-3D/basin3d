@@ -24,6 +24,9 @@ NO_MAPPING_TEXT = 'NOT_SUPPORTED'
 class BaseEnum(Enum):
     """Base Enumeration Class that adds some helper methods"""
 
+    def __str__(self):
+        return self.value
+
     @classmethod
     def values(cls):
         role_names = [member.value for role, member in cls.__members__.items()]
