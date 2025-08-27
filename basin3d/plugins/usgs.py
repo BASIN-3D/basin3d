@@ -50,8 +50,6 @@ import json
 from basin3d.core import monitor
 from typing import Any, List, Optional, Tuple
 
-import requests
-
 from basin3d.core.schema.enum import FeatureTypeEnum, AggregationDurationEnum
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.access import get_url
@@ -63,8 +61,6 @@ from basin3d.core.types import SpatialSamplingShapes
 from basin3d.plugins import usgs_huc_codes
 
 logger = monitor.get_logger(__name__)
-
-URL_USGS_HUC = "https://water.usgs.gov/GIS/new_huc_rdb.txt"
 
 
 def convert_discharge(data, data_str, parameter, units):
@@ -387,7 +383,6 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
             if not feature_type or feature_type != FeatureTypeEnum.POINT:
 
                 huc_text = self.get_hydrological_unit_codes(synthesis_messages=synthesis_messages)
-                logger.debug(f"{self.__class__.__name__}.list url:{URL_USGS_HUC}")
 
                 for json_obj in [o for o in iter_rdb_to_json(huc_text) if
                                  not parent_features or [p for p in parent_features if o["huc"].startswith(p)]]:
@@ -489,22 +484,14 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
 
         return StopIteration(synthesis_messages)
 
-    def get_hydrological_unit_codes(self, synthesis_messages):
-        """Get the hydrological unit codes for USGS"""
-
-        try:
-            response = get_url(URL_USGS_HUC, timeout=0.5)
-            if response.status_code == 200:
-                return response.text
-            else:
-                synthesis_messages.append(f"Get failed for {URL_USGS_HUC} - Failing over to stored HUC codes")
-        except requests.exceptions.ReadTimeout:
-            synthesis_messages.append(f"Read Timeout for {URL_USGS_HUC} - Failing over to stored HUC codes")
-            logger.warning(f"Read Timeout for {URL_USGS_HUC} - Failing over to stored HUC codes")
-        except requests.exceptions.ConnectTimeout:
-            synthesis_messages.append(f"Connection Timeout for {URL_USGS_HUC} - Failing over to stored HUC codes")
-            logger.warning(f"Connection Timeout for {URL_USGS_HUC} - Failing over to stored HUC codes")
-
+    @staticmethod
+    def get_hydrological_unit_codes(synthesis_messages):
+        """
+        Get the hydrological unit codes for USGS
+        Originally from "https://water.usgs.gov/GIS/new_huc_rdb.txt"
+        New url https://water.usgs.gov/themes/hydrologic-units/
+        To Do: update with current huc information.
+        """
         return usgs_huc_codes.CONTENT
 
     def get(self, query: QueryMonitoringFeature):

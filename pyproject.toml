@@ -25,16 +25,16 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Hydrology"
 ]
 description = "BASIN-3D Core Framework"
 license = { file = "LICENSE" }
 readme = "README.md"
-requires-python = '>=3.8,<3.11'
+requires-python = '>=3.10,<3.13'
 dependencies = [
     "pandas",
     "pydantic<2",
@@ -47,8 +47,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ['pytest', 'pytest-mypy', 'pytest-cov', 'flake8',
     'types-PyYAML', 'types-chardet', 'types-cryptography', 'types-requests']
-docs = ["sphinx<=6.2.1",
-    "sphinx-autodoc-typehints<=1.23.0",
+docs = ["sphinx",
+    "sphinx-autodoc-typehints",
     "graphviz",
     "sphinx_rtd_theme",
     "tomli",

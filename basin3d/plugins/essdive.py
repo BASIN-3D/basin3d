@@ -24,7 +24,7 @@ ESSDIVE_DATASETS_PATH = os.environ.get('ESSDIVE_DATASETS_PATH', None)
 # ToDo: This should not be an enum class, rework in future.
 class HydroRFTerms(Enum):
     # ESS-DIVE Hydrologic Monitoring Reporting Format
-    # https://github.com/ess-dive-community/essdive-hydrologic-monitoring
+    # https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring
 
     lat = 'Latitude'  # Required
     long = 'Longitude'  # Required

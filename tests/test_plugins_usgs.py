@@ -180,7 +180,6 @@ def test_usgs_monitoring_feature2(query, feature_type, monkeypatch):
     """Test USGS search by region  """
 
     mock_get_url = MagicMock(side_effect=list([
-        get_url_text(get_text("new_huc_rdb.txt")),
         get_url_text(get_text("usgs_monitoring_feature_query_point_rdb_09129600.rdb"))
     ]))
     monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
@@ -211,11 +210,8 @@ def test_usgs_monitoring_feature2(query, feature_type, monkeypatch):
                                                    ({"parent_feature": ['USGS-0202'], "feature_type": "subbasin"}, 8)],
                          ids=["all", "region_by_id", "region", "subregion", "basin", "subbasin", "watershed", "subwatershed",
                               "site", "plot", "vertical_path", "horizontal_path", "all_by_region", "subbasin_by_subregion"])
-def test_usgs_monitoring_features(query, expected_count, monkeypatch):
+def test_usgs_monitoring_features(query, expected_count):
     """Test USGS non-point features"""
-
-    mock_get_url = MagicMock(side_effect=list([get_url_text(get_text("new_huc_rdb.txt"))]))
-    monkeypatch.setattr(basin3d.plugins.usgs, 'get_url', mock_get_url)
 
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     monitoring_features = synthesizer.monitoring_features(**query)

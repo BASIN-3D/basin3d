@@ -60,7 +60,7 @@ Section 2: Using the USGS plugin in BASIN-3D
 
    See Section 3: Locations Considerations below for additional details.
 
-Option 1: Specify a `USGS HUC <https://water.usgs.gov/GIS/huc.html>`_ 2, 4, 6, 8-digit code in the parent_feature argument and the desired feature_type. Prefix the HUC identifier with "USGS-". For example, to find the USGS station locations in the USGS huc 14020001:
+Option 1: Specify a `USGS HUC <https://water.usgs.gov/themes/hydrologic-units/>`_ 2, 4, 6, 8-digit code in the parent_feature argument and the desired feature_type. Prefix the HUC identifier with "USGS-". For example, to find the USGS station locations in the USGS huc 14020001:
 
 .. code-block::
 
@@ -333,7 +333,7 @@ ESS-DIVE Hydrologic Monitoring Reporting Format (RF) Plugin
 -----------------------------------------------------------
 The `Environmental System Science Data Infrastructure for a Virtual Ecosystem (ESS-DIVE) <https://ess-dive.lbl.gov/>`_ is a data repository for Earth and environmental sciences research supported by the US Department of Energy.
 
-The ESS-DIVE plugin supports datasets formatted using the `ESS-DIVE Community Hydrologic Monitoring Reporting Format <https://github.com/ess-dive-community/essdive-hydrologic-monitoring>`_.
+The ESS-DIVE plugin supports datasets formatted using the `ESS-DIVE Community Hydrologic Monitoring Reporting Format <https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring>`_.
 
 Desired datasets must be downloaded to your local machine. Use the `ESS-DIVE data portal <https://data.ess-dive.lbl.gov/data>`_ to discover and download datasets of interest. Additionally, any dataset that follows the reporting format can be synthesized with the plugin.
 
@@ -386,11 +386,11 @@ Section 1: Data Source Configuration
   See Section 3 below for more information on how location identification, including *location_grouping_code*, is used in the BASIN-3D monitoring feature objects.
 
 3. The locations subdirectory in each dataset can contain only 2 files. One **must** be the Installation Methods file, described in
-   the `reporting format instructions <https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_Instructions.md>`_.
+   the `reporting format instructions <https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring/blob/main/HydroRF_Instructions.md>`_.
    The other can be a supplementary locations information file that uses
-   the `Hydrologic Monitoring Reporting Format defined terms <https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_Term_Guide.md>`_.
+   the `Hydrologic Monitoring Reporting Format defined terms <https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring/blob/main/HydroRF_Term_Guide.md>`_.
 
-4. All data files should be put in the data subdirectory. Data files must follow the `reporting format instructions <https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_Instructions.md>`_ or they will not be synthesized. Hierarchical structures are not supported.
+4. All data files should be put in the data subdirectory. Data files must follow the `reporting format instructions <https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring/blob/main/HydroRF_Instructions.md>`_ or they will not be synthesized. Hierarchical structures are not supported.
 
 5. The top-level directory path must be configured as an environmental variable in the environment where you are running basin3d::
 
@@ -455,7 +455,7 @@ General considerations
 Data considerations
 """""""""""""""""""
 
-  * Only `vocabulary defined by the reporting format <https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_RecommendedVocabulary.md>`_ is supported.
+  * Only `vocabulary defined by the reporting format <https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring/blob/main/HydroRF_RecommendedVocabulary.md>`_ is supported.
   * The reporting format allows variables to have a single suffix (e.g., pH_1) to indicate the sensor when multiple sensors measuring the same property are employed. The plugin supports any defined variable vocabulary with a single suffix separated by an underscore. Note: the plugin does not validate the suffix as a valid sensor ID.
   * The reporting format defined terms Sensor_Depth and Sensor_Elevation are assumed to vary in time and are not supported at this time. Depth and Elevation terms are considered fixed and included in a time series location metadata.
   * The reporting format implies that complete time series are contained in a single file for a given variable. The plugin follows this assumption and does not piece together a complete time series (i.e., time periods) separated into multiple files.
@@ -471,11 +471,11 @@ Location considerations
 
 Section 4: Data Source Info
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**User Guide** https://github.com/ess-dive-community/essdive-hydrologic-monitoring/ See the Instructions documentation.
+**User Guide** https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring/ See the Instructions documentation.
 
 **Vocabulary definitions**
-https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_RecommendedVocabulary.md
-https://github.com/ess-dive-community/essdive-hydrologic-monitoring/blob/main/HydroRF_Term_Guide.md
+https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring/blob/main/HydroRF_RecommendedVocabulary.md
+https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring/blob/main/HydroRF_Term_Guide.md
 
 **Vocabulary Mapping File** `essdive_mapping.csv <https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/essdive_mapping.csv>`_
 
