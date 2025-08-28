@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.3.0
+Updates to support python 3.10, 3.11, 3.12. In addition to the python upgrades, other packages are also updated. We recommend a fresh install of basin3d to update these requirements.
+
++ Issue #222 - Upgrade python
+
 ## Version 1.2.1
 Change order of coordinates in geographic bounding box to (min longitude, min latitude, max longitude, max latitude)
 
