@@ -5,10 +5,11 @@ Welcome to basin3d-core |release| documentation!
 
    intro
    concepts
-   getting_started
    plugins
+   getting_started
    quick_guide
    examples
+   views
    key_functions
    api_reference
    changelog
