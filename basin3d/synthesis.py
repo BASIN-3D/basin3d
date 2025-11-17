@@ -326,11 +326,11 @@ class DataSynthesizer:
             >>> from basin3d.plugins import usgs
             >>> from basin3d import synthesis
             >>> synthesizer = synthesis.register()
-            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=["USGS-09110990", (-106.7, 38.9, -106.5, 39.0)],observed_property=['RDC','WT'],start_date='2024-04-01',end_date='2024-04-30',aggregation_duration='NONE')
+            >>> timeseries = synthesizer.measurement_timeseries_tvp_observations(monitoring_feature=["USGS-09110990", (-106.7, 38.85, -106.5, 39.0)],observed_property=['RDC','WT'],start_date='2020-04-01',end_date='2020-04-05',aggregation_duration='NONE')
             >>> for timeseries in timeseries:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
-            USGS-09106800 - RDC
+            USGS-09107000 - WT
 
         :param query: (optional) :class:`basin3d.core.schema.query.QueryMeasurementTimeseriesTVP` object
         :param kwargs: (required) Measurement Timeseries TVP Query parameters. See Query info below.

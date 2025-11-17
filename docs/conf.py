@@ -256,7 +256,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'basin3d-{}.tex'.format(version), 'basin3d Documentation',
-     'Charuleka Varadharajan, Valerie Hendrix', 'manual'),
+     'Charuleka Varadharajan, Valerie Hendrix, Danielle S. Christianson', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
