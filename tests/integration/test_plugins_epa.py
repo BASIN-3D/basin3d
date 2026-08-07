@@ -13,9 +13,9 @@ from basin3d.synthesis import register
 
 @pytest.mark.integration
 @pytest.mark.parametrize("query, expected_count",
-                         [({"parent_feature": "EPA-1402"}, 2494),
-                          ({"parent_feature": "EPA-14020001"}, 366),
-                          ({"parent_feature": "EPA-1402000101"}, 40),
+                         [({"parent_feature": "EPA-1402"}, 2660),
+                          ({"parent_feature": "EPA-14020001"}, 390),
+                          ({"parent_feature": "EPA-1402000101"}, 45),
                           ({"parent_feature": "EPA-140200010101"}, 3),
                           ({"monitoring_feature": ['EPA-0801417-CB-AS-1']}, 1),
                           ({"monitoring_feature": ['EPA-WIDNR_WQX-001', 'EPA-11NPSWRD_WQX-BLCA_NURE_0002', 'EPA-CCWC-MM-29 WASH #3']}, 3),
