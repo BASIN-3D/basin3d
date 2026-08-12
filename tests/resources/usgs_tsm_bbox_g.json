@@ -1,0 +1,69 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"323f87eb475e4648aa6b111756064052",
+                "parameter_code":"00060",
+                "monitoring_location_id":"USGS-07047970"
+            },
+            "id":"323f87eb475e4648aa6b111756064052",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"c23ddf7ed07749af9ea19f64ac96282b",
+                "parameter_code":"00010",
+                "monitoring_location_id":"USGS-07287700"
+            },
+            "id":"c23ddf7ed07749af9ea19f64ac96282b",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"f212b67294034658ab7412f30b043f1d",
+                "parameter_code":"00065",
+                "monitoring_location_id":"USGS-07287700"
+            },
+            "id":"f212b67294034658ab7412f30b043f1d",
+            "geometry":null
+        }
+    ],
+    "numberReturned":3,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata/items?f=json&lang=en-US&limit=1000&properties=id,parameter_code,monitoring_location_id&skipGeometry=true&computation_period_identifier=Points,Daily&bbox=-90.6,34.4,-90.5,34.6"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata/items?f=jsonld&lang=en-US&limit=1000&properties=id,parameter_code,monitoring_location_id&skipGeometry=true&computation_period_identifier=Points,Daily&bbox=-90.6,34.4,-90.5,34.6"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata/items?f=html&lang=en-US&limit=1000&properties=id,parameter_code,monitoring_location_id&skipGeometry=true&computation_period_identifier=Points,Daily&bbox=-90.6,34.4,-90.5,34.6"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata/items?f=csv&lang=en-US&limit=1000&properties=id,parameter_code,monitoring_location_id&skipGeometry=true&computation_period_identifier=Points,Daily&bbox=-90.6,34.4,-90.5,34.6"
+        },
+        {
+            "type":"application/json",
+            "title":"Time series metadata",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata"
+        }
+    ],
+    "timeStamp":"2026-08-14T20:38:43.598088Z"
+}

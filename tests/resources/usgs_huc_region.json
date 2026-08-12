@@ -1,0 +1,238 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"01",
+                "hydrologic_unit_name":"New England Region"
+            },
+            "id":"01",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"02",
+                "hydrologic_unit_name":"Mid Atlantic Region"
+            },
+            "id":"02",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"03",
+                "hydrologic_unit_name":"South Atlantic-Gulf Region"
+            },
+            "id":"03",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"04",
+                "hydrologic_unit_name":"Great Lakes Region"
+            },
+            "id":"04",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"05",
+                "hydrologic_unit_name":"Ohio Region"
+            },
+            "id":"05",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"06",
+                "hydrologic_unit_name":"Tennessee Region"
+            },
+            "id":"06",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"07",
+                "hydrologic_unit_name":"Upper Mississippi Region"
+            },
+            "id":"07",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"08",
+                "hydrologic_unit_name":"Lower Mississippi Region"
+            },
+            "id":"08",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"09",
+                "hydrologic_unit_name":"Souris-Red-Rainy Region"
+            },
+            "id":"09",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"10",
+                "hydrologic_unit_name":"Missouri Region"
+            },
+            "id":"10",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"11",
+                "hydrologic_unit_name":"Arkansas-White-Red Region"
+            },
+            "id":"11",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"12",
+                "hydrologic_unit_name":"Texas-Gulf Region"
+            },
+            "id":"12",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"13",
+                "hydrologic_unit_name":"Rio Grande Region"
+            },
+            "id":"13",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"14",
+                "hydrologic_unit_name":"Upper Colorado Region"
+            },
+            "id":"14",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"15",
+                "hydrologic_unit_name":"Lower Colorado Region"
+            },
+            "id":"15",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"16",
+                "hydrologic_unit_name":"Great Basin Region"
+            },
+            "id":"16",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"17",
+                "hydrologic_unit_name":"Pacific Northwest Region"
+            },
+            "id":"17",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"18",
+                "hydrologic_unit_name":"California Region"
+            },
+            "id":"18",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"19",
+                "hydrologic_unit_name":"Alaska Region"
+            },
+            "id":"19",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"20",
+                "hydrologic_unit_name":"Hawaii Region"
+            },
+            "id":"20",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"21",
+                "hydrologic_unit_name":"Caribbean Region"
+            },
+            "id":"21",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"22",
+                "hydrologic_unit_name":"South Pacific Region"
+            },
+            "id":"22",
+            "geometry":null
+        }
+    ],
+    "numberReturned":22,
+    "numberMatched":22,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes/items?f=json&lang=en-US&limit=10000&properties=id,hydrologic_unit_name&skipGeometry=true&hydrologic_unit_classification_code=R"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes/items?f=jsonld&lang=en-US&limit=10000&properties=id,hydrologic_unit_name&skipGeometry=true&hydrologic_unit_classification_code=R"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes/items?f=html&lang=en-US&limit=10000&properties=id,hydrologic_unit_name&skipGeometry=true&hydrologic_unit_classification_code=R"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes/items?f=csv&lang=en-US&limit=10000&properties=id,hydrologic_unit_name&skipGeometry=true&hydrologic_unit_classification_code=R"
+        },
+        {
+            "type":"application/json",
+            "title":"Hydrologic unit codes (HUCs)",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes"
+        }
+    ],
+    "timeStamp":"2026-08-14T17:48:59.415354Z"
+}

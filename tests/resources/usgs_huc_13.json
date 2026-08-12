@@ -1,0 +1,49 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"13",
+                "hydrologic_unit_name":"Rio Grande Region"
+            },
+            "id":"13",
+            "geometry":null
+        }
+    ],
+    "numberReturned":1,
+    "numberMatched":1,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes/items?f=json&lang=en-US&limit=10000&properties=id,hydrologic_unit_name&skipGeometry=true&id=13"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes/items?f=jsonld&lang=en-US&limit=10000&properties=id,hydrologic_unit_name&skipGeometry=true&id=13"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes/items?f=html&lang=en-US&limit=10000&properties=id,hydrologic_unit_name&skipGeometry=true&id=13"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes/items?f=csv&lang=en-US&limit=10000&properties=id,hydrologic_unit_name&skipGeometry=true&id=13"
+        },
+        {
+            "type":"application/json",
+            "title":"Hydrologic unit codes (HUCs)",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/hydrologic-unit-codes"
+        }
+    ],
+    "timeStamp":"2026-08-14T18:05:42.327747Z"
+}

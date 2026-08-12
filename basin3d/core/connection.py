@@ -412,3 +412,43 @@ class HTTPConnectionTokenAuth(HTTPConnectionDataSource):
         :return:
         """
         return self._submit_url(url_part, params, headers, post_url)
+
+
+class HTTPConnectionApiKey(HTTPConnectionDataSource):
+    """HTTP connection optionally using a known API key in the X-Api-Key header."""
+
+    def __init__(self, datasource, api_key=None, api_key_header="X-Api-Key", *args, **kwargs):
+
+        super(HTTPConnectionApiKey, self).__init__(datasource, *args, **kwargs)
+        self.api_key = api_key
+        self.api_key_header = api_key_header
+
+    def login(self):
+        return self.api_key
+
+    def logout(self):
+        pass
+
+    def _submit_url(self, url_part, params=None, headers=None,
+                    request_method=get_url):
+
+        auth_headers = {}
+
+        if self.api_key:
+            auth_headers[self.api_key_header] = self.api_key
+
+        if headers:
+            auth_headers.update(headers)
+
+        url = url_part
+        if not url_part.startswith(self.datasource.location):
+            url = f'{self.datasource.location}{url_part}'
+
+        return request_method(url, params=params, headers=auth_headers,
+                              verify=self.verify_ssl)
+
+    def get(self, url_part, params=None, headers=None):
+        return self._submit_url(url_part, params, headers)
+
+    def post(self, url_part, params=None, headers=None):
+        return self._submit_url(url_part, params, headers, post_url)

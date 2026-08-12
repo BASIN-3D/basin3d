@@ -1,0 +1,87 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-09110000",
+                "agency_code":"USGS",
+                "monitoring_location_name":"TAYLOR RIVER AT ALMONT, CO.",
+                "site_type":"Stream",
+                "hydrologic_unit_code":"140200010113",
+                "altitude":8016.2,
+                "altitude_accuracy":0.13,
+                "vertical_datum":"NAVD88",
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"Y",
+                "revision_note":"WSP 1213: 1911. WDR-US-2011: Drainage area."
+            },
+            "id":"USGS-09110000",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -106.844722,
+                    38.664444
+                ]
+            }
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-09112500",
+                "agency_code":"USGS",
+                "monitoring_location_name":"EAST RIVER AT ALMONT, CO",
+                "site_type":"Stream",
+                "hydrologic_unit_code":"140200010210",
+                "altitude":8011.68,
+                "altitude_accuracy":0.22,
+                "vertical_datum":"NAVD88",
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"Y",
+                "revision_note":"WSP 1313: 1911. WSP 1733: 1952. WSP 1924: Drainage area."
+            },
+            "id":"USGS-09112500",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -106.8475,
+                    38.664444
+                ]
+            }
+        }
+    ],
+    "numberReturned":2,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09110000,USGS-09112500"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=jsonld&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09110000,USGS-09112500"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=html&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09110000,USGS-09112500"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=csv&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09110000,USGS-09112500"
+        },
+        {
+            "type":"application/json",
+            "title":"Monitoring locations",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations"
+        }
+    ],
+    "timeStamp":"2026-08-14T12:23:41.256358Z"
+}

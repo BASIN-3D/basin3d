@@ -42,13 +42,12 @@ OBSERVED_PROPERTY:SAMPLING_MEDIUM,Ag:WATER,01075,"Silver, water, filtered, micro
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,Th:WATER,01057,"Thallium, water, filtered, micrograms per liter"
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,U:WATER,80020,"Uranium, water, filtered, extraction fluorometric method, micrograms per liter"
 OBSERVED_PROPERTY:SAMPLING_MEDIUM,Zn:WATER,01090,"Zinc, water, filtered, micrograms per liter"
-STATISTIC,MEAN,00003,
-STATISTIC,MIN,00002,
-STATISTIC,MAX,00001,
-STATISTIC,TOTAL,00006,
-RESULT_QUALITY,ESTIMATED,e,"Value has been edited or estimated by USGS personnel and is write protected"
-RESULT_QUALITY,ESTIMATED,E,"Value was computed from estimated unit values."
-RESULT_QUALITY,VALIDATED,A,"Approved for publication -- Processing and review completed."
-RESULT_QUALITY,UNVALIDATED,P,"Provisional data subject to revision."
+STATISTIC,INSTANT,00011,INSTANTANEOUS
+STATISTIC,MEAN,00003,MEAN
+STATISTIC,MIN,00002,MINIMUM
+STATISTIC,MAX,00001,MAXIMUM
+STATISTIC,TOTAL,00006,SUM
+RESULT_QUALITY,VALIDATED,Approved,"Approved for publication -- Processing and review completed."
+RESULT_QUALITY,UNVALIDATED,Provisional,"Provisional data subject to revision."
 AGGREGATION_DURATION,DAY,DAY,
 AGGREGATION_DURATION,NONE,NONE,

@@ -1,0 +1,38 @@
+{
+    "type":"FeatureCollection",
+    "features":[],
+    "numberReturned":0,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items?f=json&lang=en-US&limit=50000&properties=time,value,unit_of_measure,approval_status&skipGeometry=true&agency_code=USGS&sortby=time&time_series_id=9db5335b910447e593a5e32dc92dd143&time=2024-04-01T00%3A00%3A00Z%2F2024-04-10T23%3A59%3A59Z&approval_status=Provisional"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items?f=jsonld&lang=en-US&limit=50000&properties=time,value,unit_of_measure,approval_status&skipGeometry=true&agency_code=USGS&sortby=time&time_series_id=9db5335b910447e593a5e32dc92dd143&time=2024-04-01T00%3A00%3A00Z%2F2024-04-10T23%3A59%3A59Z&approval_status=Provisional"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items?f=html&lang=en-US&limit=50000&properties=time,value,unit_of_measure,approval_status&skipGeometry=true&agency_code=USGS&sortby=time&time_series_id=9db5335b910447e593a5e32dc92dd143&time=2024-04-01T00%3A00%3A00Z%2F2024-04-10T23%3A59%3A59Z&approval_status=Provisional"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items?f=csv&lang=en-US&limit=50000&properties=time,value,unit_of_measure,approval_status&skipGeometry=true&agency_code=USGS&sortby=time&time_series_id=9db5335b910447e593a5e32dc92dd143&time=2024-04-01T00%3A00%3A00Z%2F2024-04-10T23%3A59%3A59Z&approval_status=Provisional"
+        },
+        {
+            "type":"application/json",
+            "title":"Daily values",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily"
+        }
+    ],
+    "timeStamp":"2026-08-14T16:22:28.294330Z"
+}

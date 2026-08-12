@@ -3,27 +3,32 @@
 Data Sources Plugins
 ********************************
 
-  | :ref:`USGS Daily and Instantaneous Values <usgs_plugin>`
+  | :ref:`USGS Daily and Continuous Water Data <usgs_plugin>`
   | :ref:`EPA Water Quality eXchange (WQX) <epa_plugin>`
   | :ref:`ESS-DIVE Hydrologic Monitoring Reporting Format (RF) <essdive_plugin>`
 
 .. _usgs_plugin:
 
-USGS Daily and Instantaneous Values
+USGS Daily and Continuous Values
 -----------------------------------
-`USGS water data <https://waterservices.usgs.gov/>`_ via the USGS Daily Values and Instantaneous Values Services. Metadata are acquired via the USGS Site Service.
+`USGS Water Data <https://api.waterdata.usgs.gov/>`_ via the `USGS Water Data APIs <https://api.waterdata.usgs.gov/ogcapi/v0/>`_.
 
-**Data Usage** https://waterservices.usgs.gov/
+**Data Usage** https://waterdata.usgs.gov/citation/
 
 
 Section 1: Data Source Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-None.
+USGS Water Data APIs are rate limited. It is recommended to obtain a free API Key (see details `here <https://api.waterdata.usgs.gov/docs/ogcapi/keys/>`_).
+See Section 2 below for configuring your personal API Key for use with BASIN-3D.
 
-Data are publicly available and accessed via the following USGS Water Services:
-  | `Site Service <https://waterservices.usgs.gov/docs/site-service/site-service-details/>`_
-  | `Daily Values Service <https://waterservices.usgs.gov/docs/dv-service/daily-values-service-details/>`_
-  | `Instantaneous Values Service <https://waterservices.usgs.gov/docs/instantaneous-values/instantaneous-values-details/>`_
+Data are publicly available and accessed via the following USGS Water Data APIs (see `documentation <https://api.waterdata.usgs.gov/ogcapi/v0/openapi?f=html>`_ for details):
+  | hydrologic-unit-codes (HUC)
+  | monitoring-locations
+  | time-series-metadata
+  | daily
+  | continuous
+
+The USGS Water Data APIs also utilize pagination for requests with large results. BASIN-3D default configuration should handle most requests. If you receive error messages, you can configure a custom request page limit. See Section 2 below.
 
 
 Section 2: Using the USGS plugin in BASIN-3D
@@ -31,18 +36,25 @@ Section 2: Using the USGS plugin in BASIN-3D
 
 1. Install basin3d using the instructions in the :doc:`/getting_started`.
 
-2. Import the USGS plugin:
+2. (Recommended) Configure your personal USGS API Key by setting it as an environmental variable. If you have already launched python (in step one), quit it.
+
+.. code-block::
+
+    $ export USGS_API_KEY=<replace_with_your_key>
+    $ python
+
+3. Import the USGS plugin:
 
 >>> from basin3d.plugins import usgs
 
-3. Register the plugin (and any other you have imported):
+4. Register the plugin (and any other you have imported):
 
 >>> from basin3d import synthesis
 >>> synthesizer = synthesis.register()
 
-4. Find the available monitoring feature IDs (aka location identifiers). Note: POINT or REGION monitoring feature IDs are required parameters for BASIN-3D data requests.
+5. Find the available monitoring feature IDs (aka location identifiers). Note: Monitoring feature IDs can be specified as monitoring_features in data requests.
 
-   USGS HUC codes are mapped to the following BASIN-3D :class:`basin3d.core.schema.enum.FeatureTypeEnum` vocabulary.
+   The following USGS HUC codes are mapped to the indicated BASIN-3D :class:`basin3d.core.schema.enum.FeatureTypeEnum` vocabulary.
 
    =============== === =====================
    USGS HUC code       BASIN-3D Feature Type
@@ -54,8 +66,6 @@ Section 2: Using the USGS plugin in BASIN-3D
    6-digit         >>  BASIN
    --------------- --- ---------------------
    8-digit         >>  SUBBASIN
-   --------------- --- ---------------------
-   8, 10, 12-digit >>  POINT
    =============== === =====================
 
    See Section 3: Locations Considerations below for additional details.
@@ -97,7 +107,9 @@ Option 3: Specify a feature_type. For example, to find the USGS REGIONs (2-digit
     USGS-03 --- South Atlantic-Gulf
     ...
 
-5. Request time series data. Query argument aggregation_duration supports "NONE" or "DAY". See Section 4 below for full vocabulary mapping details.
+6. Request time series data. Query argument aggregation_duration supports "NONE" (Continuous) or "DAY" (Daily). USGS monitoring location, huc names, or bounding boxes can be specified. See Section 4 below for full vocabulary mapping details.
+
+*Note: Only region, subregion, and basin HUC names are supported in the BASIN-3D monitoring_feature query parameter.*
 
 .. code-block::
 
@@ -109,7 +121,14 @@ Option 3: Specify a feature_type. For example, to find the USGS REGIONs (2-digit
     feature_of_interest: USGS-09110990 --- observed_property: RDC --- time series length: 30
     WARNING * basin3d.core.synthesis USGS.MeasurementTimeseriesTVPObservation - 09107500 had no valid data values for 00060 that match the query.
 
-6. Synthesized data should be cited following the USGS data use policies. See **Data Usage** above.
+7. Synthesized data should be cited following the USGS data use policies. See **Data Usage** above.
+
+8. (Optional) Configure a custom request page limit (positive integer). The default is 10 and only applies to the monitoring-locations, time-series-metadata, and hydrologic-unit-code APIs. Quit python if you have launched it already.
+
+.. code-block::
+
+    $ export USGS_PAGE_REQUEST_LIMIT=<custom_request_page_limit>
+    $ python
 
 
 Section 3: Usage Notes
@@ -117,26 +136,28 @@ Section 3: Usage Notes
 .. warning::
   **BASIN-3D capabilities that cannot be supported or are limited for the USGS Water Data include:**
 
-    | - Only unit conversions are performed for BASIN-3D observed property River Discharge (RDC) mapped to USGS ParameterCd 00060. Otherwise, USGS units are reported in the :class:`basin3d.core.models.MeasurementTimeseriesTVPObservation` unit_of_measurement attribute and may not match the specified BASIN-3D vocabulary unit.
+    | - Only unit conversions are performed for BASIN-3D observed property River Discharge (RDC) mapped to USGS ParameterCd 00060 and 00061. Otherwise, USGS units are reported in the :class:`basin3d.core.models.MeasurementTimeseriesTVPObservation` unit_of_measurement attribute and may not match the specified BASIN-3D vocabulary unit.
     |
-    | - Only instantaneous and daily time aggregations are currently supported. Daily aggregations are supplied by the data source, not aggregated by BASIN-3D.
+    | - Only continuous and daily time aggregations are currently supported. Daily aggregations are supplied by the data source, not aggregated by BASIN-3D.
     |
-    | - USGS Daily and Instantaneous Values Service may contain provisional data. See the Other Tips section in the USGS Services Documentation on `Writing Fault Resistant Code <https://waterservices.usgs.gov/docs/writing-fault-resistant-code/>`_
+    | - USGS Daily and Continuous Water Data may contain provisional data.
     |
-    | - Some USGS Daily and Instantaneous Values data are reported in Daylight Savings Time and others in Standard Time. BASIN-3D reports Standard Time as the UTC Offset.
+    | - Some USGS Daily and Continuous Water Data data are reported in Daylight Savings Time and others in Standard Time. The timestamp is reported in UTC.
 
 Data Considerations
 """""""""""""""""""
-  * BASIN-3D supports data acquisition by USGS stream station (BASIN-3D FeatureType POINT) and 2-digit HUC codes (BASIN-3D FeatureType REGION). See examples above.
-  * Data acquisition by 2-digit HUC code can take significant time and may time out.
-  * Instantaneous Values (BASIN-3D aggregation_duration=NONE) responses can aldo be large and may time out.
-  * USGS Daily and Instantaneous Values Service may contain provisional data. The USGS plugin supports filtering by result quality. See mapping in Section 4 below.
-  * The BASIN-3D Sampling Medium attribute is deduced from the USGS parameterCd description.
+  * BASIN-3D supports data acquisition by USGS monitoring location code (BASIN-3D FeatureType POINT) specified in the monitoring_feature parameter, as well as the 2-, 4-, 6-digit HUC codes (BASIN-3D FeatureType REGION, SUBREGION, BASIN). See examples above.
+  * Data acquisition by HUC codes can take significant time and may time out.
+  * Continuous Values (BASIN-3D aggregation_duration=NONE) responses can also be large and may time out.
+  * USGS Daily and Continuous Values Service may contain provisional data. The USGS plugin supports filtering by result quality. See mapping in Section 4 below.
+  * The BASIN-3D Sampling Medium attribute is deduced from the USGS parameter code description.
 
 Location Considerations
 """""""""""""""""""""""
-  * An attempt to read the HUC Codes from USGS at https://water.usgs.gov/GIS/new_huc_rdb.txt is made. If the service times out, a static version of the file is read. The static version is confirmed to be up-to-date periodically.
-  * The USGS Daily and Instantaneous Values Service uses NAD83 datum for bounding box filters. BASIN-3D uses WGS84 datum and does not translate specified bounding box filters to NAD83 because the difference is small, especially in North America.
+  * To acquire information about USGS monitoring locations, the BASIN-3D feature type POINT must be specified.
+  * If a feature type is not specified, only HUC are considered (REGION, SUBREGION, BASIN, SUBBASIN).
+  * If a HUC is specified as a parent feature, all HUCs within the specified parent HUC will be returned unless a BASIN-3D feature type is specified.
+  * The USGS monitoring location site type, if available, is reported in the BASIN-3D monitoring feature description.
 
 Section 4: Data Source Info
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -145,31 +166,21 @@ Section 4: Data Source Info
 **Vocabulary definitions**
   Vocabulary definitions are found on the following resources:
 
-    | https://help.waterdata.usgs.gov/codes-and-parameters
-    | https://waterservices.usgs.gov/docs/site-service/site-service-details/
-    | https://waterservices.usgs.gov/docs/dv-service/daily-values-service-details/
-    | https://waterservices.usgs.gov/docs/instantaneous-values/instantaneous-values-details/
+    | parameter codes - https://api.waterdata.usgs.gov/ogcapi/v0/collections/parameter-codes/items
+    | statistic codes - https://api.waterdata.usgs.gov/ogcapi/v0/collections/statistic-codes/items
 
-  Daily Value and Instantaneous Value Qualification Code (dv_rmk_cd)
+  Daily Value and Continuous Data Approval Status Code (approval_status)
 
-  =============  =========  ===========================================================================
-  BASIN-3D Code  USGS Code  USGS Description
-  =============  =========  ===========================================================================
-  ESTIMATED      e          Value has been edited or estimated by USGS personnel and is write protected
-  NOT_SUPPORTED  &          Value was computed from affected unit values
-  ESTIMATED      E          Value was computed from estimated unit values.
-  VALIDATED      A          Approved for publication -- Processing and review completed.
-  UNVALIDATED    P          Provisional data subject to revision.
-  NOT_SUPPORTED  <          The value is known to be less than reported value and is write protected.
-  NOT_SUPPORTED  >          The value is known to be greater than reported value and is write protected
-  NOT_SUPPORTED  1          Value is write protected without any remark code to be printed
-  NOT_SUPPORTED  2          Remark is write protected without any remark code to be printed
-  NOT_SUPPORTED  _          No remark (blank)
-  =============  =========  ===========================================================================
+  =============  ===========  ===========================================================================
+  BASIN-3D Code  USGS Code    USGS Description
+  =============  ===========  ===========================================================================
+  VALIDATED      Approved     Approved for publication -- Processing and review completed.
+  UNVALIDATED    Provisional  Provisional data subject to revision.
+  =============  ===========  ===========================================================================
 
 **Vocabulary Mapping File** `usgs_mapping.csv <https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/usgs_mapping.csv>`_
 
-**Citation** https://waterservices.usgs.gov/
+**Citation** https://waterdata.usgs.gov/citation/
 
 .. _epa_plugin:
 

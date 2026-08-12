@@ -1,0 +1,87 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-09110990",
+                "agency_code":"USGS",
+                "monitoring_location_name":"ELK CREEK AT COAL CREEK ABV CRESTED BUTTE, CO",
+                "site_type":"Stream",
+                "hydrologic_unit_code":"140200010204",
+                "altitude":9568.63,
+                "altitude_accuracy":0.13,
+                "vertical_datum":"NAVD88",
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"N",
+                "revision_note":null
+            },
+            "id":"USGS-09110990",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -107.059772222222,
+                    38.85665
+                ]
+            }
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-09111250",
+                "agency_code":"USGS",
+                "monitoring_location_name":"COAL CREEK ABV MCCORMICK DTCH AT CRESTED BUTTE, CO",
+                "site_type":"Stream",
+                "hydrologic_unit_code":"140200010204",
+                "altitude":8885.52,
+                "altitude_accuracy":0.17,
+                "vertical_datum":"NAVD88",
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"Y",
+                "revision_note":null
+            },
+            "id":"USGS-09111250",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -106.985297,
+                    38.871556
+                ]
+            }
+        }
+    ],
+    "numberReturned":2,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09110990,USGS-09111250"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=jsonld&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09110990,USGS-09111250"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=html&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09110990,USGS-09111250"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=csv&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09110990,USGS-09111250"
+        },
+        {
+            "type":"application/json",
+            "title":"Monitoring locations",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations"
+        }
+    ],
+    "timeStamp":"2026-08-14T16:14:33.876399Z"
+}

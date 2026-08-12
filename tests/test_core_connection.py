@@ -5,7 +5,7 @@ import requests
 
 import basin3d
 from basin3d.core.access import post_url
-from basin3d.core.connection import HTTPConnectionOAuth2, InvalidOrMissingCredentials, HTTPConnectionTokenAuth
+from basin3d.core.connection import HTTPConnectionOAuth2, InvalidOrMissingCredentials, HTTPConnectionTokenAuth, HTTPConnectionApiKey
 
 
 @pytest.fixture
@@ -216,3 +216,101 @@ def test_http_token_submit_url(monkeypatch, mock_datasource_http_token, response
         pytest.raises(InvalidOrMissingCredentials, conn._submit_url, "foo/", {}, {}, mock_get_url)
     else:
         conn._submit_url("foo/", {"foo": "bat", "bar": [1, 2, 3, 4]}, {}, mock_get_url)
+
+
+def test_http_api_key(mock_datasource):
+    """Test the basic function of the API key connection."""
+    conn = HTTPConnectionApiKey(mock_datasource, api_key="known-token")
+
+    assert conn
+    assert conn.api_key == "known-token"
+    assert conn.login() == "known-token"
+    assert conn.logout() is None
+
+
+def test_http_api_key_submit_url(mock_datasource):
+    """Test API key header and request submission."""
+    mock_request_method = Mock()
+    conn = HTTPConnectionApiKey(mock_datasource, api_key="known-token")
+
+    conn._submit_url(
+        "foo/",
+        params={"foo": "bar"},
+        headers={"content-type": "plain/text"},
+        request_method=mock_request_method
+    )
+
+    mock_request_method.assert_called_once_with(
+        "http://foo.com/foo/",
+        params={"foo": "bar"},
+        headers={
+            "X-Api-Key": "known-token",
+            "content-type": "plain/text"
+        },
+        verify=False
+    )
+
+
+def test_http_api_key_submit_url_without_api_key(mock_datasource):
+    """Test request submission when the optional API key is not provided."""
+    mock_request_method = Mock()
+    conn = HTTPConnectionApiKey(mock_datasource)
+
+    assert conn.api_key is None
+    assert conn.login() is None
+
+    conn._submit_url(
+        "foo/",
+        headers={"content-type": "plain/text"},
+        request_method=mock_request_method
+    )
+
+    mock_request_method.assert_called_once_with(
+        "http://foo.com/foo/",
+        params=None,
+        headers={"content-type": "plain/text"},
+        verify=False
+    )
+
+
+def test_http_api_key_get_post(monkeypatch, mock_datasource):
+    """Test get and post delegate to the submit method."""
+    conn = HTTPConnectionApiKey(mock_datasource, api_key="known-token")
+    mock_submit_url = MagicMock()
+
+    monkeypatch.setattr(conn, "_submit_url", mock_submit_url)
+
+    conn.get("foo/", params={"foo": "bar"}, headers={"header": "value"})
+    mock_submit_url.assert_called_with(
+        "foo/",
+        {"foo": "bar"},
+        {"header": "value"}
+    )
+
+    conn.post("foo/", params={"foo": "bar"}, headers={"header": "value"})
+    mock_submit_url.assert_called_with(
+        "foo/",
+        {"foo": "bar"},
+        {"header": "value"},
+        post_url
+    )
+
+
+def test_http_api_key_custom_header(mock_datasource):
+    """Test API keys can be sent using a configured header name."""
+    mock_request_method = Mock()
+    conn = HTTPConnectionApiKey(
+        mock_datasource,
+        api_key="known-key",
+        api_key_header="X-Custom-Key"
+    )
+
+    assert conn.api_key_header == "X-Custom-Key"
+    conn._submit_url("foo/", request_method=mock_request_method)
+
+    mock_request_method.assert_called_once_with(
+        "http://foo.com/foo/",
+        params=None,
+        headers={"X-Custom-Key": "known-key"},
+        verify=False
+    )

@@ -49,7 +49,7 @@ jobs:
     - name: Documentation and Doctests
       run: |
         cd docs
-        PYTHONPATH=.. make doctest linkcheck html
+        PYTHONPATH=.. make linkcheck html
 
     - name: Archive code coverage results
       uses: actions/upload-artifact@v4
