@@ -988,7 +988,7 @@ class SamplingFeature(Feature):
     """
 
     def __init__(self, plugin_access, **kwargs):
-        self._related_sampling_feature_complex: List[SamplingFeature] = []
+        self._related_sampling_feature_complex: List[RelatedSamplingFeature] = []
 
         # Initialize after the attributes have been set
         super().__init__(plugin_access, **kwargs)
@@ -1000,13 +1000,13 @@ class SamplingFeature(Feature):
             self.related_sampling_feature_complex = [self.related_sampling_feature_complex]
 
     @property
-    def related_sampling_feature_complex(self) -> List['SamplingFeature']:
+    def related_sampling_feature_complex(self) -> List['RelatedSamplingFeature']:
         """List of related sampling features
            obj :class:`RelatedSamplingFeature`"""
         return self._related_sampling_feature_complex
 
     @related_sampling_feature_complex.setter
-    def related_sampling_feature_complex(self, value: List['SamplingFeature']):
+    def related_sampling_feature_complex(self, value: List['RelatedSamplingFeature']):
         self._related_sampling_feature_complex = value
 
 

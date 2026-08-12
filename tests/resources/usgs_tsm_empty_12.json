@@ -1,0 +1,38 @@
+{
+    "type":"FeatureCollection",
+    "features":[],
+    "numberReturned":7,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata/items?f=json&lang=en-US&limit=10000&properties=id,parameter_code,monitoring_location_id,statistic_id,begin,end,unit_of_measure&skipGeometry=true&computation_period_identifier=Daily&monitoring_location_id=USGS-09107000"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata/items?f=jsonld&lang=en-US&limit=10000&properties=id,parameter_code,monitoring_location_id,statistic_id,begin,end,unit_of_measure&skipGeometry=true&computation_period_identifier=Daily&monitoring_location_id=USGS-09107000"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata/items?f=html&lang=en-US&limit=10000&properties=id,parameter_code,monitoring_location_id,statistic_id,begin,end,unit_of_measure&skipGeometry=true&computation_period_identifier=Daily&monitoring_location_id=USGS-09107000"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata/items?f=csv&lang=en-US&limit=10000&properties=id,parameter_code,monitoring_location_id,statistic_id,begin,end,unit_of_measure&skipGeometry=true&computation_period_identifier=Daily&monitoring_location_id=USGS-09107000"
+        },
+        {
+            "type":"application/json",
+            "title":"Time series metadata",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/time-series-metadata"
+        }
+    ],
+    "timeStamp":"2026-08-15T00:41:58.188632Z"
+}

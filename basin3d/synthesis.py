@@ -49,7 +49,7 @@ def register(plugins: List[str] = None):
     >>> from basin3d import synthesis
     >>> synthesizer = synthesis.register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
     >>> synthesizer.datasources
-    [DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://waterservices.usgs.gov/nwis/', credentials={})]
+    [DataSource(id='USGS', name='USGS', id_prefix='USGS', location='https://api.waterdata.usgs.gov/ogcapi/v0', credentials={})]
 
     :param plugins: [Optional] plugins to registered
     :return: DataSynthesizer(plugin_dict, catalog)
@@ -159,14 +159,13 @@ class DataSynthesizer:
         STATISTIC | MIN -- 00002
         STATISTIC | MEAN -- 00003
         STATISTIC | TOTAL -- 00006
+        STATISTIC | INSTANT -- 00011
 
 
         >>> response = synthesizer.attribute_mappings(datasource_id='USGS', attr_type='RESULT_QUALITY', attr_vocab=['VALIDATED', 'ESTIMATED'], from_basin3d=True)
         >>> for attr_mapping in response:
         ...     print(f'{attr_mapping.attr_type} | {attr_mapping.basin3d_vocab} -- {attr_mapping.datasource_vocab}, {attr_mapping.datasource_desc}')
-        RESULT_QUALITY | VALIDATED -- A, Approved for publication -- Processing and review completed.
-        RESULT_QUALITY | ESTIMATED -- E, Value was computed from estimated unit values.
-        RESULT_QUALITY | ESTIMATED -- e, Value has been edited or estimated by USGS personnel and is write protected
+        RESULT_QUALITY | VALIDATED -- Approved, Approved for publication -- Processing and review completed.
 
 
         Return all the :class:`basin3d.core.models.AttributMapping` registered or those that match the specified fields.
@@ -200,34 +199,35 @@ class DataSynthesizer:
 
         >>> for mf in synthesizer.monitoring_features(datasource='USGS', feature_type='region'): # doctest: +ELLIPSIS
         ...     print(f"{mf.id} - {mf.description}")
-        USGS-01 - REGION: New England
-        USGS-02 - REGION: Mid Atlantic
-        USGS-03 - REGION: South Atlantic-Gulf
+        USGS-01 - REGION: New England Region
+        USGS-02 - REGION: Mid Atlantic Region
+        USGS-03 - REGION: South Atlantic-Gulf Region
         ...
 
         **Search for USGS points by parent (subbasin) monitoring features:**
 
         >>> for mf in synthesizer.monitoring_features(feature_type='point',parent_feature=['USGS-17040101']): # doctest: +ELLIPSIS
         ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
-        USGS-13010000 [(-110.6647222, 44.1336111)]
-        USGS-13010065 [(-110.6675, 44.09888889)]
-        USGS-13010450 [(-110.5874305, 43.9038296)]
+        USGS-13005000 [(-110.50075985053, 44.2857750564969)]
+        USGS-13005500 [(-110.473536370662, 44.2757754411182)]
+        USGS-13005600 [(-110.497426363603, 44.2846639917692)]
         ...
 
         **Search for USGS points by monitoring features identifiers:**
 
         >>> for mf in synthesizer.monitoring_features(feature_type='point', monitoring_feature=['USGS-13010000', 'USGS-13010450']): # doctest: +ELLIPSIS
         ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
-        USGS-13010000 [(-110.6647222, 44.1336111)]
-        USGS-13010450 [(-110.5874305, 43.9038296)]
+        USGS-13010000 [(-110.664722222222, 44.1336111111111)]
+        USGS-13010450 [(-110.58743050116, 43.9038296037203)]
 
         **Search for USGS points by monitoring feature bounding boxes:**
 
-        >>> for mf in synthesizer.monitoring_features(feature_type='point', monitoring_feature=[(-90.6, 34.4, -90.5, 34.6), (-106.7, 38.9, -106.5, 39.0)]): # doctest: +ELLIPSIS
+        >>> for mf in synthesizer.monitoring_features(feature_type='point', monitoring_feature=[(-106.7, 38.9, -106.5, 38.93), (-90.6, 34.45, -90.5, 34.55)]): # doctest: +ELLIPSIS
         ...    print(f"{mf.id} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
-        USGS-07047970 [(-90.58399367, 34.52400003)]
-        USGS-07287700 [(-90.5302222, 34.48425)]
-        USGS-09106800 [(-106.6009444, 38.92469444)]
+        USGS-09106800 [(-106.60094444444444, 38.92469444444444)]
+        USGS-07047970 [(-90.58399366578033, 34.52400003038596)]
+        USGS-07287700 [(-90.5302222222222, 34.48425)]
+        ...
 
         Note: Monitoring feature identifiers and bounding boxes can be combined in the monitoring_feature argument.
 
@@ -330,7 +330,7 @@ class DataSynthesizer:
             >>> for timeseries in timeseries:
             ...    print(f"{timeseries.feature_of_interest.id} - {timeseries.observed_property.get_basin3d_vocab()}")
             USGS-09110990 - RDC
-            USGS-09107000 - WT
+            USGS-09107000 - RDC
 
         :param query: (optional) :class:`basin3d.core.schema.query.QueryMeasurementTimeseriesTVP` object
         :param kwargs: (required) Measurement Timeseries TVP Query parameters. See Query info below.

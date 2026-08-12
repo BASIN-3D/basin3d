@@ -7,6 +7,7 @@ from geopandas import GeoDataFrame
 from os.path import dirname
 from unittest.mock import MagicMock
 
+import basin3d.core.connection
 from basin3d.synthesis import register
 from basin3d.views import watershed_workflow as b3dww
 from tests.utilities import get_text, get_json
@@ -52,29 +53,30 @@ def get_url_text(text, status=200):
 # test USGS
 def test_get_monitoring_features(monkeypatch):
     mock_get_url = MagicMock(side_effect=list(
-        [get_url_text(get_text("usgs_mf_query_point_single_bbox.rdb"))]))
+        [get_url(get_json("usgs_tsm_bbox_day_2.json")),
+         get_url(get_json("usgs_ml_mlid_3.json")),]))
 
     from basin3d.plugins import usgs
-    monkeypatch.setattr(usgs, 'get_url', mock_get_url)
+    monkeypatch.setattr(basin3d.core.connection.HTTPConnectionApiKey, 'get', mock_get_url)
 
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
 
     monitoring_feature_geopandas = b3dww.get_monitoring_features(
         synthesizer, datasource=['USGS'], feature_type='point',
-        monitoring_feature=[(-106.7, 38.9, -106.5, 39.0)])
+        monitoring_feature=[(-106.7, 38.85, -106.5, 39.0)])
 
     assert isinstance(monitoring_feature_geopandas, GeoDataFrame)
     assert list(monitoring_feature_geopandas.columns) == [
         'id', 'name', 'feature_type', 'description', 'data_source', 'elevation', 'geometry']
     assert monitoring_feature_geopandas.shape == (1,7)
     geometry = monitoring_feature_geopandas.get_geometry(0)
-    assert float(geometry.x[0]) == -106.6009444
-    assert float(geometry.y[0]) == 38.92469444
-    assert monitoring_feature_geopandas.get('id')[0] == 'USGS-09106800'
+    assert float(geometry.x[0]) == -106.566696581035
+    assert float(geometry.y[0]) == 38.8602712673025
+    assert monitoring_feature_geopandas.get('id')[0] == 'USGS-09107000'
     assert monitoring_feature_geopandas.get('feature_type')[0] == 'POINT'
-    assert monitoring_feature_geopandas.get('name')[0] == 'TAYLOR RIVER ABOVE TRAIL CREEK NR TAYLOR PARK, CO'
+    assert monitoring_feature_geopandas.get('name')[0] == 'TAYLOR RIVER AT TAYLOR PARK, CO.'
     assert monitoring_feature_geopandas.get('data_source')[0].id == 'USGS'
-    assert monitoring_feature_geopandas.get('elevation')[0] == 9681.31
+    assert monitoring_feature_geopandas.get('elevation')[0] == 9332.33
 
 
 # test empty result with message
@@ -83,10 +85,10 @@ def test_get_monitoring_features_msg(caplog, monkeypatch):
     caplog.clear()
 
     mock_get_url = MagicMock(side_effect=list(
-        [get_url_text(get_text("usgs_mf_query_bbox_empty.rdb"))]))
+        [get_url(get_json("usgs_daily_empty.json")), get_url(get_json("usgs_daily_empty.json"))]))
 
     from basin3d.plugins import usgs
-    monkeypatch.setattr(usgs, 'get_url', mock_get_url)
+    monkeypatch.setattr(basin3d.core.connection.HTTPConnectionApiKey, 'get', mock_get_url)
 
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
 
@@ -145,12 +147,6 @@ def test_get_monitoring_features_epa(caplog, monkeypatch):
 def test_malformed_monitoring_feature(caplog, monkeypatch):
     caplog.set_level(logging.INFO)
     caplog.clear()
-
-    mock_get_url = MagicMock(side_effect=list(
-        [get_url_text(get_text("usgs_mf_query_bbox_empty.rdb"))]))
-
-    from basin3d.plugins import usgs
-    monkeypatch.setattr(usgs, 'get_url', mock_get_url)
 
     synthesizer = register(['basin3d.plugins.usgs.USGSDataSourcePlugin'])
 

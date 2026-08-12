@@ -1,0 +1,63 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-09129600",
+                "agency_code":"USGS",
+                "monitoring_location_name":"SMITH FORK NEAR LAZEAR, CO",
+                "site_type":"Stream",
+                "hydrologic_unit_code":"140200021206",
+                "altitude":5847.87,
+                "altitude_accuracy":0.13,
+                "vertical_datum":"NAVD88",
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"Y",
+                "revision_note":"WDR CO-85-2: 1984, 1984 (M). WDR-US-2012: Drainage area."
+            },
+            "id":"USGS-09129600",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -107.710138888889,
+                    38.7074444444444
+                ]
+            }
+        }
+    ],
+    "numberReturned":1,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09129600"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=jsonld&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09129600"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=html&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09129600"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=csv&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09129600"
+        },
+        {
+            "type":"application/json",
+            "title":"Monitoring locations",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations"
+        }
+    ],
+    "timeStamp":"2026-08-14T18:43:32.158404Z"
+}

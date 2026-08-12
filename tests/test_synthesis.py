@@ -33,7 +33,7 @@ def test_register_implicit(monkeypatch):
 
     assert datasources[0].id_prefix == usgs.USGSDataSourcePlugin.get_id_prefix()
     assert datasources[0].id == 'USGS'
-    assert datasources[0].location == 'https://waterservices.usgs.gov/nwis/'
+    assert datasources[0].location == 'https://api.waterdata.usgs.gov/ogcapi/v0'
 
 
 def test_register():
@@ -50,7 +50,7 @@ def test_register():
     from tests.testplugins import alpha
     assert datasources[0].id_prefix == usgs.USGSDataSourcePlugin.get_id_prefix()
     assert datasources[0].id == 'USGS'
-    assert datasources[0].location == 'https://waterservices.usgs.gov/nwis/'
+    assert datasources[0].location == 'https://api.waterdata.usgs.gov/ogcapi/v0'
 
     assert datasources[1].id_prefix == alpha.AlphaSourcePlugin.get_id_prefix()
     assert datasources[1].id == 'Alpha'
@@ -163,8 +163,8 @@ def test_measurement_timeseries_tvp_observations_count():
 
 
 @pytest.mark.parametrize("plugins, query, expected_count",
-                         [(['basin3d.plugins.usgs.USGSDataSourcePlugin'], {}, 53),
-                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'USGS'}, 53),
+                         [(['basin3d.plugins.usgs.USGSDataSourcePlugin'], {}, 52),
+                          (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'USGS'}, 52),
                           (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha'}, 14),
                           (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha', 'attr_type': 'OBSERVED_PROPERTY'}, 6),
                           (['basin3d.plugins.usgs.USGSDataSourcePlugin', 'tests.testplugins.alpha.AlphaSourcePlugin'], {"datasource_id": 'Alpha', 'attr_type': 'OBSERVED_PROPERTY', 'attr_vocab': ['Ag']}, 1),

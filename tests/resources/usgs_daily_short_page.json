@@ -1,0 +1,67 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "properties":{
+                "time":"2020-04-01",
+                "value":"70.4",
+                "unit_of_measure":"ft^3/s",
+                "approval_status":"Approved"
+            },
+            "id":"796e4dd7-7e42-441e-a663-914ebe0b7c77",
+            "geometry":null
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "time":"2020-04-02",
+                "value":"73.5",
+                "unit_of_measure":"ft^3/s",
+                "approval_status":"Approved"
+            },
+            "id":"9bb36c40-43d5-4af9-8227-010d02f71b9d",
+            "geometry":null
+        }
+    ],
+    "numberReturned":2,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items?f=json&lang=en-US&limit=2&properties=time,value,unit_of_measure,approval_status&skipGeometry=true&agency_code=USGS&sortby=time&time_series_id=84b54ac4c95041e5b03b39fbf728db10&time=2020-04-01T00%3A00%3A00Z%2F2020-04-10T23%3A59%3A59Z&approval_status=Approved"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items?f=jsonld&lang=en-US&limit=2&properties=time,value,unit_of_measure,approval_status&skipGeometry=true&agency_code=USGS&sortby=time&time_series_id=84b54ac4c95041e5b03b39fbf728db10&time=2020-04-01T00%3A00%3A00Z%2F2020-04-10T23%3A59%3A59Z&approval_status=Approved"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items?f=html&lang=en-US&limit=2&properties=time,value,unit_of_measure,approval_status&skipGeometry=true&agency_code=USGS&sortby=time&time_series_id=84b54ac4c95041e5b03b39fbf728db10&time=2020-04-01T00%3A00%3A00Z%2F2020-04-10T23%3A59%3A59Z&approval_status=Approved"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items?f=csv&lang=en-US&limit=2&properties=time,value,unit_of_measure,approval_status&skipGeometry=true&agency_code=USGS&sortby=time&time_series_id=84b54ac4c95041e5b03b39fbf728db10&time=2020-04-01T00%3A00%3A00Z%2F2020-04-10T23%3A59%3A59Z&approval_status=Approved"
+        },
+        {
+            "type":"application/geo+json",
+            "rel":"next",
+            "title":"Items (next)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items?f=json&offset=2&lang=en-US&limit=2&properties=time,value,unit_of_measure,approval_status&skipGeometry=true&agency_code=USGS&sortby=time&time_series_id=84b54ac4c95041e5b03b39fbf728db10&time=2020-04-01T00%3A00%3A00Z%2F2020-04-10T23%3A59%3A59Z&approval_status=Approved"
+        },
+        {
+            "type":"application/json",
+            "title":"Daily values",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily"
+        }
+    ],
+    "timeStamp":"2026-08-19T17:39:34.434497Z"
+}

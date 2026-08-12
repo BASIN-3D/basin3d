@@ -1,0 +1,63 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-09107000",
+                "agency_code":"USGS",
+                "monitoring_location_name":"TAYLOR RIVER AT TAYLOR PARK, CO.",
+                "site_type":"Stream",
+                "hydrologic_unit_code":"140200010103",
+                "altitude":9332.33,
+                "altitude_accuracy":0.12,
+                "vertical_datum":"NAVD88",
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"Y",
+                "revision_note":"WSP 1313: Drainage area."
+            },
+            "id":"USGS-09107000",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -106.566696581035,
+                    38.8602712673025
+                ]
+            }
+        }
+    ],
+    "numberReturned":1,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09107000"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=jsonld&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09107000"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=html&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09107000"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=csv&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&id=USGS-09107000"
+        },
+        {
+            "type":"application/json",
+            "title":"Monitoring locations",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations"
+        }
+    ],
+    "timeStamp":"2026-08-14T15:59:09.699376Z"
+}

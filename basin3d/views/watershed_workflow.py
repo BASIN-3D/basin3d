@@ -41,16 +41,31 @@ def get_monitoring_features(synthesizer: DataSynthesizer, crs: str = 'EPSG:4326'
     >>> from basin3d import synthesis
     >>> from basin3d.views import watershed_workflow as b3dww
     >>> synthesizer = synthesis.register()
-    >>> monitoring_feature_geopandas = b3dww.get_monitoring_features(synthesizer, datasource=['USGS'], feature_type='point', monitoring_feature=[(-90.6, 34.4, -90.5, 34.6)])
+    >>> monitoring_feature_geopandas = b3dww.get_monitoring_features(synthesizer, datasource=['USGS'], feature_type='point', monitoring_feature=[(-90.6, 34.45, -90.5, 34.55)])
     >>> monitoring_feature_geopandas.shape
-    (2, 7)
+    (20, 7)
     >>> print(monitoring_feature_geopandas)
-                  id  ...                    geometry
-    0  USGS-07047970  ...    POINT (-90.58399 34.524)
-    1  USGS-07287700  ...  POINT (-90.53022 34.48425)
-    <BLANKLINE>
-    [2 rows x 7 columns]
-
+                              id                             name feature_type                                        description data_source  elevation                    geometry
+    0          USGS-07047970  MISSISSIPPI RIVER AT HELENA, AR        POINT  site type: Stream; hydrologic_unit_code: 08020...        USGS     141.70    POINT (-90.58399 34.524)
+    1          USGS-07287700     PHILLIPS BAYOU AT POWELL, MS        POINT  site type: Stream; hydrologic_unit_code: 08030...        USGS        NaN  POINT (-90.53022 34.48425)
+    2   USGS-342827090324001                027A0016  COAHOMA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     176.00  POINT (-90.54455 34.47427)
+    3   USGS-342849090323501                027A0035  COAHOMA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     180.00  POINT (-90.54306 34.48028)
+    4   USGS-342900090323501                027A0019  COAHOMA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     182.00  POINT (-90.54316 34.48344)
+    5   USGS-342915090315501                027A0006  COAHOMA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     182.00   POINT (-90.53205 34.4876)
+    6   USGS-342946090344701                027A0023  COAHOMA        POINT  site type: Well; hydrologic_unit_code: 0802010...        USGS     185.00  POINT (-90.57983 34.49621)
+    7   USGS-342957090344001                027A2003  COAHOMA        POINT  site type: Well; hydrologic_unit_code: 0802010...        USGS     185.00  POINT (-90.57778 34.49917)
+    8   USGS-342958090344701                027A0030  COAHOMA        POINT  site type: Well; hydrologic_unit_code: 0802010...        USGS     180.00  POINT (-90.57972 34.49944)
+    9   USGS-343007090322801                027A0001  COAHOMA        POINT    site type: Well; hydrologic_unit_code: 08020100        USGS     176.00  POINT (-90.54121 34.50205)
+    10  USGS-343047090301501                 143J0053  TUNICA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     181.00  POINT (-90.50427 34.51316)
+    11  USGS-343058090321201                 143J0114  TUNICA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     179.00  POINT (-90.53594 34.51177)
+    12  USGS-343104090352501                     02S05E16BCB2        POINT  site type: Well; hydrologic_unit_code: 0802030...        USGS     187.00  POINT (-90.59032 34.51783)
+    13  USGS-343106090320501                 143J0020  TUNICA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     179.00  POINT (-90.53483 34.51844)
+    14  USGS-343110090352501                     02S05E16BCB1        POINT  site type: Well; hydrologic_unit_code: 0802030...        USGS     188.00  POINT (-90.59046 34.51898)
+    15  USGS-343116090353101                     02S05E16BBC1        POINT  site type: Well; hydrologic_unit_code: 0802030...        USGS     185.00  POINT (-90.59205 34.52121)
+    16  USGS-343141090314801                 143J0019  TUNICA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     181.00  POINT (-90.51871 34.53483)
+    17  USGS-343152090310301                  143J0502 TUNICA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     179.96    POINT (-90.5175 34.5311)
+    18  USGS-343224090351101                     02S05E04CDC1        POINT  site type: Well; hydrologic_unit_code: 0802030...        USGS     183.00   POINT (-90.58649 34.5401)
+    19  USGS-343239090301801                 143J0033  TUNICA        POINT  site type: Well; hydrologic_unit_code: 0803020...        USGS     177.00   POINT (-90.5051 34.54427)
     """
 
     class ColumnNames:

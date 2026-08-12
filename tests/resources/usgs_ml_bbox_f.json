@@ -1,0 +1,135 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-09106800",
+                "agency_code":"USGS",
+                "monitoring_location_name":"TAYLOR RIVER ABOVE TRAIL CREEK NR TAYLOR PARK, CO",
+                "site_type":"Stream",
+                "hydrologic_unit_code":"140200010102",
+                "altitude":9681.31,
+                "altitude_accuracy":0.14,
+                "vertical_datum":"NAVD88",
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"Y",
+                "revision_note":null
+            },
+            "id":"USGS-09106800",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -106.60094444444444,
+                    38.92469444444444
+                ]
+            }
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-09107000",
+                "agency_code":"USGS",
+                "monitoring_location_name":"TAYLOR RIVER AT TAYLOR PARK, CO.",
+                "site_type":"Stream",
+                "hydrologic_unit_code":"140200010103",
+                "altitude":9332.33,
+                "altitude_accuracy":0.12,
+                "vertical_datum":"NAVD88",
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"Y",
+                "revision_note":"WSP 1313: Drainage area."
+            },
+            "id":"USGS-09107000",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -106.566696581035,
+                    38.8602712673025
+                ]
+            }
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-385637106305601",
+                "agency_code":"USGS",
+                "monitoring_location_name":"NA05000404DDD USGS 385637106305601",
+                "site_type":"Well",
+                "hydrologic_unit_code":"140200010103",
+                "altitude":9430.0,
+                "altitude_accuracy":20.0,
+                "vertical_datum":"NGVD29",
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"Y",
+                "revision_note":null
+            },
+            "id":"USGS-385637106305601",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -106.516139684029,
+                    38.9436042161951
+                ]
+            }
+        },
+        {
+            "type":"Feature",
+            "properties":{
+                "id":"USGS-385637106362901",
+                "agency_code":"USGS",
+                "monitoring_location_name":"SC01308301CAB SPRING",
+                "site_type":"Spring",
+                "hydrologic_unit_code":"140200010102",
+                "altitude":null,
+                "altitude_accuracy":null,
+                "vertical_datum":null,
+                "time_zone_abbreviation":"MST",
+                "uses_daylight_savings":"Y",
+                "revision_note":null
+            },
+            "id":"USGS-385637106362901",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[
+                    -106.608642595926,
+                    38.9436037295668
+                ]
+            }
+        }
+    ],
+    "numberReturned":4,
+    "links":[
+        {
+            "type":"application/geo+json",
+            "rel":"self",
+            "title":"This document as GeoJSON",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&bbox=-106.7,38.85,-106.5,39.0"
+        },
+        {
+            "rel":"alternate",
+            "type":"application/ld+json",
+            "title":"This document as RDF (JSON-LD)",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=jsonld&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&bbox=-106.7,38.85,-106.5,39.0"
+        },
+        {
+            "type":"text/html",
+            "rel":"alternate",
+            "title":"This document as HTML",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=html&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&bbox=-106.7,38.85,-106.5,39.0"
+        },
+        {
+            "type":"text/csv; charset=utf-8",
+            "rel":"alternate",
+            "title":"This document as CSV",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=csv&lang=en-US&limit=10000&properties=id,agency_code,monitoring_location_name,site_type,hydrologic_unit_code,altitude,altitude_accuracy,vertical_datum,time_zone_abbreviation,uses_daylight_savings,revision_note&skipGeometry=false&agency_code=USGS&bbox=-106.7,38.85,-106.5,39.0"
+        },
+        {
+            "type":"application/json",
+            "title":"Monitoring locations",
+            "rel":"collection",
+            "href":"https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations"
+        }
+    ],
+    "timeStamp":"2026-08-14T20:03:25.245428Z"
+}
