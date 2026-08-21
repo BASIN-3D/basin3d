@@ -6,6 +6,9 @@ Updates USGS plugin to use new USGS Water Data APIs. Basic BASIN-3D functionalit
 - The observed_properties attribute for all instances of MonitoringFeature class with feature_type point is now supported.
 - Querying by additional hydrologic unit codes (HUC) names is supported for both the MonitoringFeature and MeasurementTimeseriesTVPObservation classes.
 
+This version also includes a GeoPandas Monitoring Feature output view for Watershed Workflow integration. A new page called Views in the documentation contains details.
+
++ Issue #224 - Add geopandas monitoring feature view for Watershed Workflow integration
 + Issue #226 - Update USGS plugin to use OGC APIs
 + Issue #227 - USGS-related integration tests failing
 
