@@ -1,5 +1,14 @@
 # Changelog
 
+## Version 1.3.1
+Updates USGS plugin to use new USGS Water Data APIs. Basic BASIN-3D functionality remains the same, with the following feature enhancements. Documentation is updated with details.
+- Acquiring and configuring a personal USGS API Key is recommended to ease request rate limits.
+- The observed_properties attribute for all instances of MonitoringFeature class with feature_type point is now supported.
+- Querying by additional hydrologic unit codes (HUC) names is supported for both the MonitoringFeature and MeasurementTimeseriesTVPObservation classes.
+
++ Issue #226 - Update USGS plugin to use OGC APIs
++ Issue #227 - USGS-related integration tests failing
+
 ## Version 1.3.0
 Updates to support python 3.10, 3.11, 3.12. In addition to the python upgrades, other packages are also updated. We recommend a fresh install of basin3d to update these requirements.
 
