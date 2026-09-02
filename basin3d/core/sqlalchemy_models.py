@@ -10,6 +10,10 @@
     :backlinks: top
 
 """
+import os
+import tempfile
+
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import Column, Integer, String, ForeignKey, JSON, UniqueConstraint, Index
@@ -131,8 +135,13 @@ def clear_database():
     Base.metadata.create_all(engine)
 
 
-# Database setup in memory
-# Create a temporary in memory SQLite database
-engine = create_engine('sqlite:///:memory:')
+# Create a temporary in-memory SQLite database by default,
+# or a file-backed SQLite database if BASIN3D_USE_FILE_DB is set.
+if os.environ.get('BASIN3D_USE_FILE_DB'):
+    catalog_db = Path(tempfile.gettempdir()) / 'basin3d_catalog.sqlite'
+    engine = create_engine(f'sqlite:///{catalog_db}')
+else:
+    engine = create_engine('sqlite:///:memory:')
+
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
