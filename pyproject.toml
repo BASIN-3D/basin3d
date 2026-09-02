@@ -37,6 +37,7 @@ readme = "README.md"
 requires-python = '>=3.10,<3.13'
 dependencies = [
     "geopandas",
+    "netCDF4",
     "pandas",
     "pydantic<2",
     "pyyaml>=6.0",
