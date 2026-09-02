@@ -440,9 +440,10 @@ class MeasurementTimeseriesTVPObservationAccess(DataSourceModelAccess):
         :return: The query parameters
         """
 
-        # only allow instantaneous data (NONE) or daily data (DAY) data
+        # only allow instantaneous data (NONE), daily data (DAY) data, or minute
         # NOTE: query at this point is still in BASIN-3D vocab
-        if query.aggregation_duration != AggregationDurationEnum.NONE:
+        if (query.aggregation_duration != AggregationDurationEnum.NONE and
+                query.aggregation_duration != AggregationDurationEnum.MINUTE):
             query.aggregation_duration = AggregationDurationEnum.DAY
 
         return translate_query(plugin_access, query)
