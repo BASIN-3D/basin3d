@@ -1,0 +1,23 @@
+[
+  {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Surface Meteorological Instrumentation",
+    "spatialCoverage": {
+      "@type": "Place",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 36.117032,
+        "longitude": -97.510908
+      },
+      "name": "Marshall, OK (Extended)",
+      "identifier": "E36",
+      "containedInPlace": {
+        "@type": "Place",
+        "name": "Southern Great Plains",
+        "identifier": "SGP"
+      }
+    },
+    "variableMeasured": []
+  }
+]
