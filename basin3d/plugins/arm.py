@@ -11,7 +11,7 @@ NetCDF data access will be implemented in a subsequent change.
 # import netCDF4 as nc
 import os
 
-from typing import Dict, List
+from typing import Dict, List, Set, Tuple
 
 from basin3d.core.access import get_url
 from basin3d.core import monitor
@@ -19,7 +19,7 @@ from basin3d.core.models import (AbsoluteCoordinate, Coordinate, GeographicCoord
                                  MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature)
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, separate_list_types
 from basin3d.core.schema.enum import FeatureTypeEnum, SpatialSamplingShapes
-from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
+from basin3d.core.schema.query import QueryBase, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 
 logger = monitor.get_logger(__name__)
 
@@ -48,6 +48,7 @@ def _get_arm_metadata(arm_url: str, bbox: tuple | None, synthesis_messages: List
         west, south, east, north = bbox
         request_url = f'{arm_url}&bbox={west}%2C{north}%2C{east}%2C{south}'
 
+    # ToDo: add mechanism to detect / try pagination (there is no next functionality in the ARM REST API)
     try:
         response = get_url(request_url)
         if not response or response.status_code != 200:
@@ -91,9 +92,9 @@ def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messa
         try:
             spatial_coverage = metadata['spatialCoverage']
             contained_in_place = spatial_coverage['containedInPlace']
-            parent_identifier = contained_in_place['identifier']
-            feature_identifier = spatial_coverage['identifier']
-            mf_id = f'{parent_identifier}-{feature_identifier}'
+            site_identifier = contained_in_place['identifier']
+            facility_identifier = spatial_coverage['identifier']
+            mf_id = f'{site_identifier}-{facility_identifier}'
         except (KeyError, TypeError, ValueError) as e:
             msg = f'ARM metadata record missing required monitoring feature identifiers: {e}'
             logger.warning(msg)
@@ -134,7 +135,9 @@ def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messa
         var_list = [variable['name'] for variable in variable_measured if isinstance(variable, dict) and 'name' in variable]
         mf_lookup[mf_id] = {
             'id': mf_id,
+            'facility_id': facility_identifier,
             'name': f'{parent_name} - {feature_name}',
+            'site_id': site_identifier,
             'site_name': parent_name,
             'lat': latitude,
             'long': longitude,
@@ -179,6 +182,44 @@ def _load_mf_object(datasource: DataSourcePluginAccess, mf_id: str, mf_info: Dic
     return monitoring_feature
 
 
+def _get_selected_arm_metadata(arm_metb1_url: str, query_monitoring_feature: List, synthesis_messages: List) -> Tuple[Set, Dict]:
+    """
+
+    :param arm_metb1_url:
+    :param query_monitoring_feature:
+    :param synthesis_messages:
+    :return:
+    """
+    mf_lookup = {}
+
+    # split up mf query types
+    mf_query_types = separate_list_types(
+        query_monitoring_feature, {'named': str, 'bbox': tuple})
+    mf_named = mf_query_types.get('named', [])
+    mf_bbox = mf_query_types.get('bbox', [])
+
+    if mf_bbox:
+        for bbox in mf_bbox:
+            metadata_results = _get_arm_metadata(arm_metb1_url, bbox, synthesis_messages)
+            if metadata_results:
+                _parse_arm_metadata(metadata_results, mf_lookup, synthesis_messages)
+
+    mf_set = set(mf_lookup.keys())
+
+    if mf_named:
+        have_full_lookup = False
+        for mf_id in mf_named:
+            # If mf_name was not captured in the bbox lookup and the full lookup is not yet acquired
+            if mf_id not in mf_lookup and have_full_lookup is False:
+                metadata_results = _get_arm_metadata(arm_metb1_url, None, synthesis_messages)
+                _parse_arm_metadata(metadata_results, mf_lookup, synthesis_messages)
+                # the mf_lookup has all the metadata now
+                have_full_lookup = True
+            mf_set.add(mf_id)
+
+    return mf_set, mf_lookup
+
+
 class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
     """Placeholder access for ARM monitoring features."""
 
@@ -201,7 +242,6 @@ class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
             return StopIteration(synthesis_messages)
 
         # the current number of data products is 65 (and has been for the past 1+ years).
-        # ToDo: add mechanism to detect / try pagination (there is no next functionality in the ARM REST API)
         arm_metb1_url = f'{self.datasource.location}/metadata/data_product?data_product=met&page_from=0&page_size=100'
 
         mf_lookup = {}
@@ -215,29 +255,8 @@ class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
 
         # else create a set, get bbox add to set, if named, see if already in the set, if not get all and step thru to add
         else:
-            # split up mf query types
-            mf_query_types = separate_list_types(
-                query.monitoring_feature, {'named': str, 'bbox': tuple})
-            mf_named = mf_query_types.get('named', [])
-            mf_bbox = mf_query_types.get('bbox', [])
 
-            if mf_bbox:
-                for bbox in mf_bbox:
-                    metadata_results = _get_arm_metadata(arm_metb1_url, bbox, synthesis_messages)
-                    if metadata_results:
-                        _parse_arm_metadata(metadata_results, mf_lookup, synthesis_messages)
-
-            mf_set = set(mf_lookup.keys())
-
-            if mf_named:
-                have_full_lookup = False
-                for mf_id in mf_named:
-                    # If mf_name was not captured in the bbox lookup and the full lookup is not yet acquired
-                    if mf_id not in mf_lookup and have_full_lookup is False:
-                        metadata_results = _get_arm_metadata(arm_metb1_url, None, synthesis_messages)
-                        _parse_arm_metadata(metadata_results, mf_lookup, synthesis_messages)
-                        have_full_lookup = True
-                    mf_set.add(mf_id)
+            mf_set, mf_lookup = _get_selected_arm_metadata(arm_metb1_url, query.monitoring_feature, synthesis_messages)
 
         # yield the set list
         for mf_id in mf_set:
@@ -258,15 +277,41 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
         ARM observation retrieval is not implemented yet.
         """
-        synthesis_messages: List[str] = [
-            'ARM measurement timeseries TVP observation retrieval is not implemented.'
-        ]
-        logger.warning(synthesis_messages[0])
+        synthesis_messages: list = []
+        if not query.monitoring_feature:
+            msg = f'No monitoring features for USGS were specified or they were not specified with the {self.datasource.id_prefix} prefix.'
+            logger.warning(msg)
+            synthesis_messages.append(msg)
+            return StopIteration(synthesis_messages)
 
-        # Keep this method a generator, matching the access interface used by
-        # the existing USGS and EPA plugins.
-        if False:
-            yield query
+        arm_metb1_url = f'{self.datasource.location}/metadata/data_product?data_product=met&page_from=0&page_size=100'
+
+        mf_set, mf_lookup = _get_selected_arm_metadata(arm_metb1_url, query.monitoring_feature, synthesis_messages)
+
+        query_date_str = f'&start={query.start_date}'
+        if query.end_date:
+            query_date_str += f'&end={query.end_date}'
+
+        arm_data_url = (f'https://adc.arm.gov/armlive/query?user={ARM_NAME}:{ARM_TOKEN}'
+                        '&ds={}'
+                        f'{query_date_str}&wt=json')
+
+        for mf_id in mf_set:
+            mf_info = mf_lookup.get(mf_id, {})
+            mf_vars = mf_info.get('variables', {})
+            if not mf_vars:
+                msg = f'The metadata for {mf_id} does not specify any variables. Skipping'
+                logger.warning(msg)
+                synthesis_messages.append(msg)
+                continue
+
+            query_vars = [query_variable for query_variable in query.observed_property if query_variable in mf_vars]
+
+            if not query_vars:
+                msg = f'{mf_id} does not have any of the queried observed properties.'
+                logger.info(msg)
+                synthesis_messages.append(msg)
+                continue
 
         return StopIteration(synthesis_messages)
 
