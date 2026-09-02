@@ -15,17 +15,19 @@ from typing import Dict, List
 
 from basin3d.core.access import get_url
 from basin3d.core import monitor
-from basin3d.core.models import MeasurementTimeseriesTVPObservation, MonitoringFeature
+from basin3d.core.models import (AbsoluteCoordinate, Coordinate, GeographicCoordinate, HorizontalCoordinate,
+                                 MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature)
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, separate_list_types
+from basin3d.core.schema.enum import FeatureTypeEnum, SpatialSamplingShapes
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
-
 
 logger = monitor.get_logger(__name__)
 
 
 NOT_PROVIDED = 'not provided'
 
-ARM_USER = os.environ.get('ARM_USER_NAME', None)
+ARM_NAME = os.environ.get('ARM_USER_NAME', None)
+ARM_TOKEN = os.environ.get('ARM_USER_TOKEN', None)
 
 
 def _get_arm_metadata(arm_url: str, bbox: tuple | None, synthesis_messages: List):
@@ -132,11 +134,49 @@ def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messa
         var_list = [variable['name'] for variable in variable_measured if isinstance(variable, dict) and 'name' in variable]
         mf_lookup[mf_id] = {
             'id': mf_id,
-            'description': f'{parent_name} - {feature_name}',
+            'name': f'{parent_name} - {feature_name}',
+            'site_name': parent_name,
             'lat': latitude,
             'long': longitude,
             'variables': var_list,
         }
+
+
+def _load_mf_object(datasource: DataSourcePluginAccess, mf_id: str, mf_info: Dict) -> MonitoringFeature | None:
+    """
+
+    :param datasource:
+    :param mf_id:
+    :param mf_info:
+    :return:
+    """
+
+    related_sampling_feature = RelatedSamplingFeature(
+        datasource,
+        related_sampling_feature=mf_info.get('site_name'),
+        related_sampling_feature_type=FeatureTypeEnum.SITE,  # previously site
+        role=RelatedSamplingFeature.ROLE_PARENT)
+
+    monitoring_feature = MonitoringFeature(
+        datasource,
+        id=mf_id,
+        name=mf_info.get('name'),
+        feature_type=FeatureTypeEnum.POINT,
+        shape=SpatialSamplingShapes.SHAPE_POINT,
+        observed_properties=mf_info.get('variables'),
+        related_sampling_feature_complex = [related_sampling_feature],
+        coordinates=Coordinate(
+            absolute=AbsoluteCoordinate(
+                horizontal_position=GeographicCoordinate(
+                    **{"latitude": mf_info.get('lat'),
+                       "longitude": mf_info.get('long'),
+                       # from api documentation: "Coordinates are published in EPSG:4326 / WGS84 / World Geodetic System 1984"
+                       "datum": HorizontalCoordinate.DATUM_WGS84,
+                       "units": GeographicCoordinate.UNITS_DEC_DEGREES}))
+        )
+    )
+
+    return monitoring_feature
 
 
 class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
@@ -153,21 +193,25 @@ class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
         synthesis_messages: List[str] = []
 
         # if parent feature is specified and not in the supported types, return nothing.
-        if query.feature_type and query.feature_type not in self.datasource.feature_types:
+        if query.feature_type and query.feature_type not in ARMDataSourcePlugin.feature_types:
             msg = (f'{self.datasource.id_prefix} does not specified feature type: {query.feature_type}. '
-                   f'Only feature types {self.datasource.feature_types} are supported.')
+                   f'Only feature types {ARMDataSourcePlugin.feature_types} are supported.')
             logger.warning(msg)
             synthesis_messages = [msg]
             return StopIteration(synthesis_messages)
 
-        # the current number of data products is 65.
+        # the current number of data products is 65 (and has been for the past 1+ years).
         # ToDo: add mechanism to detect / try pagination (there is no next functionality in the ARM REST API)
         arm_metb1_url = f'{self.datasource.location}/metadata/data_product?data_product=met&page_from=0&page_size=100'
 
+        mf_lookup = {}
+
         # if nothing specified, get all
         if not query.monitoring_feature:
-            pass
 
+            metadata_results = _get_arm_metadata(arm_metb1_url, None, synthesis_messages)
+            _parse_arm_metadata(metadata_results, mf_lookup, synthesis_messages)
+            mf_set = set(mf_lookup.keys())
 
         # else create a set, get bbox add to set, if named, see if already in the set, if not get all and step thru to add
         else:
@@ -177,7 +221,6 @@ class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
             mf_named = mf_query_types.get('named', [])
             mf_bbox = mf_query_types.get('bbox', [])
 
-            mf_lookup = {}
             if mf_bbox:
                 for bbox in mf_bbox:
                     metadata_results = _get_arm_metadata(arm_metb1_url, bbox, synthesis_messages)
@@ -188,18 +231,19 @@ class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
 
             if mf_named:
                 have_full_lookup = False
-                for mf_name in mf_named:
+                for mf_id in mf_named:
                     # If mf_name was not captured in the bbox lookup and the full lookup is not yet acquired
-                    if mf_name not in mf_lookup and have_full_lookup is False:
+                    if mf_id not in mf_lookup and have_full_lookup is False:
                         metadata_results = _get_arm_metadata(arm_metb1_url, None, synthesis_messages)
                         _parse_arm_metadata(metadata_results, mf_lookup, synthesis_messages)
                         have_full_lookup = True
-                    mf_set.add(mf_name)
+                    mf_set.add(mf_id)
 
-            # yield the set list
-            for mf_name in mf_set:
-                mf_obj = _load_mf_object(mf_name, mf_lookup, synthesis_messages)
-                yield mf_obj
+        # yield the set list
+        for mf_id in mf_set:
+            mf_info = mf_lookup.get(mf_id, {})
+            mf_obj = _load_mf_object(self, mf_id, mf_info)
+            yield mf_obj
 
         return StopIteration(synthesis_messages)
 
@@ -232,7 +276,7 @@ class ARMDataSourcePlugin(DataSourcePluginPoint):
     """Atmospheric Radiation Measurement Data Source plugin scaffold."""
 
     title = 'Atmospheric Radiation Measurement Data Source Plugin'
-    plugin_access_classes = (ARMMonitoringFeatureAccess, ARMMeasurementTimeseriesTVPObservationAccess,)
+    plugin_access_classes = (ARMMonitoringFeatureAccess, ARMMeasurementTimeseriesTVPObservationAccess)
 
     feature_types = ['POINT']
 
