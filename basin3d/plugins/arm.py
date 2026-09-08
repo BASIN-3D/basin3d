@@ -10,7 +10,11 @@ NetCDF data access will be implemented in a subsequent change.
 
 # import netCDF4 as nc
 import os
+import requests
+import tempfile
+import xarray as xr
 
+from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
 from basin3d.core.access import get_url
@@ -28,6 +32,100 @@ NOT_PROVIDED = 'not provided'
 
 ARM_NAME = os.environ.get('ARM_USER_NAME', None)
 ARM_TOKEN = os.environ.get('ARM_USER_TOKEN', None)
+
+
+def _fetch_timeseries(url, variables, synthesis_messages):
+    """Download one NetCDF file and return the selected data as an xarray.Dataset.
+
+    Failed requests are logged and added to ``synthesis_messages``.  ``None``
+    is returned for a failed request so callers can continue with later URLs.
+    """
+    response = None
+
+    try:
+        response = requests.get(url, stream=True)
+    except requests.RequestException as exc:
+        message = f'ARM data request failed for {url}: {exc}'
+        logger.warning(message)
+        synthesis_messages.append(message)
+        return None
+
+    try:
+        if response is None:
+            message = f'ARM data request returned no response for {url}'
+            logger.warning(message)
+            synthesis_messages.append(message)
+            return None
+
+        if response.status_code != 200:
+            detail = response.text.strip()
+            if len(detail) > 500:
+                detail = f'{detail[:500]}...'
+
+            message = f'ARM data request returned HTTP {response.status_code} for {url}'
+            if detail:
+                message += f': {detail}'
+
+            logger.warning(message)
+            synthesis_messages.append(message)
+            return None
+
+        with tempfile.NamedTemporaryFile(suffix='.nc') as tmp:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    tmp.write(chunk)
+
+            tmp.flush()
+
+            with xr.open_dataset(tmp.name) as ds:
+                # Load before the temporary file is deleted.
+                return ds[variables].load()
+    finally:
+        if response is not None:
+            response.close()
+
+
+def _collect_to_zarr(urls, variables, zarr_path, synthesis_messages):
+    """Fetch multiple NetCDF files and append them along the time dimension."""
+    zarr_path = Path(zarr_path)
+    first_file = True
+
+    for url in urls:
+        part = _fetch_timeseries(url, variables, synthesis_messages)
+
+        if part is None:
+            continue
+
+        try:
+            if first_file:
+                # Creates the Zarr store.
+                part.to_zarr(
+                    zarr_path,
+                    mode='w',
+                    consolidated=False,
+                )
+                first_file = False
+            else:
+                # Appends this dataset along the existing time dimension.
+                part.to_zarr(
+                    zarr_path,
+                    mode='a',
+                    append_dim='time',
+                    consolidated=False,
+                )
+        finally:
+            part.close()
+
+    if first_file:
+        message = 'No ARM timeseries datasets were successfully retrieved.'
+        logger.warning(message)
+        synthesis_messages.append(message)
+        return None
+
+    return xr.open_zarr(
+        zarr_path,
+        consolidated=False,
+    )
 
 
 def _get_arm_metadata(arm_url: str, bbox: tuple | None, synthesis_messages: List):
@@ -296,6 +394,10 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         '&ds={}'
                         f'{query_date_str}&wt=json')
 
+        query_observed_properties = query.observed_property
+        for observed_property in query.observed_property:
+            query_observed_properties.append(f'qc_{observed_property}')
+
         for mf_id in mf_set:
             mf_info = mf_lookup.get(mf_id, {})
             mf_vars = mf_info.get('variables', {})
@@ -305,7 +407,7 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 synthesis_messages.append(msg)
                 continue
 
-            query_vars = [query_variable for query_variable in query.observed_property if query_variable in mf_vars]
+            query_vars = [query_variable for query_variable in query_observed_properties if query_variable in mf_vars]
 
             if not query_vars:
                 msg = f'{mf_id} does not have any of the queried observed properties.'
