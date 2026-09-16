@@ -45,7 +45,7 @@ UNIT_LOOKUP = {
 }
 
 
-def _fetch_timeseries(url: str, variables: List, synthesis_messages: List):
+def _fetch_timeseries(url: str, file_batch: List, variables: List, synthesis_messages: List):
     """Download one NetCDF file and return the selected data as an xarray.Dataset.
 
     Failed requests are logged and added to ``synthesis_messages``.  ``None``
@@ -54,7 +54,7 @@ def _fetch_timeseries(url: str, variables: List, synthesis_messages: List):
     response = None
 
     try:
-        response = requests.get(url, stream=True)
+        response = requests.get(url, json=file_batch, stream=True)
     except requests.RequestException as exc:
         message = f'ARM data request failed for {url}: {exc}'
         logger.warning(message)
@@ -96,15 +96,34 @@ def _fetch_timeseries(url: str, variables: List, synthesis_messages: List):
             response.close()
 
 
-def _collect_to_zarr(url: str, file_list: List, variables: List, synthesis_messages: List,
+def _build_tvp_results(ds, var: str, unit_conv: int | float) -> List:
+    """Build time-value pairs for one ARM dataset variable."""
+    results_TVPs = []
+    timestamps = ds['time'].values
+    values = ds[var].values
+    missing_value = ds[var].attrs['missing_value']
+
+    for timestamp, value in zip(timestamps, values):
+        timestamp_iso = timestamp.item().isoformat()
+        if value == missing_value:
+            converted_value = value
+        else:
+            converted_value = value * unit_conv
+
+        results_TVPs.append(TimeValuePair(timestamp=timestamp_iso, value=converted_value))
+
+    return results_TVPs
+
+
+def _collect_to_zarr(url: str, file_list: List, meas_variables: List, synthesis_messages: List,
                      zarr_path: str = LOCAL_TEMP_DIR):
     """Fetch multiple NetCDF files and append them along the time dimension."""
     zarr_path = Path(zarr_path)
     first_file = True
+    variables = ['time'] + meas_variables
 
     for file_batch in file_list:
-        url = f'{url}/{file_batch}'
-        part = _fetch_timeseries(url, variables, synthesis_messages)
+        part = _fetch_timeseries(url, file_batch, variables, synthesis_messages)
 
         if part is None:
             continue
@@ -513,8 +532,8 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                               '&ds={}'
                               f'{query_date_str}&wt=json')
 
-        arm_data_url = ('https://adc.arm.gov/armlive/mod?'
-                        f'more_here')
+        arm_data_url = (f'https://adc.arm.gov/armlive/mod?user={ARM_NAME}:{ARM_TOKEN}'
+                        'variables=time,{}&wt=cdf ')
 
         query_observed_properties = deepcopy(query.observed_property)
 
@@ -550,8 +569,18 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             file_batches = _get_mf_files(arm_data_query_url.format(data_product_name),
                                          synthesis_messages)
 
+            # Let the endpoint do the date filtering
+            if not file_batches:
+                msg = f'{mf_id} does not have any files that match the query parameters. Skipping'
+                logger.info(msg)
+                synthesis_messages.append(msg)
+                continue
+
+            query_var_str = ','.join(query_vars)
+            arm_data_var_url = arm_data_url.format(query_var_str)
+
             # loop thru the files, extracting the query variables
-            data_zarr_io = _collect_to_zarr(arm_data_url, file_batches, query_vars, synthesis_messages)
+            data_zarr_io = _collect_to_zarr(arm_data_var_url, file_batches, query_vars, synthesis_messages)
 
             if not data_zarr_io:
                 continue
@@ -562,7 +591,6 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
                 # For each var in the query_var list, ...
                 for var in query_vars:
-                    result_TVPs = []
                     result_TVP_quality = []
                     result_quality = set()
 
@@ -574,12 +602,7 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                     unit = ds.variables[var].attrs['units']
                     unit_conv, unit_str = _get_unit_conv(unit, var, synthesis_messages)
 
-                    missing_value = ds.variables[var].attrs['missing_value']
-
-                    # Convert each time and var entry to TimeValuePair,
-                    #    using the unit conversion for var, append the result_TVPs list
-                    #    change the time to ISO
-                    #    Note: The unit conversion should be aware of missing value codes.
+                    result_TVPs = _build_tvp_results(ds, var, unit_conv)
 
                     try:
                         qc_var = ds.variables[var].attrs['ancillary_variables']
@@ -588,9 +611,8 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
                     # If there is a corresponding qc variable
                     if qc_var != '' and qc_var in query_vars:
-                        pass
-                        # Append to the result_TVP_quality list
-                        # Also add the quality code to the set
+                        result_TVP_quality = ds[qc_var].values.tolist()
+                        result_quality = set(result_TVP_quality)
 
                     # Create the MeasurementTVPObservation object
                     measurement_timeseries_tvp_observation = MeasurementTimeseriesTVPObservation(
