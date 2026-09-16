@@ -44,6 +44,8 @@ dependencies = [
     "requests",
     "shapely",
     "SQLAlchemy>=1.4",
+    "tempfile",
+    "xarray",
 ]
 
 

@@ -34,3 +34,9 @@ OBSERVED_PROPERTY:SAMPLING_MEDIUM:STATISTIC,PPT:WATER:MIN,"org_precip_rate_min",
 OBSERVED_PROPERTY:SAMPLING_MEDIUM:STATISTIC,PPT:WATER:MAX,precip_rate_max,"Precipitation rate maximum; mm/hr"
 OBSERVED_PROPERTY:SAMPLING_MEDIUM:STATISTIC,PPT:WATER:MEAN,"precip_rate_mean","Precipitation rate mean; mm/hr"
 OBSERVED_PROPERTY:SAMPLING_MEDIUM:STATISTIC,PPT:WATER:MIN,"precip_rate_min","Precipitation rate minimum; mm/hr"
+AGGREGATION_DURATION,MINUTE,MINUTE,
+RESULT_QUALITY,VALIDATED,0,"Non-zero bits indicate the QC condition given in the description for those bits; a value of 0 (no bits set) indicates the data has not failed any QC tests."
+RESULT_QUALITY,REJECTED,0001,"Bad; Value is equal to missing_value."
+RESULT_QUALITY,REJECTED,0010,"Bad; Value is less than valid_min."
+RESULT_QUALITY,REJECTED,0100,"Bad; Value is less than valid_max."
+RESULT_QUALITY,SUSPECTED,1000,"Indeterminate; Difference between current and previous values exceeds valid_delta."

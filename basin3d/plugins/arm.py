@@ -14,27 +14,38 @@ import requests
 import tempfile
 import xarray as xr
 
+from copy import deepcopy
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
 from basin3d.core.access import get_url
 from basin3d.core import monitor
 from basin3d.core.models import (AbsoluteCoordinate, Coordinate, GeographicCoordinate, HorizontalCoordinate,
-                                 MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature)
+                                 MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature,
+                                 TimeMetadataMixin, TimeValuePair, ResultListTVP)
 from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, separate_list_types
 from basin3d.core.schema.enum import FeatureTypeEnum, SpatialSamplingShapes
-from basin3d.core.schema.query import QueryBase, QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
+from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 
 logger = monitor.get_logger(__name__)
 
 
 NOT_PROVIDED = 'not provided'
 
+DEFAULT_TEMP_DIR = os.getcwd()
+
 ARM_NAME = os.environ.get('ARM_USER_NAME', None)
 ARM_TOKEN = os.environ.get('ARM_USER_TOKEN', None)
+LOCAL_TEMP_DIR = os.environ.get('BASIN3D_LOCAL_TEMP_DIR', DEFAULT_TEMP_DIR)
 
 
-def _fetch_timeseries(url, variables, synthesis_messages):
+UNIT_LOOKUP = {
+    'kPa-mm Hg': {'arm_unit': 'kPa', 'target_unit': 'mm Hg', 'conv': 0.4},
+    'cm-m': {'arm_unit': 'cm', 'target_unit': 'm', 'conv': 100},
+}
+
+
+def _fetch_timeseries(url: str, variables: List, synthesis_messages: List):
     """Download one NetCDF file and return the selected data as an xarray.Dataset.
 
     Failed requests are logged and added to ``synthesis_messages``.  ``None``
@@ -85,12 +96,14 @@ def _fetch_timeseries(url, variables, synthesis_messages):
             response.close()
 
 
-def _collect_to_zarr(urls, variables, zarr_path, synthesis_messages):
+def _collect_to_zarr(url: str, file_list: List, variables: List, synthesis_messages: List,
+                     zarr_path: str = LOCAL_TEMP_DIR):
     """Fetch multiple NetCDF files and append them along the time dimension."""
     zarr_path = Path(zarr_path)
     first_file = True
 
-    for url in urls:
+    for file_batch in file_list:
+        url = f'{url}/{file_batch}'
         part = _fetch_timeseries(url, variables, synthesis_messages)
 
         if part is None:
@@ -99,20 +112,11 @@ def _collect_to_zarr(urls, variables, zarr_path, synthesis_messages):
         try:
             if first_file:
                 # Creates the Zarr store.
-                part.to_zarr(
-                    zarr_path,
-                    mode='w',
-                    consolidated=False,
-                )
+                part.to_zarr(zarr_path, mode='w', consolidated=False)
                 first_file = False
             else:
                 # Appends this dataset along the existing time dimension.
-                part.to_zarr(
-                    zarr_path,
-                    mode='a',
-                    append_dim='time',
-                    consolidated=False,
-                )
+                part.to_zarr(zarr_path, mode='a', append_dim='time', consolidated=False)
         finally:
             part.close()
 
@@ -122,21 +126,71 @@ def _collect_to_zarr(urls, variables, zarr_path, synthesis_messages):
         synthesis_messages.append(message)
         return None
 
-    return xr.open_zarr(
-        zarr_path,
-        consolidated=False,
-    )
+    return xr.open_zarr(zarr_path, consolidated=False)
 
 
-def _get_arm_metadata(arm_url: str, bbox: tuple | None, synthesis_messages: List):
+def _batch_files(file_list: list) -> List:
+    """
+    Batch the files into a list of lists each containing one month of files
+    example filename: 'gucmetM1.b1.20210928.000000.cdf'
+    :param file_list: List of daily files that have date in the third segment of the filename
+    :return:
+    """
+    batches = []
+    current_month = None
+
+    for filename in file_list:
+        month = filename.split('.')[2][:6]
+
+        if month != current_month:
+            batches.append([])
+            current_month = month
+
+        batches[-1].append(filename)
+
+    return batches
+
+
+def _get_mf_files(data_url: str, synthesis_messages: List) -> List:
+    """
+
+    :param data_url:
+    :param synthesis_messages:
+    :return:
+    """
+
+    results = []
+
+    data_files = _get_arm_data_files(data_url, None, synthesis_messages)
+
+    if not data_files:
+        return results
+
+    files: list = data_files.get('files', [])
+
+    if not files:
+        message = 'No ARM timeseries datasets were successfully retrieved.'
+        logger.warning(message)
+        synthesis_messages.append(message)
+        return results
+
+    files.sort()
+
+    results = _batch_files(files)
+
+    return results
+
+
+def _get_arm_request(arm_url: str, bbox: tuple | None, synthesis_messages: List, empty_result: List | Dict):
     """
 
     :param arm_url:
     :param bbox:
+    :param type:
     :param synthesis_messages:
     :return:
     """
-    results = []
+    results = empty_result
     request_url = arm_url
 
     # QueryMonitoringFeature uses west, south, east, north. ARM expects
@@ -164,17 +218,59 @@ def _get_arm_metadata(arm_url: str, bbox: tuple | None, synthesis_messages: List
                     error_detail = getattr(response, 'text', None)
 
             detail = f': {error_detail}' if error_detail else ''
-            msg = f'ARM metadata request for {request_url} returned error code {status_code}{detail}.'
+            msg = f'ARM request for {request_url} returned error code {status_code}{detail}.'
             logger.error(msg)
             synthesis_messages.append(msg)
             return results
 
         return response.json()
     except Exception as e:
-        msg = f'ARM metadata request for {request_url} failed: {e}'
+        msg = f'ARM request for {request_url} failed: {e}'
         logger.error(msg)
         synthesis_messages.append(msg)
         return results
+
+
+def _get_arm_metadata(arm_url: str, bbox: tuple | None, synthesis_messages: List) -> List:
+    """
+
+    :param arm_url:
+    :param bbox:
+    :param synthesis_messages:
+    :return:
+    """
+    metadata_results = []
+    response_result = _get_arm_request(arm_url, bbox, synthesis_messages, metadata_results)
+
+    if not isinstance(response_result, list):
+        response_class = response_result.__class__.__name__
+        msg = f'ARM metadata results for {arm_url} was not in expected list format. It was {response_class}. Cannot parse.'
+        logger.error(msg)
+        synthesis_messages.append(msg)
+        return metadata_results
+
+    return response_result
+
+
+def _get_arm_data_files(arm_url: str, bbox: tuple | None, synthesis_messages: List) -> Dict:
+    """
+
+    :param arm_url:
+    :param bbox:
+    :param synthesis_messages:
+    :return:
+    """
+    data_query_results = {}
+    response_result = _get_arm_request(arm_url, bbox, synthesis_messages, data_query_results)
+
+    if not isinstance(response_result, dict):
+        response_class = response_result.__class__.__name__
+        msg = f'ARM metadata results for {arm_url} was not in expected dictionary format. It was {response_class}. Cannot parse.'
+        logger.error(msg)
+        synthesis_messages.append(msg)
+        return data_query_results
+
+    return response_result
 
 
 def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messages: List):
@@ -318,6 +414,29 @@ def _get_selected_arm_metadata(arm_metb1_url: str, query_monitoring_feature: Lis
     return mf_set, mf_lookup
 
 
+def _get_unit_conv(arm_unit: str, arm_variable: str,
+                   synthesis_messages: List) -> Tuple[int | float, str]:
+    """
+    Check if arm_unit provided in the file metadata matches the B3D unit for the variable.
+    If so, return 1.
+    If not, look up the conversion in the lookup table, return the conversion factor
+    If a conversion cannot be found, write a warning message and return 1 and the arm unit.
+
+    :param arm_unit:
+    :param arm_variable:
+    :param synthesis_messages:
+    :return: (conversion factor, unit)
+    """
+    unit_conv = 1
+    unit_str = arm_unit
+
+    # look up the BASIN3D variable unit
+    # if the arm unit is the same as the basin3d unit, return 1, arm unit
+    # if can find match in look up, return look up conversion and b3d unit
+    # else: write a warning that unit conversion was not made, and return 1, arm unit
+    return unit_conv, unit_str
+
+
 class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
     """Placeholder access for ARM monitoring features."""
 
@@ -377,7 +496,7 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         """
         synthesis_messages: list = []
         if not query.monitoring_feature:
-            msg = f'No monitoring features for USGS were specified or they were not specified with the {self.datasource.id_prefix} prefix.'
+            msg = f'No monitoring features for ARM were specified or they were not specified with the {self.datasource.id_prefix} prefix.'
             logger.warning(msg)
             synthesis_messages.append(msg)
             return StopIteration(synthesis_messages)
@@ -390,13 +509,21 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         if query.end_date:
             query_date_str += f'&end={query.end_date}'
 
-        arm_data_url = (f'https://adc.arm.gov/armlive/query?user={ARM_NAME}:{ARM_TOKEN}'
-                        '&ds={}'
-                        f'{query_date_str}&wt=json')
+        arm_data_query_url = (f'https://adc.arm.gov/armlive/query?user={ARM_NAME}:{ARM_TOKEN}'
+                              '&ds={}'
+                              f'{query_date_str}&wt=json')
 
-        query_observed_properties = query.observed_property
-        for observed_property in query.observed_property:
-            query_observed_properties.append(f'qc_{observed_property}')
+        arm_data_url = ('https://adc.arm.gov/armlive/mod?'
+                        f'more_here')
+
+        query_observed_properties = deepcopy(query.observed_property)
+
+        # ToDo: check if need to do some filtering if statistic is specified in the query b/c mapping has statistic in it
+
+        for obs_prop in query.observed_property:
+            query_observed_properties.append(f'qc_{obs_prop}')
+
+        print('hey')
 
         for mf_id in mf_set:
             mf_info = mf_lookup.get(mf_id, {})
@@ -414,6 +541,73 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 logger.info(msg)
                 synthesis_messages.append(msg)
                 continue
+
+            # get the dataset daily files
+            mf_site = mf_info.get('site_id', '').lower()
+            mf_facility = mf_info.get('facility_id', '')
+
+            data_product_name = f'{mf_site}met{mf_facility}.b1'
+            file_batches = _get_mf_files(arm_data_query_url.format(data_product_name),
+                                         synthesis_messages)
+
+            # loop thru the files, extracting the query variables
+            data_zarr_io = _collect_to_zarr(arm_data_url, file_batches, query_vars, synthesis_messages)
+
+            if not data_zarr_io:
+                continue
+
+            monitoring_feature = _load_mf_object(self, mf_id, mf_info)
+
+            with data_zarr_io as ds:
+
+                # For each var in the query_var list, ...
+                for var in query_vars:
+                    result_TVPs = []
+                    result_TVP_quality = []
+                    result_quality = set()
+
+                    # Skip any qc variables, deal with those later
+                    if var.startswith('qc_'):
+                        continue
+
+                    # Check if the var unit matches the BASIN-3D unit, if not get the lookup conversion
+                    unit = ds.variables[var].attrs['units']
+                    unit_conv, unit_str = _get_unit_conv(unit, var, synthesis_messages)
+
+                    missing_value = ds.variables[var].attrs['missing_value']
+
+                    # Convert each time and var entry to TimeValuePair,
+                    #    using the unit conversion for var, append the result_TVPs list
+                    #    change the time to ISO
+                    #    Note: The unit conversion should be aware of missing value codes.
+
+                    try:
+                        qc_var = ds.variables[var].attrs['ancillary_variables']
+                    except KeyError:
+                        qc_var = ''
+
+                    # If there is a corresponding qc variable
+                    if qc_var != '' and qc_var in query_vars:
+                        pass
+                        # Append to the result_TVP_quality list
+                        # Also add the quality code to the set
+
+                    # Create the MeasurementTVPObservation object
+                    measurement_timeseries_tvp_observation = MeasurementTimeseriesTVPObservation(
+                        self,
+                        id=f'{data_product_name}_{var}{qc_var}',
+                        unit_of_measurement=unit_str,
+                        feature_of_interest_type=FeatureTypeEnum.POINT,
+                        feature_of_interest=monitoring_feature,
+                        result=ResultListTVP(plugin_access=self, value=result_TVPs, result_quality=result_TVP_quality),
+                        observed_property=var,
+                        result_quality=list(result_quality),
+                        aggregation_duration=query.aggregation_duration[0],
+                        time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,
+                    )
+
+                    yield measurement_timeseries_tvp_observation
+
 
         return StopIteration(synthesis_messages)
 
