@@ -42,6 +42,10 @@ LOCAL_TEMP_DIR = os.environ.get('BASIN3D_LOCAL_TEMP_DIR', DEFAULT_TEMP_DIR)
 UNIT_LOOKUP = {
     'kPa-mm Hg': {'arm_unit': 'kPa', 'target_unit': 'mm Hg', 'conv': 0.4},
     'cm-m': {'arm_unit': 'cm', 'target_unit': 'm', 'conv': 100},
+    'degC-C': {'arm_unit': 'degC', 'target_unit': 'C', 'conv': 1},
+    'degree-degrees': {'arm_unit': 'degree', 'target_unit': 'degrees', 'conv': 1},
+    'mm/hr-mm': {'arm_unit': 'mm/hr', 'target_unit': 'mm', 'conv': 1 / 60},
+    '%-percent': {'arm_unit': '%', 'target_unit': 'percent', 'conv': 1},
 }
 
 
@@ -96,21 +100,20 @@ def _fetch_timeseries(url: str, file_batch: List, variables: List, synthesis_mes
             response.close()
 
 
-def _build_tvp_results(ds, var: str, unit_conv: int | float) -> List:
+def _build_tvp_results(time_values, data_values, missing_value, unit_conv: int | float) -> List:
     """Build time-value pairs for one ARM dataset variable."""
     results_TVPs = []
-    timestamps = ds['time'].values
-    values = ds[var].values
-    missing_value = ds[var].attrs['missing_value']
 
-    for timestamp, value in zip(timestamps, values):
-        timestamp_iso = timestamp.item().isoformat()
-        if value == missing_value:
-            converted_value = value
-        else:
-            converted_value = value * unit_conv
-
-        results_TVPs.append(TimeValuePair(timestamp=timestamp_iso, value=converted_value))
+    if unit_conv == 1:
+        for timestamp, value in zip(time_values, data_values):
+            results_TVPs.append(TimeValuePair(timestamp=timestamp, value=value))
+    else:
+        for timestamp, value in zip(time_values, data_values):
+            if value == missing_value:
+                converted_value = value
+            else:
+                converted_value = value * unit_conv
+            results_TVPs.append(TimeValuePair(timestamp=timestamp, value=converted_value))
 
     return results_TVPs
 
@@ -129,6 +132,11 @@ def _collect_to_zarr(url: str, file_list: List, meas_variables: List, synthesis_
             continue
 
         try:
+            for variable in part.data_vars:
+                missing_value = part[variable].encoding.get('missing_value')
+                if missing_value is not None:
+                    part[variable].encoding['_FillValue'] = missing_value
+
             if first_file:
                 # Creates the Zarr store.
                 part.to_zarr(zarr_path, mode='w', consolidated=False)
@@ -433,27 +441,7 @@ def _get_selected_arm_metadata(arm_metb1_url: str, query_monitoring_feature: Lis
     return mf_set, mf_lookup
 
 
-def _get_unit_conv(arm_unit: str, arm_variable: str,
-                   synthesis_messages: List) -> Tuple[int | float, str]:
-    """
-    Check if arm_unit provided in the file metadata matches the B3D unit for the variable.
-    If so, return 1.
-    If not, look up the conversion in the lookup table, return the conversion factor
-    If a conversion cannot be found, write a warning message and return 1 and the arm unit.
 
-    :param arm_unit:
-    :param arm_variable:
-    :param synthesis_messages:
-    :return: (conversion factor, unit)
-    """
-    unit_conv = 1
-    unit_str = arm_unit
-
-    # look up the BASIN3D variable unit
-    # if the arm unit is the same as the basin3d unit, return 1, arm unit
-    # if can find match in look up, return look up conversion and b3d unit
-    # else: write a warning that unit conversion was not made, and return 1, arm unit
-    return unit_conv, unit_str
 
 
 class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
@@ -508,6 +496,40 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
     synthesis_model_class = MeasurementTimeseriesTVPObservation
 
+    def _get_unit_conv(self, arm_unit: str, arm_variable: str,
+                       synthesis_messages: List) -> Tuple[int | float, str]:
+        """
+        Check if arm_unit provided in the file metadata matches the B3D unit for the variable.
+        If so, return 1.
+        If not, look up the conversion in the lookup table, return the conversion factor
+        If a conversion cannot be found, write a warning message and return 1 and the arm unit.
+
+        :param arm_unit:
+        :param arm_variable:
+        :param synthesis_messages:
+        :return: (conversion factor, unit)
+        """
+
+        # look up the BASIN3D variable unit
+        b3d_mapping = self.get_datasource_attribute_mapping('OBSERVED_PROPERTY', arm_variable)
+        b3d_op = b3d_mapping.basin3d_desc[0]
+        b3d_unit = b3d_op.units
+        unit_info = UNIT_LOOKUP.get(f'{arm_unit}-{b3d_unit}')
+
+        # If all is expected, the units are in the lookup, and the mapping is known and returned
+        if unit_info:
+            unit_conv = unit_info['conv']
+            unit_str = unit_info['target_unit']
+            return unit_conv, unit_str
+
+        # In the odd chance that the mapping is not pre-defined and the units are the exact same, all good and don't message.
+        if b3d_unit != arm_unit:
+            msg = f'Unit for {arm_variable} was unexpected and unit conversion to BASIN-3D unit {b3d_unit} could not be assessed. Returning values in ARM native unit {arm_unit}.'
+            logger.warning(msg)
+            synthesis_messages.append(msg)
+
+        return 1, arm_unit
+
     def list(self, query: QueryMeasurementTimeseriesTVP):
         """List ARM measurement timeseries TVP observations.
 
@@ -533,7 +555,7 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                               f'{query_date_str}&wt=json')
 
         arm_data_url = (f'https://adc.arm.gov/armlive/mod?user={ARM_NAME}:{ARM_TOKEN}'
-                        'variables=time,{}&wt=cdf ')
+                        '&variables=time,{}&wt=cdf')
 
         query_observed_properties = deepcopy(query.observed_property)
 
@@ -589,20 +611,23 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
             with data_zarr_io as ds:
 
+                timestamps = [timestamp.item().isoformat() for timestamp in ds['time'].values]
+
                 # For each var in the query_var list, ...
                 for var in query_vars:
+                    if var not in ds.variables or var.startswith('qc_'):
+                        continue
+
                     result_TVP_quality = []
                     result_quality = set()
 
-                    # Skip any qc variables, deal with those later
-                    if var.startswith('qc_'):
-                        continue
-
                     # Check if the var unit matches the BASIN-3D unit, if not get the lookup conversion
                     unit = ds.variables[var].attrs['units']
-                    unit_conv, unit_str = _get_unit_conv(unit, var, synthesis_messages)
+                    unit_conv, unit_str = self._get_unit_conv(unit, var, synthesis_messages)
 
-                    result_TVPs = _build_tvp_results(ds, var, unit_conv)
+                    var_data = ds[var].values
+                    var_missing_value = ds[var].attrs['missing_value']
+                    result_TVPs = _build_tvp_results(timestamps, var_data, var_missing_value, unit_conv)
 
                     try:
                         qc_var = ds.variables[var].attrs['ancillary_variables']

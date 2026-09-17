@@ -46,6 +46,7 @@ dependencies = [
     "SQLAlchemy>=1.4",
     "tempfile",
     "xarray",
+    "zarr",
 ]
 
 
