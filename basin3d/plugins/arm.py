@@ -11,6 +11,7 @@ NetCDF data access will be implemented in a subsequent change.
 # import netCDF4 as nc
 import os
 import requests
+import shutil
 import tempfile
 import xarray as xr
 
@@ -40,12 +41,11 @@ LOCAL_TEMP_DIR = os.environ.get('BASIN3D_LOCAL_TEMP_DIR', DEFAULT_TEMP_DIR)
 
 
 UNIT_LOOKUP = {
-    'kPa-mm Hg': {'arm_unit': 'kPa', 'target_unit': 'mm Hg', 'conv': 0.4},
-    'cm-m': {'arm_unit': 'cm', 'target_unit': 'm', 'conv': 100},
-    'degC-C': {'arm_unit': 'degC', 'target_unit': 'C', 'conv': 1},
-    'degree-degrees': {'arm_unit': 'degree', 'target_unit': 'degrees', 'conv': 1},
-    'mm/hr-mm': {'arm_unit': 'mm/hr', 'target_unit': 'mm', 'conv': 1 / 60},
-    '%-percent': {'arm_unit': '%', 'target_unit': 'percent', 'conv': 1},
+    'kPa': {'arm_unit': 'kPa', 'target_unit': 'mm Hg', 'conv': 0.4},
+    'cm': {'arm_unit': 'cm', 'target_unit': 'm', 'conv': 100},
+    'degC': {'arm_unit': 'degC', 'target_unit': 'C', 'conv': 1},
+    'degree': {'arm_unit': 'degree', 'target_unit': 'degrees', 'conv': 1},
+    '%': {'arm_unit': '%', 'target_unit': 'percent', 'conv': 1},
 }
 
 
@@ -366,20 +366,27 @@ def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messa
         }
 
 
-def _load_mf_object(datasource: DataSourcePluginAccess, mf_id: str, mf_info: Dict) -> MonitoringFeature | None:
+def _load_mf_object(datasource: DataSourcePluginAccess, mf_id: str,
+                    mf_info: Dict, include_vars: bool = True) -> MonitoringFeature | None:
     """
 
     :param datasource:
     :param mf_id:
     :param mf_info:
+    :param include_vars:
     :return:
     """
 
     related_sampling_feature = RelatedSamplingFeature(
         datasource,
+        id=mf_info.get('site_id'),
         related_sampling_feature=mf_info.get('site_name'),
         related_sampling_feature_type=FeatureTypeEnum.SITE,  # previously site
         role=RelatedSamplingFeature.ROLE_PARENT)
+
+    ops = []
+    if include_vars:
+        ops = mf_info.get('variables')
 
     monitoring_feature = MonitoringFeature(
         datasource,
@@ -387,7 +394,7 @@ def _load_mf_object(datasource: DataSourcePluginAccess, mf_id: str, mf_info: Dic
         name=mf_info.get('name'),
         feature_type=FeatureTypeEnum.POINT,
         shape=SpatialSamplingShapes.SHAPE_POINT,
-        observed_properties=mf_info.get('variables'),
+        observed_properties=ops,
         related_sampling_feature_complex = [related_sampling_feature],
         coordinates=Coordinate(
             absolute=AbsoluteCoordinate(
@@ -439,9 +446,6 @@ def _get_selected_arm_metadata(arm_metb1_url: str, query_monitoring_feature: Lis
             mf_set.add(mf_id)
 
     return mf_set, mf_lookup
-
-
-
 
 
 class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
@@ -511,10 +515,10 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         """
 
         # look up the BASIN3D variable unit
-        b3d_mapping = self.get_datasource_attribute_mapping('OBSERVED_PROPERTY', arm_variable)
-        b3d_op = b3d_mapping.basin3d_desc[0]
-        b3d_unit = b3d_op.units
-        unit_info = UNIT_LOOKUP.get(f'{arm_unit}-{b3d_unit}')
+        # b3d_mapping = self.get_datasource_attribute_mapping('OBSERVED_PROPERTY', arm_variable)
+        # b3d_op = b3d_mapping.basin3d_desc[0]
+        # b3d_unit = b3d_op.units
+        unit_info = UNIT_LOOKUP.get(f'{arm_unit}')
 
         # If all is expected, the units are in the lookup, and the mapping is known and returned
         if unit_info:
@@ -523,10 +527,10 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             return unit_conv, unit_str
 
         # In the odd chance that the mapping is not pre-defined and the units are the exact same, all good and don't message.
-        if b3d_unit != arm_unit:
-            msg = f'Unit for {arm_variable} was unexpected and unit conversion to BASIN-3D unit {b3d_unit} could not be assessed. Returning values in ARM native unit {arm_unit}.'
-            logger.warning(msg)
-            synthesis_messages.append(msg)
+        # if b3d_unit != arm_unit:
+        # msg = f'Unit for {arm_variable} was unexpected and unit conversion to BASIN-3D unit could not be assessed. Returning values in ARM native unit {arm_unit}.'
+        # logger.warning(msg)
+        # synthesis_messages.append(msg)
 
         return 1, arm_unit
 
@@ -559,12 +563,8 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
         query_observed_properties = deepcopy(query.observed_property)
 
-        # ToDo: check if need to do some filtering if statistic is specified in the query b/c mapping has statistic in it
-
         for obs_prop in query.observed_property:
             query_observed_properties.append(f'qc_{obs_prop}')
-
-        print('hey')
 
         for mf_id in mf_set:
             mf_info = mf_lookup.get(mf_id, {})
@@ -601,59 +601,71 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             query_var_str = ','.join(query_vars)
             arm_data_var_url = arm_data_url.format(query_var_str)
 
-            # loop thru the files, extracting the query variables
-            data_zarr_io = _collect_to_zarr(arm_data_var_url, file_batches, query_vars, synthesis_messages)
+            try:
 
-            if not data_zarr_io:
-                continue
+                # loop thru the files, extracting the query variables
+                data_zarr_io = _collect_to_zarr(arm_data_var_url, file_batches, query_vars, synthesis_messages)
 
-            monitoring_feature = _load_mf_object(self, mf_id, mf_info)
+                if not data_zarr_io:
+                    continue
 
-            with data_zarr_io as ds:
+                monitoring_feature = _load_mf_object(self, mf_id, mf_info, include_vars=False)
 
-                timestamps = [timestamp.item().isoformat() for timestamp in ds['time'].values]
+                with data_zarr_io as ds:
 
-                # For each var in the query_var list, ...
-                for var in query_vars:
-                    if var not in ds.variables or var.startswith('qc_'):
-                        continue
+                    timestamps = [str(timestamp) for timestamp in ds['time'].values]
 
-                    result_TVP_quality = []
-                    result_quality = set()
+                    # For each var in the query_var list, ...
+                    for var in query_vars:
+                        if var not in ds.variables or var.startswith('qc_'):
+                            continue
 
-                    # Check if the var unit matches the BASIN-3D unit, if not get the lookup conversion
-                    unit = ds.variables[var].attrs['units']
-                    unit_conv, unit_str = self._get_unit_conv(unit, var, synthesis_messages)
+                        result_TVP_quality = []
+                        result_quality = set()
 
-                    var_data = ds[var].values
-                    var_missing_value = ds[var].attrs['missing_value']
-                    result_TVPs = _build_tvp_results(timestamps, var_data, var_missing_value, unit_conv)
+                        # Check if the var unit matches the BASIN-3D unit, if not get the lookup conversion
+                        unit = ds.variables[var].attrs['units']
+                        unit_conv, unit_str = self._get_unit_conv(unit, var, synthesis_messages)
 
-                    try:
-                        qc_var = ds.variables[var].attrs['ancillary_variables']
-                    except KeyError:
+                        var_missing_value = ds[var].encoding.get('missing_value')
+                        var_data = [float(value) for value in ds[var].values]
+                        result_TVPs = _build_tvp_results(timestamps, var_data, var_missing_value, unit_conv)
+                        del var_data
+
                         qc_var = ''
+                        if f'qc_{var}' in query_vars:
+                            qc_var = f'qc_{var}'
 
-                    # If there is a corresponding qc variable
-                    if qc_var != '' and qc_var in query_vars:
-                        result_TVP_quality = ds[qc_var].values.tolist()
-                        result_quality = set(result_TVP_quality)
+                        # If there is a corresponding qc variable
+                        if qc_var != '':
+                            result_TVP_quality = ds[qc_var].values.tolist()
+                            result_quality = set(result_TVP_quality)
+                            qc_var = f'-{qc_var}'
 
-                    # Create the MeasurementTVPObservation object
-                    measurement_timeseries_tvp_observation = MeasurementTimeseriesTVPObservation(
-                        self,
-                        id=f'{data_product_name}_{var}{qc_var}',
-                        unit_of_measurement=unit_str,
-                        feature_of_interest_type=FeatureTypeEnum.POINT,
-                        feature_of_interest=monitoring_feature,
-                        result=ResultListTVP(plugin_access=self, value=result_TVPs, result_quality=result_TVP_quality),
-                        observed_property=var,
-                        result_quality=list(result_quality),
-                        aggregation_duration=query.aggregation_duration[0],
-                        time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,
-                    )
+                        # Create the MeasurementTVPObservation object
+                        measurement_timeseries_tvp_observation = MeasurementTimeseriesTVPObservation(
+                            self,
+                            id=f'{data_product_name}_{var}{qc_var}',
+                            unit_of_measurement=unit_str,
+                            feature_of_interest_type=FeatureTypeEnum.POINT,
+                            feature_of_interest=monitoring_feature,
+                            result=ResultListTVP(plugin_access=self, value=result_TVPs, result_quality=result_TVP_quality),
+                            observed_property=var,
+                            result_quality=list(result_quality),
+                            aggregation_duration=query.aggregation_duration[0],
+                            time_reference_position=TimeMetadataMixin.TIME_REFERENCE_MIDDLE,
+                        )
 
-                    yield measurement_timeseries_tvp_observation
+                        # clear memory
+                        del result_TVP_quality
+
+                        yield measurement_timeseries_tvp_observation
+
+            finally:
+                zarr_path = Path(LOCAL_TEMP_DIR)
+                if zarr_path.exists():
+                    shutil.rmtree(zarr_path)
+
 
 
         return StopIteration(synthesis_messages)
