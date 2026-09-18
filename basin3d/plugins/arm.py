@@ -41,11 +41,12 @@ LOCAL_TEMP_DIR = os.environ.get('BASIN3D_LOCAL_TEMP_DIR', DEFAULT_TEMP_DIR)
 
 
 UNIT_LOOKUP = {
-    'kPa': {'arm_unit': 'kPa', 'target_unit': 'mm Hg', 'conv': 0.4},
-    'cm': {'arm_unit': 'cm', 'target_unit': 'm', 'conv': 100},
-    'degC': {'arm_unit': 'degC', 'target_unit': 'C', 'conv': 1},
-    'degree': {'arm_unit': 'degree', 'target_unit': 'degrees', 'conv': 1},
-    '%': {'arm_unit': '%', 'target_unit': 'percent', 'conv': 1},
+    'kPa-mm Hg': {'arm_unit': 'kPa', 'target_unit': 'mm Hg', 'conv': 0.4},
+    'cm-m': {'arm_unit': 'cm', 'target_unit': 'm', 'conv': 100},
+    'degC-C': {'arm_unit': 'degC', 'target_unit': 'C', 'conv': 1},
+    'degree-degrees': {'arm_unit': 'degree', 'target_unit': 'degrees', 'conv': 1},
+    'deg-degrees': {'arm_unit': 'degree', 'target_unit': 'degrees', 'conv': 1},
+    '%-percent': {'arm_unit': '%', 'target_unit': 'percent', 'conv': 1},
 }
 
 
@@ -148,7 +149,7 @@ def _collect_to_zarr(url: str, file_list: List, meas_variables: List, synthesis_
             part.close()
 
     if first_file:
-        message = 'No ARM timeseries datasets were successfully retrieved.'
+        message = f'No ARM timeseries datasets were successfully retrieved for {url}.'
         logger.warning(message)
         synthesis_messages.append(message)
         return None
@@ -156,26 +157,14 @@ def _collect_to_zarr(url: str, file_list: List, meas_variables: List, synthesis_
     return xr.open_zarr(zarr_path, consolidated=False)
 
 
-def _batch_files(file_list: list) -> List:
+def _batch_files(file_list: list, batch_size: int = 30) -> List:
     """
-    Batch the files into a list of lists each containing one month of files
-    example filename: 'gucmetM1.b1.20210928.000000.cdf'
-    :param file_list: List of daily files that have date in the third segment of the filename
+    Batch the files into lists containing at most batch_size files.
+    :param file_list: Sorted list of ARM data filenames
+    :param batch_size: Maximum number of files in each batch
     :return:
     """
-    batches = []
-    current_month = None
-
-    for filename in file_list:
-        month = filename.split('.')[2][:6]
-
-        if month != current_month:
-            batches.append([])
-            current_month = month
-
-        batches[-1].append(filename)
-
-    return batches
+    return [file_list[start:start + batch_size] for start in range(0, len(file_list), batch_size)]
 
 
 def _get_mf_files(data_url: str, synthesis_messages: List) -> List:
@@ -196,7 +185,7 @@ def _get_mf_files(data_url: str, synthesis_messages: List) -> List:
     files: list = data_files.get('files', [])
 
     if not files:
-        message = 'No ARM timeseries datasets were successfully retrieved.'
+        message = f'No ARM timeseries datasets were successfully retrieved for {data_url}.'
         logger.warning(message)
         synthesis_messages.append(message)
         return results
@@ -515,10 +504,10 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         """
 
         # look up the BASIN3D variable unit
-        # b3d_mapping = self.get_datasource_attribute_mapping('OBSERVED_PROPERTY', arm_variable)
-        # b3d_op = b3d_mapping.basin3d_desc[0]
-        # b3d_unit = b3d_op.units
-        unit_info = UNIT_LOOKUP.get(f'{arm_unit}')
+        b3d_mapping = self.get_datasource_attribute_mapping('OBSERVED_PROPERTY', arm_variable)
+        b3d_op = b3d_mapping.basin3d_desc[0]
+        b3d_unit = b3d_op.units
+        unit_info = UNIT_LOOKUP.get(f'{arm_unit}-{b3d_unit}')
 
         # If all is expected, the units are in the lookup, and the mapping is known and returned
         if unit_info:
@@ -527,10 +516,10 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             return unit_conv, unit_str
 
         # In the odd chance that the mapping is not pre-defined and the units are the exact same, all good and don't message.
-        # if b3d_unit != arm_unit:
-        # msg = f'Unit for {arm_variable} was unexpected and unit conversion to BASIN-3D unit could not be assessed. Returning values in ARM native unit {arm_unit}.'
-        # logger.warning(msg)
-        # synthesis_messages.append(msg)
+        if b3d_unit != arm_unit:
+            msg = f'Unit for {arm_variable} was unexpected and unit conversion to BASIN-3D unit could not be assessed. Returning values in ARM native unit {arm_unit}.'
+            logger.warning(msg)
+            synthesis_messages.append(msg)
 
         return 1, arm_unit
 
@@ -609,7 +598,7 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 if not data_zarr_io:
                     continue
 
-                monitoring_feature = _load_mf_object(self, mf_id, mf_info, include_vars=False)
+                monitoring_feature = _load_mf_object(self, mf_id, mf_info, include_vars=True)
 
                 with data_zarr_io as ds:
 
@@ -630,6 +619,8 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         var_missing_value = ds[var].encoding.get('missing_value')
                         var_data = [float(value) for value in ds[var].values]
                         result_TVPs = _build_tvp_results(timestamps, var_data, var_missing_value, unit_conv)
+
+                        # clear memory
                         del var_data
 
                         qc_var = ''
@@ -640,12 +631,12 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         if qc_var != '':
                             result_TVP_quality = ds[qc_var].values.tolist()
                             result_quality = set(result_TVP_quality)
-                            qc_var = f'-{qc_var}'
+                            qc_var = f'::{qc_var}'
 
                         # Create the MeasurementTVPObservation object
                         measurement_timeseries_tvp_observation = MeasurementTimeseriesTVPObservation(
                             self,
-                            id=f'{data_product_name}_{var}{qc_var}',
+                            id=f'{data_product_name}--{var}{qc_var}',
                             unit_of_measurement=unit_str,
                             feature_of_interest_type=FeatureTypeEnum.POINT,
                             feature_of_interest=monitoring_feature,
@@ -662,11 +653,10 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         yield measurement_timeseries_tvp_observation
 
             finally:
+                # Remove the zarr store for the location to free up space
                 zarr_path = Path(LOCAL_TEMP_DIR)
                 if zarr_path.exists():
                     shutil.rmtree(zarr_path)
-
-
 
         return StopIteration(synthesis_messages)
 
