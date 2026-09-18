@@ -10,6 +10,9 @@
     :backlinks: top
 
 """
+import tempfile
+
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import Column, Integer, String, ForeignKey, JSON, UniqueConstraint, Index
@@ -133,6 +136,10 @@ def clear_database():
 
 # Database setup in memory
 # Create a temporary in memory SQLite database
-engine = create_engine('sqlite:///:memory:')
+# engine = create_engine('sqlite:///:memory:')
+
+# Create a file-backed SQLite database
+catalog_db = Path(tempfile.gettempdir()) / 'basin3d_catalog.sqlite'
+engine = create_engine(f'sqlite:///{catalog_db}')
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
