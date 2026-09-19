@@ -260,7 +260,7 @@ def _get_arm_metadata(arm_url: str, bbox: tuple | None, synthesis_messages: List
 
     if not isinstance(response_result, list):
         response_class = response_result.__class__.__name__
-        msg = f'ARM metadata results for {arm_url} was not in expected list format. It was {response_class}. Cannot parse.'
+        msg = f'ARM metadata results for {arm_url} was not in expected list format. It was {response_class} class. Cannot parse.'
         logger.error(msg)
         synthesis_messages.append(msg)
         return metadata_results
@@ -291,11 +291,19 @@ def _get_arm_data_files(arm_url: str, bbox: tuple | None, synthesis_messages: Li
 
 def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messages: List):
     """
+    Parses arm metadata response return.
+    If there are duplicate entries in the metadata return or the information is already written to mf_lookup,
+        the data product's metadata is skipped. The information could already exist b/c multiple requests to ARM metadata can be made.
+        For example, overlapping bbox or a named location that also occurs in a bbox.
 
-    :param metadata_results:
-    :param mf_lookup:
-    :param synthesis_messages:
-    :return:
+    Required metadata fields are site + facility identifiers and names, geolocations.
+    The measured variables are optional but are used in the MeasurementTimeseriesTVPObservation query so if they are not provided,
+        we assume the data are not available.
+
+    :param metadata_results: the list of metadata objects returned by ARM. One object for each met.b1 data product
+    :param mf_lookup: the lookup dictionary for parsed arm metadata
+    :param synthesis_messages: list of synthesis messages
+    :return: no return b/c the mf_lookup is updated if needed.
     """
 
     for metadata in metadata_results:
