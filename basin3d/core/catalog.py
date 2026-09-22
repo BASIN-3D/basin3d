@@ -14,13 +14,14 @@
 """
 import csv
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound, IntegrityError
+from sqlalchemy.orm import joinedload
 
 import basin3d
 from basin3d.core import monitor, models
 from importlib import resources
 from inspect import getmodule
 from string import whitespace
-from typing import Iterator, List, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 
 from basin3d.core.schema.enum import MAPPING_DELIMITER, NO_MAPPING_TEXT, MappedAttributeEnum, \
     set_mapped_attribute_enum_type, BaseEnum
@@ -522,34 +523,52 @@ class CatalogSqlAlchemy(CatalogBase):
 
         return self._get_observed_property(basin3d_vocab)
 
-    def find_observed_properties(self, basin3d_vocab: Optional[List[str]] = None) -> Iterator[
+    def find_observed_properties(self, basin3d_vocab: Optional[Union[str, List[str]]] = None) -> Iterator[
             Optional[basin3d.core.models.ObservedProperty]]:
         """
         Report the observed_properties available based on the BASIN-3D vocabularies specified. If no BASIN-3D vocabularies are specified, then return all observed properties available.
 
-        :param basin3d_vocab: list of the BASIN-3D observed properties
+        :param basin3d_vocab: a BASIN-3D observed property or list of observed properties
         :return: generator that yields :class:`basin3d.models.ObservedProperty` objects
         """
-        if not self.is_initialized():
-            msg = "Variable Store has not been initialized."
-            logger.critical(msg)
-            raise CatalogException(msg)
+        def _iter_properties() -> Iterator[Optional[basin3d.core.models.ObservedProperty]]:
+            """Query and convert properties before yielding any result."""
+            if not self.is_initialized():
+                msg = "Variable Store has not been initialized."
+                logger.critical(msg)
+                raise CatalogException(msg)
 
-        session = sqlalchemy_models.Session()
+            session = sqlalchemy_models.Session()
+            requested_vocab = basin3d_vocab
+            try:
+                if isinstance(requested_vocab, str):
+                    requested_vocab = [requested_vocab]
 
-        try:
-            if not basin3d_vocab:
-                for opv in session.query(sqlalchemy_models.ObservedProperty).all():
-                    yield self._convert_observed_property(opv)
-            else:
-                for b3d_vocab in basin3d_vocab:
-                    b3d_opv: Optional[basin3d.core.models.ObservedProperty] = self._get_observed_property(b3d_vocab)
-                    if b3d_opv is not None:
-                        yield b3d_opv
-                    else:
-                        logger.warning(f'BASIN-3D does not support variable {b3d_vocab}')
-        finally:
-            session.close()
+                if not requested_vocab:
+                    observed_properties = [
+                        self._convert_observed_property(opv)
+                        for opv in session.query(sqlalchemy_models.ObservedProperty).all()
+                    ]
+                else:
+                    observed_property_records = session.query(sqlalchemy_models.ObservedProperty).filter(
+                        sqlalchemy_models.ObservedProperty.basin3d_vocab.in_(requested_vocab)
+                    ).all()
+                    records_by_vocab = {
+                        str(opv.basin3d_vocab): opv for opv in observed_property_records
+                    }
+                    observed_properties = []
+                    for b3d_vocab in requested_vocab:
+                        opv = records_by_vocab.get(b3d_vocab)
+                        if opv is not None:
+                            observed_properties.append(self._convert_observed_property(opv))
+                        else:
+                            logger.warning(f'BASIN-3D does not support variable {b3d_vocab}')
+            finally:
+                session.close()
+
+            yield from observed_properties
+
+        return _iter_properties()
 
     def find_datasource_attribute_mapping(self, datasource_id: str, attr_type: str, datasource_vocab: str) -> Optional[
             basin3d.core.models.AttributeMapping]:
@@ -626,89 +645,102 @@ class CatalogSqlAlchemy(CatalogBase):
 
         """
 
-        if not self.is_initialized():
-            msg = 'Attribute Store has not been initialized.'
-            logger.critical(msg)
-            raise CatalogException(msg)
+        def _iter_mappings() -> Iterator[basin3d.core.models.AttributeMapping]:
+            """Query and convert mappings before yielding any result.
 
-        def construct_attr_vocab_query(attr_vocab_list, is_from_basin3d):
-            from sqlalchemy import or_
-            query = []
-            for a_vocab in attr_vocab_list:
-                if not is_from_basin3d:
-                    query.append(sqlalchemy_models.AttributeMapping.datasource_vocab == a_vocab)
-                elif MAPPING_DELIMITER in a_vocab:
-                    query.append(sqlalchemy_models.AttributeMapping.basin3d_vocab.op('regexp')(a_vocab))
-                else:
-                    query.append(or_(
-                        sqlalchemy_models.AttributeMapping.basin3d_vocab == a_vocab,
-                        sqlalchemy_models.AttributeMapping.basin3d_vocab.op('regexp')(f'.*:{a_vocab}'),
-                        sqlalchemy_models.AttributeMapping.basin3d_vocab.op('regexp')(f'{a_vocab}:.*'),
-                        sqlalchemy_models.AttributeMapping.basin3d_vocab.op('regexp')(f'.*:{a_vocab}:.*')
-                    ))
-            return or_(*query)
+            Keeping the session out of the returned iterator means callers may
+            stop consuming it early without retaining a checked-out connection.
+            """
+            if not self.is_initialized():
+                msg = 'Attribute Store has not been initialized.'
+                logger.critical(msg)
+                raise CatalogException(msg)
 
-        session = sqlalchemy_models.Session()
-        query_params = []
+            def construct_attr_vocab_query(attr_vocab_list, is_from_basin3d):
+                from sqlalchemy import or_
+                query = []
+                for a_vocab in attr_vocab_list:
+                    if not is_from_basin3d:
+                        query.append(sqlalchemy_models.AttributeMapping.datasource_vocab == a_vocab)
+                    elif MAPPING_DELIMITER in a_vocab:
+                        query.append(sqlalchemy_models.AttributeMapping.basin3d_vocab.op('regexp')(a_vocab))
+                    else:
+                        query.append(or_(
+                            sqlalchemy_models.AttributeMapping.basin3d_vocab == a_vocab,
+                            sqlalchemy_models.AttributeMapping.basin3d_vocab.op('regexp')(f'.*:{a_vocab}'),
+                            sqlalchemy_models.AttributeMapping.basin3d_vocab.op('regexp')(f'{a_vocab}:.*'),
+                            sqlalchemy_models.AttributeMapping.basin3d_vocab.op('regexp')(f'.*:{a_vocab}:.*')
+                        ))
+                return or_(*query)
 
-        if datasource_id is not None:
+            session = sqlalchemy_models.Session()
             try:
-                ds = session.query(sqlalchemy_models.DataSource).filter_by(plugin_id=datasource_id).one_or_none()
-                if ds is None:
-                    logger.warning(
-                        f'No datasource for datasource_id {datasource_id} was found. Check plugin initialization')
-                    raise CatalogException(f'No datasource for datasource_id {datasource_id} was found.')
-                else:
-                    query_params.append(sqlalchemy_models.AttributeMapping.datasource_id == ds.id)
-            except SQLAlchemyError as e:
-                if not isinstance(e, NoResultFound):
-                    raise CatalogException(e)
+                query_params: List[Any] = []
+                # Create a local working variable so that the attr_vocab variable is not rebound;
+                # This also avoids closure-scoping problem (Codex explanations)
+                requested_attr_vocab = attr_vocab
 
-        if attr_type is not None:
-            if attr_type not in MappedAttributeEnum.values():
-                logger.warning(f'Attribute type {attr_type} is invalid')
-                raise CatalogException(f'Attribute type {attr_type} is invalid')
-            else:
-                query_params.append(sqlalchemy_models.AttributeMapping.attr_type.contains(attr_type))
+                if datasource_id is not None:
+                    try:
+                        ds = session.query(sqlalchemy_models.DataSource).filter_by(
+                            plugin_id=datasource_id).one_or_none()
+                        if ds is None:
+                            logger.warning(
+                                f'No datasource for datasource_id {datasource_id} was found. Check plugin initialization')
+                            raise CatalogException(f'No datasource for datasource_id {datasource_id} was found.')
+                        query_params.append(sqlalchemy_models.AttributeMapping.datasource_id == ds.id)
+                    except SQLAlchemyError as e:
+                        if not isinstance(e, NoResultFound):
+                            raise CatalogException(e)
 
-        if attr_vocab:
-            if isinstance(attr_vocab, str):
-                attr_vocab = [attr_vocab]
-            elif not isinstance(attr_vocab, list):
-                raise CatalogException("attr_vocab must be a str or list")
-            attr_vocab_query = construct_attr_vocab_query(attr_vocab, from_basin3d)
-            query_params.append(attr_vocab_query)
+                if attr_type is not None:
+                    if attr_type not in MappedAttributeEnum.values():
+                        logger.warning(f'Attribute type {attr_type} is invalid')
+                        raise CatalogException(f'Attribute type {attr_type} is invalid')
+                    query_params.append(sqlalchemy_models.AttributeMapping.attr_type.contains(attr_type))
 
-        try:
-            attr_mappings = session.query(sqlalchemy_models.AttributeMapping).filter(*query_params).all()
-            vocab_source_type = 'datasource' if not from_basin3d else 'BASIN-3D'
+                if requested_attr_vocab:
+                    if isinstance(requested_attr_vocab, str):
+                        requested_attr_vocab = [requested_attr_vocab]
+                    elif not isinstance(requested_attr_vocab, list):
+                        raise CatalogException("attr_vocab must be a str or list")
+                    query_params.append(construct_attr_vocab_query(requested_attr_vocab, from_basin3d))
 
-            if not attr_mappings:
-                logger.info(
-                    f'No attribute mappings found for specified parameters: datasource id = '
-                    f'"{datasource_id}", attribute type = "{attr_type}", {vocab_source_type} '
-                    f'vocabularies: {attr_vocab and ",".join(attr_vocab) or None}.')
-            elif attr_vocab and len(attr_mappings) != len(attr_vocab):
-                # Find missing vocab in attr_mappings
-                if from_basin3d:
-                    not_found_attr_vocab = [vocab for vocab in attr_vocab if
-                                            vocab not in [am.basin3d_vocab for am in attr_mappings]]
-                else:
-                    not_found_attr_vocab = [vocab for vocab in attr_vocab if
-                                            vocab not in [am.datasource_vocab for am in attr_mappings]]
-                logger.warning(
-                    f'No attribute mappings found for the following {vocab_source_type} '
-                    f'vocabularies: {",".join(not_found_attr_vocab)}. Note: specified datasource id = {datasource_id} and attribute type = {attr_type}.')
-        except SQLAlchemyError as e:
-            if not isinstance(e, NoResultFound):
-                raise e
+                try:
+                    attr_mappings = session.query(sqlalchemy_models.AttributeMapping).options(
+                        joinedload(sqlalchemy_models.AttributeMapping.datasource)
+                    ).filter(*query_params).all()
+                    vocab_source_type = 'datasource' if not from_basin3d else 'BASIN-3D'
 
-        for attr_mapping in attr_mappings:
-            value = self._convert_attribute_mapping(attr_mapping)
-            if value:
-                yield value
+                    if not attr_mappings:
+                        logger.info(
+                            f'No attribute mappings found for specified parameters: datasource id = '
+                            f'"{datasource_id}", attribute type = "{attr_type}", {vocab_source_type} '
+                            f'vocabularies: {requested_attr_vocab and ",".join(requested_attr_vocab) or None}.')
+                    elif requested_attr_vocab and len(attr_mappings) != len(requested_attr_vocab):
+                        if from_basin3d:
+                            not_found_attr_vocab = [vocab for vocab in requested_attr_vocab if
+                                                    vocab not in [am.basin3d_vocab for am in attr_mappings]]
+                        else:
+                            not_found_attr_vocab = [vocab for vocab in requested_attr_vocab if
+                                                    vocab not in [am.datasource_vocab for am in attr_mappings]]
+                        logger.warning(
+                            f'No attribute mappings found for the following {vocab_source_type} '
+                            f'vocabularies: {",".join(not_found_attr_vocab)}. Note: specified datasource id = {datasource_id} and attribute type = {attr_type}.')
+                except SQLAlchemyError as e:
+                    if not isinstance(e, NoResultFound):
+                        raise e
 
-        session.close()
+                # Convert while the ORM session is active; the returned objects
+                # are detached BASIN-3D models and need no database connection.
+                converted_mappings = [self._convert_attribute_mapping(attr_mapping)
+                                      for attr_mapping in attr_mappings]
+            finally:
+                session.close()
+
+            yield from (mapping for mapping in converted_mappings if mapping)
+
+        return _iter_mappings()
 
     def _init_catalog(self, **kwargs):
         """
@@ -716,42 +748,42 @@ class CatalogSqlAlchemy(CatalogBase):
         """
         if not self.is_initialized():
             session = sqlalchemy_models.Session()
+            try:
+                from basin3d.core.plugin import PluginMount
+                for name, plugin in PluginMount.plugins.items():
 
-            from basin3d.core.plugin import PluginMount
-            for name, plugin in PluginMount.plugins.items():
+                    # Were the plugins passed in? If so, only load the plugins that are in the list
+                    if ("plugin_ids" in kwargs and plugin.get_meta().id in kwargs[
+                       "plugin_ids"]) or "plugin_ids" not in kwargs or kwargs["plugin_ids"] == []:
+                        module_name = plugin.__module__
+                        class_name = plugin.__name__
 
-                # Were the plugins passed in? If so, only load the plugins that are in the list
-                if ("plugin_ids" in kwargs and plugin.get_meta().id in kwargs[
-                   "plugin_ids"]) or "plugin_ids" not in kwargs or kwargs["plugin_ids"] == []:
-                    module_name = plugin.__module__
-                    class_name = plugin.__name__
+                        logger.info("Loading Plugin = {}.{}".format(module_name, class_name))
 
-                    logger.info("Loading Plugin = {}.{}".format(module_name, class_name))
+                        try:
+                            datasource = session.query(sqlalchemy_models.DataSource).filter_by(
+                                plugin_id=plugin.get_meta().id).one_or_none()
+                            if datasource is None:
+                                logger.info("Registering NEW Data Source Plugin '{}.{}'".format(module_name, class_name))
+                                datasource = sqlalchemy_models.DataSource()
+                                if hasattr(plugin.get_meta(), "connection_class"):
+                                    datasource.credentials = plugin.get_meta().connection_class.get_credentials_format()
 
-                    try:
-                        datasource = session.query(sqlalchemy_models.DataSource).filter_by(
-                            plugin_id=plugin.get_meta().id).one_or_none()
-                        if datasource is None:
-                            logger.info("Registering NEW Data Source Plugin '{}.{}'".format(module_name, class_name))
-                            datasource = sqlalchemy_models.DataSource()
-                            if hasattr(plugin.get_meta(), "connection_class"):
-                                datasource.credentials = plugin.get_meta().connection_class.get_credentials_format()
-
-                        # Update the datasource
-                        datasource.plugin_id = plugin.get_meta().id
-                        datasource.name = plugin.get_meta().name
-                        datasource.location = plugin.get_meta().location
-                        datasource.id_prefix = plugin.get_meta().id_prefix
-                        datasource.plugin_module = module_name
-                        datasource.plugin_class = class_name
-                        session.add(datasource)
-                        session.commit()
-                        logger.info("Updated Data Source '{}'".format(plugin.get_meta().id))
-                    except SQLAlchemyError as e:
-                        session.rollback()
-                        logger.error(f"Error loading plugin {module_name}.{class_name}: {e}")
-                    finally:
-                        session.close()
+                            # Update the datasource
+                            datasource.plugin_id = plugin.get_meta().id
+                            datasource.name = plugin.get_meta().name
+                            datasource.location = plugin.get_meta().location
+                            datasource.id_prefix = plugin.get_meta().id_prefix
+                            datasource.plugin_module = module_name
+                            datasource.plugin_class = class_name
+                            session.add(datasource)
+                            session.commit()
+                            logger.info("Updated Data Source '{}'".format(plugin.get_meta().id))
+                        except SQLAlchemyError as e:
+                            session.rollback()
+                            logger.error(f"Error loading plugin {module_name}.{class_name}: {e}")
+            finally:
+                session.close()
 
     def _insert(self, record):
         """

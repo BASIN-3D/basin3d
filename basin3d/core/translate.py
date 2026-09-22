@@ -71,11 +71,17 @@ def _get_attr_type_if_compound_mapping(plugin_access, attr_type: str) -> Optiona
     attr_mapping_iterator = plugin_access.get_attribute_mappings(attr_type=attr_type)
 
     # look at the first element returned if there is one
-    for attr_mapping in attr_mapping_iterator:
-        if MAPPING_DELIMITER in attr_mapping.attr_type:
-            compound_mapping_str = attr_mapping.attr_type
-        # only need to look at the first attribute mapping returned
-        break
+    try:
+        for attr_mapping in attr_mapping_iterator:
+            if MAPPING_DELIMITER in attr_mapping.attr_type:
+                compound_mapping_str = attr_mapping.attr_type
+            # only need to look at the first attribute mapping returned
+            break
+    # Double check for clean up of any connections since the iterator is intentionally broken
+    finally:
+        close = getattr(attr_mapping_iterator, 'close', None)
+        if close:
+            close()
 
     return compound_mapping_str
 

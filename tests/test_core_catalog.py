@@ -93,6 +93,21 @@ def test_catalog_error(plugins):
     pytest.raises(CatalogException, catalog.initialize, plugins)
 
 
+def test_init_catalog_closes_session_when_no_plugin_matches(monkeypatch):
+    """The initialization session closes even when plugin filtering selects nothing."""
+    from basin3d.core import sqlalchemy_models
+    from basin3d.core.catalog import CatalogSqlAlchemy
+
+    catalog = CatalogSqlAlchemy()
+    session = Mock()
+    monkeypatch.setattr(catalog, 'is_initialized', Mock(return_value=False))
+    monkeypatch.setattr(sqlalchemy_models, 'Session', Mock(return_value=session))
+
+    catalog._init_catalog(plugin_ids=['DOES_NOT_EXIST'])
+
+    session.close.assert_called_once_with()
+
+
 # Test with different variable files.
 # Last test uses the default basin3d hydrology variables which is needed for rest of tests.
 def test_gen_basin3d_variable_store(catalog, caplog):
@@ -198,12 +213,19 @@ def test_find_observed_properties(caplog, catalog):
 
     # specified valid observed properties returned
     assert ['ACT', 'Br'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['ACT', 'Br'])]
+    assert ['Br', 'Br', 'ACT'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['Br', 'Br', 'ACT'])]
+    assert ['ACT'] == [i.basin3d_vocab for i in catalog.find_observed_properties('ACT')]
 
     # on invalid observed properties is not returned and warning message generated.
     caplog.clear()
     assert ['ACT', 'Br'] == [i.basin3d_vocab for i in catalog.find_observed_properties(['ACT', 'FOO', 'Br'])]
     log_msgs = [rec.message for rec in caplog.records]
     assert 'BASIN-3D does not support variable FOO' in log_msgs
+
+    caplog.clear()
+    assert [] == list(catalog.find_observed_properties('FOO'))
+    log_msgs = [rec.message for rec in caplog.records]
+    assert log_msgs.count('BASIN-3D does not support variable FOO') == 1
 
     # all observed_properties are returned
     assert [i.basin3d_vocab for i in catalog.find_observed_properties()] == ['ACT', 'Br', 'Cl', 'DIN', 'DTN', 'F', 'NO3', 'NO2', 'PO4', 'SO4', 'S2', 'S2O3', 'HCO3', 'DIC', 'DOC',
@@ -219,6 +241,22 @@ def test_find_observed_properties(caplog, catalog):
             'Porosity', 'SBD', 'SYD', 'HCND_Unsat', 'RET_CUR', 'LSE', 'GWF', 'Well logs', 'SAT', 'SDE', 'SMO', 'STM',
             'SWP', 'SEC', 'FDOM', 'DO', 'EC', 'SC', 'SAL', 'GWL', 'PH', 'ORP', 'RDC', 'SWL', 'WLH', 'WLE', 'WT', 'TDS',
             'TSS', 'TRB', 'STO_RES', 'LAI', 'PLT_HT', 'PAI', 'PFT', 'RGB', 'GCC', 'NDVI']
+
+
+def test_find_observed_properties_closes_session_before_partial_iteration(catalog, monkeypatch):
+    """A partially consumed observed-property iterator must not retain a DB connection."""
+    from basin3d.core import sqlalchemy_models
+
+    session = sqlalchemy_models.Session()
+    close = Mock(wraps=session.close)
+    session.close = close
+    monkeypatch.setattr(catalog, 'is_initialized', Mock(return_value=True))
+    monkeypatch.setattr(sqlalchemy_models, 'Session', Mock(return_value=session))
+
+    properties = catalog.find_observed_properties()
+    next(properties)
+
+    close.assert_called_once_with()
 
 
 def test_process_plugin_attr_mapping(catalog, caplog):
@@ -448,3 +486,48 @@ def test_find_attribute_mappings(caplog, plugins, query, expected_count, expecte
             with pytest.raises(CatalogException):
                 for attr_mapping in attribute_mappings:
                     pass
+
+
+def test_find_attribute_mappings_closes_session_before_partial_iteration(catalog, monkeypatch):
+    """A partially consumed mapping iterator must not retain a DB connection."""
+    from basin3d.core import sqlalchemy_models
+
+    sqlalchemy_models.clear_database()
+    catalog.initialize([alpha.AlphaSourcePlugin(catalog)])
+    session = sqlalchemy_models.Session()
+    close = Mock(wraps=session.close)
+    session.close = close
+    monkeypatch.setattr(catalog, 'is_initialized', Mock(return_value=True))
+    monkeypatch.setattr(sqlalchemy_models, 'Session', Mock(return_value=session))
+
+    mappings = catalog.find_attribute_mappings(datasource_id='Alpha', attr_type='OBSERVED_PROPERTY')
+    next(mappings)
+
+    close.assert_called_once_with()
+
+
+def test_find_attribute_mappings_eagerly_loads_datasource(catalog):
+    """Attribute mapping conversion must not issue one datasource query per mapping."""
+    from sqlalchemy import event
+
+    from basin3d.core import sqlalchemy_models
+
+    sqlalchemy_models.clear_database()
+    catalog.initialize([alpha.AlphaSourcePlugin(catalog)])
+    statements = []
+
+    def capture_select(conn, cursor, statement, parameters, context, executemany):
+        if statement.lstrip().upper().startswith('SELECT'):
+            statements.append(statement)
+
+    event.listen(sqlalchemy_models.engine, 'before_cursor_execute', capture_select)
+    try:
+        mappings = list(catalog.find_attribute_mappings(
+            datasource_id='Alpha', attr_type='STATISTIC'))
+    finally:
+        event.remove(sqlalchemy_models.engine, 'before_cursor_execute', capture_select)
+
+    assert len(mappings) > 1
+    datasource_selects = [statement for statement in statements if 'FROM data_source' in statement]
+    assert len(datasource_selects) == 2
+    assert any('JOIN data_source' in statement for statement in statements)
