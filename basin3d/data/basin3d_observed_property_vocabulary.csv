@@ -106,7 +106,7 @@ LWIR_IN,Incoming Longwave Infrared Radiation,"Climate,Weather",W/m2
 LWIR_REF,Reflected Longwave Infrared Radiation,"Climate,Weather",W/m2
 BB_IN,Incoming Broadband Radiation,"Climate,Weather",W/m2
 BB_REF,Reflected Broadband Radiation,"Climate,Weather",W/m2
-RH,Relative Humidity,"Climate,Weather",
+RH,Relative Humidity,"Climate,Weather",percent
 SD,Snow Depth,"Hydrogeology, Snow",m
 SWE,Snow Water Equivalent,"Hydrogeology, Snow",cm
 SDEN,Snow Density,"Hydrogeology, Snow",kg/m3
