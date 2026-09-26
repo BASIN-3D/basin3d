@@ -23,14 +23,14 @@ def alpha_plugin_access():
                          [
                           # change-to-day
                           ({'datasource': ['A'], 'monitoring_feature': ['bar', 'base'], 'observed_property':['FOO', 'BAR'],
-                            'start_date': '2021-01-01', 'aggregation_duration': 'MONTH'}, ['DAY']),
+                            'start_date': '2021-01-01', 'aggregation_duration': 'HOUR'}, ['NOT_SUPPORTED']),
                           # NONE
                           ({'datasource': ['A'], 'monitoring_feature': ['bar', 'base'], 'observed_property':['FOO', 'BAR'],
                             'start_date': '2021-01-01', 'aggregation_duration': 'NONE'}, ['NONE']),
                           # not-specified
                           ({'datasource': ['A'], 'monitoring_feature': ['bar', 'base'], 'observed_property':['FOO', 'BAR'],
                             'start_date': '2021-01-01'}, ['DAY']),
-                          ], ids=['change-to-day', 'NONE', 'not-specified'])
+                          ], ids=['HOUR-not-supported', 'NONE', 'not-specified'])
 def test_measurement_timeseries_TVP_observation_access_synthesize_query(input_query, expected_result, alpha_plugin_access):
     from basin3d.core.catalog import CatalogSqlAlchemy
     catalog = CatalogSqlAlchemy()

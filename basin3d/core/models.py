@@ -1240,7 +1240,7 @@ class Observation(Base):
     def __init__(self, plugin_access, **kwargs):
         self._id: str = None
         self._type: str = None
-        self._utc_offset: int = None
+        self._utc_offset: float = None
         self._phenomenon_time: str = None
         self._observed_property: MappedAttribute = None
         self._feature_of_interest: MonitoringFeature = None
@@ -1289,12 +1289,12 @@ class Observation(Base):
         self._type = value
 
     @property
-    def utc_offset(self) -> int:
+    def utc_offset(self) -> float:
         """Coordinated Universal Time (UTC) offset in hours (e.g. +/-9)"""
         return self._utc_offset
 
     @utc_offset.setter
-    def utc_offset(self, value: int):
+    def utc_offset(self, value: float):
         self._utc_offset = value
 
     @property
