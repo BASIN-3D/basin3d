@@ -4,7 +4,8 @@ This module defines the BASIN-3D plugin shape for AmeriFlux. Data retrieval
 will be implemented in a subsequent change.
 """
 from dataclasses import dataclass
-from typing import Dict, List, Set
+import os
+from typing import Dict, List, Set, TypedDict
 
 from basin3d.core import monitor
 
@@ -20,18 +21,39 @@ from basin3d.core.types import SpatialSamplingShapes
 logger = monitor.get_logger(__name__)
 
 
+AMF_USER_NAME = os.environ.get('AMF_USER_NAME', None)
+AMF_USER_EMAIL = os.environ.get('AMF_USER_EMAIL', None)
+
+
 @dataclass
 class _SiteMetadata:
     site_id: str
     site_name: str
     description: str
-    latitude: float
-    longitude: float
-    elevation: float
+    latitude: float | None
+    longitude: float| None
+    elevation: float | None
+    start_year: int
+    end_year: int
+    igbp: str
     start_year: str
     end_year: str
     igbp: str
-    url: str
+    url: str | None
+
+
+class _UnitLookupInfo(TypedDict):
+    amf_unit: str
+    target_unit: str
+    conv: int | float
+
+
+AMF_UNIT_LOOKUP: Dict[str, _UnitLookupInfo] = {
+    'W m-2-W/m2': {'amf_unit': 'W m-2', 'target_unit': 'W/m2', 'conv': 1},
+    'm s-1-m/s': {'amf_unit': 'm s-1', 'target_unit': 'm/s', 'conv': 1},
+    'Decimal degrees-degrees': {'amf_unit': 'Decimal degrees', 'target_unit': 'degrees', 'conv': 1},
+    'deg C-C': {'amf_unit': 'deg C', 'target_unit': 'C', 'conv': 1},
+}
 
 
 def _get_metadata(url: str, synthesis_messages: List[str]) -> Dict:
@@ -179,13 +201,17 @@ def _load_mf_object(datasource: DataSourcePluginAccess, site_info: _SiteMetadata
         coord.absolute.vertical_extent = AltitudeCoordinate(**{"type": AltitudeCoordinate.TYPE_ALTITUDE,
                                                                "value": site_info.elevation})
 
+    igbp = f' IGBP Vegetation Type: {site_info.igbp}.' if site_info.igbp else ''
+    url = f' {site_info.url}' if site_info.url else ''
+    desc = f'{site_info.description}{igbp}{url}'
+
     mf = MonitoringFeature(
         datasource,
         id=site_info.site_id,
         name=site_info.site_name,
         feature_type=FeatureTypeEnum.POINT,
         shape=SpatialSamplingShapes.SHAPE_POINT,
-        description=site_info.description,
+        description=desc,
         observed_properties=observed_properties,
         coordinates=coord,
     )
@@ -194,14 +220,20 @@ def _load_mf_object(datasource: DataSourcePluginAccess, site_info: _SiteMetadata
 
 
 class AMFMonitoringFeatureAccess(DataSourcePluginAccess):
-    """Placeholder access for AmeriFlux monitoring features."""
+    """Access for AmeriFlux monitoring features."""
 
     synthesis_model_class = MonitoringFeature
 
     def list(self, query: QueryMonitoringFeature):
-        """Return no monitoring features until AmeriFlux retrieval is implemented."""
+        """Return an iterator of monitoring features available for query."""
 
         synthesis_messages: List[str] = []
+
+        if AMF_USER_NAME is None or AMF_USER_EMAIL is None:
+            msg = f'No AmeriFlux username or email configured in the environment variables. Cannot acquire AmeriFlux data.'
+            logger.error(msg)
+            synthesis_messages.append(msg)
+            return StopIteration(synthesis_messages)
 
         feature_type = isinstance(query.feature_type,
                                   FeatureTypeEnum) and query.feature_type.value or query.feature_type
@@ -254,17 +286,49 @@ class AMFMonitoringFeatureAccess(DataSourcePluginAccess):
 
 
 class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
-    """Placeholder access for AmeriFlux measurement time series."""
+    """Access for AmeriFlux measurement time series."""
 
     synthesis_model_class = MeasurementTimeseriesTVPObservation
 
     def list(self, query: QueryMeasurementTimeseriesTVP):
-        """Return no observations until AmeriFlux retrieval is implemented."""
+        """
+        Return an iterator of measurement time series observations available for query.
+        Every data product will have the observed properties with the exception of TS and SWC.
+        TS and SWC have variable numbers of measurements with prefix indices. Will need to loop thru.
+        The height and depth information will be in the VAR_INFO file.
+        Need to filter on quality where the QC variables exist.
+        :param query:
+        :return:
+        """
 
-        synthesis_messages: List[str] = [
-            'AmeriFlux measurement time series retrieval is not implemented.'
-        ]
-        logger.info(synthesis_messages[0])
+        synthesis_messages: list = []
+        if not query.monitoring_feature:
+            msg = f'No monitoring features for USGS were specified or they were not specified with the {self.datasource.id_prefix} prefix.'
+            logger.warning(msg)
+            synthesis_messages.append(msg)
+            return StopIteration(synthesis_messages)
+
+        # Find all the sites that match the monitoring feature query and start / end dates.
+
+        # Loop thru the sites.
+
+        # create the monitoring feature. note this will be reused with per observation property height / depth information added where appropriate.
+
+        # Download the data file, extracting the VAR_INFO BIF and the aggregation_duration resolution data file.
+        # Clip the data record to the specified start and end query dates
+
+        # Loop thru the observed properties.
+
+        # If the variable is TS or SWC, then special handling to 1) find all that exist, then loop thru those
+
+        # for each observed property, create the ResultTVP considering:
+        #    if the units need to be converted; if there is not conversion available, use the amf unit and log a warning message.
+        #    any filtering by result quality
+        #    deal with the timestamp, convert to iso -- for HH aggregation duration use timestamp start and adding the time position information
+        #    create the MeasurementTVPObservation and yield it.
+
+
+
         return StopIteration(synthesis_messages)
 
 
