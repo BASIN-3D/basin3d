@@ -5,7 +5,7 @@ will be implemented in a subsequent change.
 """
 from dataclasses import dataclass
 import os
-from typing import Dict, List, Set, TypedDict
+from typing import Dict, List, Optional, Set, TypedDict
 
 from basin3d.core import monitor
 
@@ -180,6 +180,14 @@ def _matches_any_bbox(site_info: _SiteMetadata, bounding_boxes: List[tuple]) -> 
                for bbox in bounding_boxes)
 
 
+def _site_date_overlaps(site_info: _SiteMetadata, query_start_year: int,
+                        query_end_year: Optional[int]) -> bool:
+    site_start_year = int(site_info.start_year)
+    site_end_year = int(site_info.end_year)
+    return site_end_year >= query_start_year and (
+        query_end_year is None or site_start_year <= query_end_year)
+
+
 def _load_mf_object(datasource: DataSourcePluginAccess, site_info: _SiteMetadata, observed_properties: List) -> MonitoringFeature | None:
     """
 
@@ -308,9 +316,37 @@ class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             synthesis_messages.append(msg)
             return StopIteration(synthesis_messages)
 
-        # Find all the sites that match the monitoring feature query and start / end dates.
+        # Create the site_info lookup
+        metadata_url = f'{self.datasource.location}/site_info_display/AmeriFlux'
+
+        metadata = _get_metadata(metadata_url, synthesis_messages)
+
+        if not metadata:
+            msg = f'No metadata found for {metadata_url}'
+            logger.warning(msg)
+            synthesis_messages.append(msg)
+            return StopIteration(synthesis_messages)
+
+        metadata_lookup = _parse_metadata(metadata, synthesis_messages)
+
+        # separate the query monitoring feature information into named and bbox components
+        mf_types = separate_list_types(
+            query.monitoring_feature, {'named': str, 'bbox': tuple})
+        mf_named = mf_types.get('named', [])
+        mf_bbox = mf_types.get('bbox', [])
 
         # Loop thru the sites.
+        named_ids = set(mf_named)
+        query_start_year = query.start_date.year
+        query_end_year = query.end_date.year if query.end_date else None
+
+        for site_id, site_info in metadata_lookup.items():
+
+            if not (_matches_named(site_id, named_ids) or _matches_any_bbox(site_info, mf_bbox)):
+                continue
+
+            if not _site_date_overlaps(site_info, query_start_year, query_end_year):
+                continue
 
         # create the monitoring feature. note this will be reused with per observation property height / depth information added where appropriate.
 
