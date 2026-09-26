@@ -38,7 +38,7 @@ def get_url(url, params=None, headers=None, verify=True, **kwargs):
     return response
 
 
-def post_url(url, params=None, headers=None, verify=True):
+def post_url(url, params=None, headers=None, verify=True, **kwargs):
     """
     Send a POST request to the specified URL
     :param url:
@@ -48,6 +48,6 @@ def post_url(url, params=None, headers=None, verify=True):
     :return: Response
     """
     import requests
-    response = requests.post(url, params=params, verify=verify, headers=headers)
+    response = requests.post(url, params=params, verify=verify, headers=headers, **kwargs)
     logger.info("url:{}".format(response.url))
     return response

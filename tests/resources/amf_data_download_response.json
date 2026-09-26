@@ -1,0 +1,184 @@
+{
+    "manifest": {
+        "download_timestamp": "20260927103515",
+        "number_of_sites_downloaded": 1,
+        "data_files": [
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_BIF_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "BADM",
+                "timestamp": "202512140802"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_BIFVARINFO_DD_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "BADM",
+                "timestamp": "202512140802"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_BIFVARINFO_HH_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "BADM",
+                "timestamp": "202512140802"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_BIFVARINFO_MM_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "BADM",
+                "timestamp": "202512140802"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_BIFVARINFO_WW_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "BADM",
+                "timestamp": "202512140802"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_BIFVARINFO_YY_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "BADM",
+                "timestamp": "202512140802"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_ERA5_DD_1981-2024_v1.3_r1.csv",
+                "start_year": "1981",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "AUX",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_ERA5_HH_1981-2024_v1.3_r1.csv",
+                "start_year": "1981",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "AUX",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_ERA5_MM_1981-2024_v1.3_r1.csv",
+                "start_year": "1981",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "AUX",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_ERA5_WW_1981-2024_v1.3_r1.csv",
+                "start_year": "1981",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "AUX",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_ERA5_YY_1981-2024_v1.3_r1.csv",
+                "start_year": "1981",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "AUX",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_FLUXMET_DD_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "FLUX-MET",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_FLUXMET_HH_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "FLUX-MET",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_FLUXMET_MM_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "FLUX-MET",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_FLUXMET_WW_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "FLUX-MET",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "AMF_TEST-A_FLUXNET_FLUXMET_YY_2017-2024_v1.3_r1.csv",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "FLUX-MET",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "DATA_POLICY_LICENSE_AND_INSTRUCTIONS.txt",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "DOC",
+                "timestamp": "202512140736"
+            },
+            {
+                "site_id": "TEST-A",
+                "filename": "README.txt",
+                "start_year": "2017",
+                "end_year": "2024",
+                "version": "v1.3_r1",
+                "file_type": "DOC",
+                "timestamp": "202512140736"
+            }
+        ]
+    },
+    "data_urls": [
+        {
+            "site_id": "TEST-A",
+            "url": "https://amf.amf/FLUXNET/AMF_TEST-A.zip?=user1",
+            "download_size": 95560144,
+            "download_checksum": "9b065d9aa1820f75f9f473c3ec1252d8",
+            "data_product": "FLUXNET"
+        }
+    ],
+    "pi_contact_emails": [
+        "pi1@amf.amf",
+        "pi1@amf.amf",
+        "pi3@amf.amf"
+    ]
+}
