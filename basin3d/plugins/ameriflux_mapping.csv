@@ -1,0 +1,30 @@
+attr_type,basin3d_vocab,datasource_vocab,datasource_desc
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,AT:GAS,TA_F,"Air temperature, consolidated from TA_F_MDS and TA_ERA"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,SW_IN_F,"Shortwave radiation, incoming consolidated from SW_IN_F_MDS and SW_IN_ERA (negative values set to zero)"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,LW_IN_F,"Longwave radiation, incoming, consolidated from LW_IN_F_MDS and LW_IN_ERA"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,VPD_F,"Vapor Pressure Deficit consolidated from VPD_F_MDS and VPD_ERA"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,PA_F,"Atmospheric pressure consolidated from PA and PA_ERA"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,P,"Precipitation"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,P_F,"Precipitation consolidated from P and P_ERA"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,WS,"Wind speed"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,WS_F,"Wind speed, consolidated from WS and WS_ERA"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,WD,"Wind direction"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,NETRAD,"Net radiation"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,PPFD_IN,"Photosynthetic photon flux density, incoming"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,PPFD_DIF,"Photosynthetic photon flux density, diffuse incoming"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,PPFD_OUT,"Photosynthetic photon flux density, outgoing"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,SW_DIF,"Shortwave radiation, diffuse incoming"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,SW_OUT,"Shortwave radiation, outgoing"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,LW_OUT,"Longwave radiation, outgoing"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,CO2_F_MDS,"CO2 mole fraction, gapfilled with MDS"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,TS_F_MDS,"Soil temperature, gapfilled with MDS (numeric index # increases with the depth, 1 is shallowest)"
+OBSERVED_PROPERTY:SAMPLING_MEDIUM,,SWC_F_MDS,"Soil water content, gapfilled with MDS (numeric index # increases with the depth, 1 is shallowest)"
+STATISTIC,MEAN,average,
+RESULT_QUALITY,VALIDATED,0,"measured"
+RESULT_QUALITY,ESTIMATED,1,"good quality gapfill"
+RESULT_QUALITY,ESTIMATED,2,"downscaled from ERA or medium quality gapfill"
+RESULT_QUALITY,SUSPECTED,3,"poor quality gapfill"
+AGGREGATION_DURATION,HOUR,HH,
+AGGREGATION_DURATION,DAY,DD,average from half-hour
+AGGREGATION_DURATION,MONTH,MM,average from daily
+AGGREGATION_DURATION,YEAR,YY,average from daily
