@@ -333,4 +333,10 @@ texinfo_documents = [
 # texinfo_no_detailmenu = False
 
 # linkcheck ignore: dois that redirect and fail for some reason (wiley)
-linkcheck_ignore = [r'https://doi\.org/.*', r'https://www.epa.gov/*', r'https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/*']
+linkcheck_ignore = [
+    r'https://doi\.org/.*',
+    r'https://www.epa.gov/*',
+    r'https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/*',
+    r'https://web\.archive\.org/web/20220506163033/http://martyalchin\.com/2008/jan/10/simple-plugin-framework/',
+    r'https://github\.com/ess-dive-workspace/essdive-hydrologic-monitoring(?:/.*)?$',
+]
