@@ -9,6 +9,7 @@ Monitoring Feature Object Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The structure of a Monitoring Feature object is shown below for the first object of the iterator resulting from the specified query.
+Once the iterator is exercised the object holds the original query, a list of messages, and a list of citations.
 
 .. code-block::
 
@@ -127,6 +128,8 @@ The structure of a Monitoring Feature object is shown below for the first object
         "utc_offset": null
     }
     ...
+    >>> print(monitoring_features.synthesis_response.citations)
+    ['U.S. Geological Survey, [2024], USGS Water Data for the Nation: U.S. Geological Survey National Water Information System database, accessed [September 30, 2026], at https://doi.org/10.5066/F7P55KJN']
 
 .. _measurement_timeseries_tvp_object_example:
 
@@ -134,6 +137,7 @@ Measurement Timeseries TVP Observations Object Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The structure of a Measurement Timeseries TVP Observations object is shown below for the first object of the iterator resulting from the specified query.
+Once the iterator is exercised the object holds the original query, a list of messages, and a list of citations.
 
 For other output formats, see `basin3d-views <https://github.com/BASIN-3D/basin3d-views>`_.
 
@@ -534,5 +538,6 @@ For other output formats, see `basin3d-views <https://github.com/BASIN-3D/basin3
         "unit_of_measurement": "m^3/s",
         "utc_offset": -7
     }
-
+    >>> print(monitoring_features.synthesis_response.citations)
+    ['U.S. Geological Survey, [2024], USGS Water Data for the Nation: U.S. Geological Survey National Water Information System database, accessed [September 30, 2026], at https://doi.org/10.5066/F7P55KJN']
 
