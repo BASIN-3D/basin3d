@@ -4,8 +4,22 @@
 
 :synopsis: Atmospheric Radiation Measurement (ARM) Plugin Definition
 
-This module provides the initial ARM Data Source plugin scaffold. ARM API and
-NetCDF data access will be implemented in a subsequent change.
+This module maps the Atmospheric Radiation Measurement (ARM) metadata and
+data services to BASIN-3D monitoring features and measurement timeseries.
+
+Monitoring features are built from ARM ``met.b1`` data-product metadata and
+are identified as ``ARM-{site}-{facility}``. Measurement queries use the ARM
+``armlive/query`` and ``armlive/mod`` endpoints, retrieve NetCDF files in
+batches, and combine them in a temporary Zarr store before creating BASIN-3D
+time-value-pair observations.
+
+The plugin reads ``ARM_USER_NAME`` and ``ARM_USER_TOKEN`` environment variables
+for ARM credentials. See https://adc.arm.gov/armlive/ for more information. It is
+recommended to configure the environment variable ``BASIN3D_USE_FILE_DB=yes``.
+``BASIN3D_LOCAL_TEMP_DIR`` may be used to select the writable parent directory
+for per-request temporary Zarr stores; the current working directory is used
+when it is not set. NetCDF and Zarr support must be installed using the
+``basin3d[arm]`` dependencies.
 """
 
 import os
@@ -58,6 +72,7 @@ def _remove_html_tags(value: str) -> str:
 
 
 def _require_arm_dependencies():
+    """Raise an actionable error when the optional ARM dependencies are absent."""
     if xr is None:
         raise ImportError('ARM plugin dependencies are not installed. Install them with: pip install "basin3d[arm]"')
 
@@ -72,11 +87,15 @@ LOCAL_TEMP_DIR = os.environ.get('BASIN3D_LOCAL_TEMP_DIR', DEFAULT_TEMP_DIR)
 
 
 class UnitLookupInfo(TypedDict):
+    """Describe one ARM-to-BASIN-3D unit conversion entry."""
+
     arm_unit: str
     target_unit: str
     conv: int | float
 
 
+# Keys are written as ``{ARM unit}-{BASIN-3D unit}``; ``conv`` is the
+# multiplicative factor applied to ARM values before they are returned.
 UNIT_LOOKUP: Dict[str, UnitLookupInfo] = {
     'kPa-mm Hg': {'arm_unit': 'kPa', 'target_unit': 'mm Hg', 'conv': 0.4},
     'cm-m': {'arm_unit': 'cm', 'target_unit': 'm', 'conv': 100},
@@ -88,10 +107,22 @@ UNIT_LOOKUP: Dict[str, UnitLookupInfo] = {
 
 
 def _fetch_timeseries(url: str, file_batch: List, variables: List, synthesis_messages: List):
-    """Download one NetCDF file and return the selected data as an xarray.Dataset.
+    """Download one ARM NetCDF batch and return the requested variables.
 
-    Failed requests are logged and added to ``synthesis_messages``.  ``None``
-    is returned for a failed request so callers can continue with later URLs.
+    The response is streamed to a temporary NetCDF file, opened with xarray,
+    and loaded into memory before the temporary file is removed. Variables
+    that are absent from the response are reported; if none of the requested
+    variables are present, the result is ``None``. The HTTP response is closed
+    on every path.
+
+    :param url: ARM ``armlive/mod`` URL.
+    :param file_batch: ARM filenames to include in the JSON request body.
+    :param variables: NetCDF variables to retain, normally including ``time``.
+    :param synthesis_messages: Mutable list receiving request and data-format
+        diagnostics.
+    :return: Loaded xarray dataset containing available requested variables,
+        or ``None`` when retrieval or processing fails.
+    :raises ImportError: If the optional ARM dependencies are unavailable.
     """
     _require_arm_dependencies()
     response = None
@@ -157,7 +188,14 @@ def _fetch_timeseries(url: str, file_batch: List, variables: List, synthesis_mes
 
 
 def _validate_zarr_path(zarr_path: Path, synthesis_messages: List) -> bool:
-    """Validate the parent directory used for temporary Zarr stores."""
+    """Check that a temporary Zarr parent exists, is a directory, and is writable.
+
+    Validation failures are logged and appended to ``synthesis_messages``.
+
+    :param zarr_path: Configured parent directory for temporary ARM stores.
+    :param synthesis_messages: Mutable list receiving validation diagnostics.
+    :return: ``True`` when the path can be used, otherwise ``False``.
+    """
 
     if not zarr_path.exists():
         message = (f'ARM zarr path does not exist: {zarr_path}. The local directory for temporary files should be '
@@ -185,7 +223,18 @@ def _validate_zarr_path(zarr_path: Path, synthesis_messages: List) -> bool:
 
 
 def _create_zarr_temp_dir(zarr_path_str: str, synthesis_messages: List):
-    """Create a per-request temporary directory beneath the configured Zarr path."""
+    """Create a per-request temporary Zarr directory.
+
+    The configured parent directory is validated before a child directory is
+    created with the ``basin3d-arm-`` prefix. Creation failures are recorded
+    in ``synthesis_messages`` and return ``None``.
+
+    :param zarr_path_str: Parent directory path, usually from
+        ``BASIN3D_LOCAL_TEMP_DIR``.
+    :param synthesis_messages: Mutable list receiving validation and creation
+        diagnostics.
+    :return: The newly created child path, or ``None`` on failure.
+    """
     zarr_path = Path(zarr_path_str)
     if not _validate_zarr_path(zarr_path, synthesis_messages):
         return None
@@ -201,7 +250,26 @@ def _create_zarr_temp_dir(zarr_path_str: str, synthesis_messages: List):
 
 def _collect_to_zarr(url: str, file_list: List, meas_variables: List, synthesis_messages: List,
                      zarr_path: Path):
-    """Fetch multiple NetCDF files and append them along the time dimension."""
+    """Fetch ARM NetCDF batches and combine them in a temporary Zarr store.
+
+    Each batch must expose the same data variables and non-time dimensions.
+    Time lengths may differ, and valid batches are appended along ``time``.
+    ARM ``missing_value`` encodings are copied to ``_FillValue`` before the
+    data are written. A successfully opened xarray Zarr dataset is returned;
+    failures, inconsistent batch structures, and an entirely empty retrieval
+    are reported through ``synthesis_messages`` and return ``None``.
+
+    :param url: ARM ``armlive/mod`` URL used for every batch.
+    :param file_list: Batches of ARM filenames.
+    :param meas_variables: Measurement variables to retrieve in addition to
+        ``time``.
+    :param synthesis_messages: Mutable list receiving retrieval and storage
+        diagnostics.
+    :param zarr_path: Validated directory in which to create the Zarr store.
+    :return: An opened xarray Zarr dataset, or ``None`` if no usable dataset
+        can be assembled.
+    :raises ImportError: If the optional ARM dependencies are unavailable.
+    """
     _require_arm_dependencies()
 
     # Validate the store path here so direct callers still receive synthesis messages for configuration errors.
@@ -284,11 +352,13 @@ def _collect_to_zarr(url: str, file_list: List, meas_variables: List, synthesis_
 
 
 def _batch_files(file_list: list, batch_size: int = 30) -> List:
-    """
-    Batch the files into lists containing at most batch_size files.
-    :param file_list: Sorted list of ARM data filenames
-    :param batch_size: Maximum number of files in each batch
-    :return:
+    """Split sorted ARM filenames into batches of at most ``batch_size``.
+
+    :param file_list: ARM data filenames, normally sorted by filename before
+        batching.
+    :param batch_size: Maximum number of files in each batch. Must be positive.
+    :return: A list of filename batches. An empty input produces an empty list.
+    :raises ValueError: If ``batch_size`` is not greater than zero.
     """
     batch_size = int(batch_size)
     if batch_size <= 0:
@@ -298,11 +368,19 @@ def _batch_files(file_list: list, batch_size: int = 30) -> List:
 
 
 def _get_mf_files(data_url: str, synthesis_messages: List) -> List:
-    """
+    """Retrieve and batch ARM files for one monitoring feature.
 
-    :param data_url:
-    :param synthesis_messages:
-    :return:
+    The ARM query response must contain a list under ``files``. Files are
+    sorted before being divided into batches for the NetCDF endpoint. Invalid,
+    empty, or missing responses are reported through ``synthesis_messages``
+    and return an empty list.
+
+    :param data_url: ARM ``armlive/query`` URL for one data product and date
+        range.
+    :param synthesis_messages: Mutable list receiving user-facing warnings or
+        errors encountered while retrieving the files.
+    :return: Batches of ARM filenames, or an empty list when no usable files
+        are available.
     """
 
     results: List = []
@@ -335,13 +413,20 @@ def _get_mf_files(data_url: str, synthesis_messages: List) -> List:
 
 
 def _get_arm_request(arm_url: str, bbox: tuple | None, synthesis_messages: List, empty_result: List | Dict):
-    """
+    """Perform an ARM metadata or data-file request and decode its JSON body.
 
-    :param arm_url:
-    :param bbox:
-    :param type:
-    :param synthesis_messages:
-    :return:
+    BASIN-3D bounding boxes use ``(west, south, east, north)`` ordering. The
+    ARM endpoint expects ``(west, north, east, south)``, so a supplied box is
+    reordered when the request URL is constructed. HTTP failures, malformed
+    error responses, and request exceptions are logged and recorded in
+    ``synthesis_messages``; in those cases ``empty_result`` is returned.
+
+    :param arm_url: ARM endpoint URL without the optional bounding-box query.
+    :param bbox: Optional BASIN-3D bounding box.
+    :param synthesis_messages: Mutable list receiving request diagnostics.
+    :param empty_result: Empty list or dictionary matching the expected JSON
+        response shape.
+    :return: Decoded JSON response, or ``empty_result`` on failure.
     """
     results = empty_result
     request_url = arm_url
@@ -385,12 +470,13 @@ def _get_arm_request(arm_url: str, bbox: tuple | None, synthesis_messages: List,
 
 
 def _get_arm_metadata(arm_url: str, bbox: tuple | None, synthesis_messages: List) -> List:
-    """
+    """Retrieve ARM metadata records and require a list-shaped response.
 
-    :param arm_url:
-    :param bbox:
-    :param synthesis_messages:
-    :return:
+    :param arm_url: ARM metadata endpoint URL.
+    :param bbox: Optional BASIN-3D bounding box to append to the request.
+    :param synthesis_messages: Mutable list receiving request and validation
+        diagnostics.
+    :return: ARM metadata records, or an empty list for an invalid response.
     """
     metadata_results: List = []
     response_result = _get_arm_request(arm_url, bbox, synthesis_messages, metadata_results)
@@ -406,12 +492,14 @@ def _get_arm_metadata(arm_url: str, bbox: tuple | None, synthesis_messages: List
 
 
 def _get_arm_data_files(arm_url: str, bbox: tuple | None, synthesis_messages: List) -> Dict:
-    """
+    """Retrieve an ARM file-query response and require a dictionary result.
 
-    :param arm_url:
-    :param bbox:
-    :param synthesis_messages:
-    :return:
+    :param arm_url: ARM ``armlive/query`` endpoint URL.
+    :param bbox: Optional BASIN-3D bounding box to append to the request.
+    :param synthesis_messages: Mutable list receiving request and validation
+        diagnostics.
+    :return: ARM file-query dictionary, or an empty dictionary for an invalid
+        response.
     """
     data_query_results: Dict = {}
     response_result = _get_arm_request(arm_url, bbox, synthesis_messages, data_query_results)
@@ -427,20 +515,21 @@ def _get_arm_data_files(arm_url: str, bbox: tuple | None, synthesis_messages: Li
 
 
 def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messages: List):
-    """
-    Parses arm metadata response return.
-    If there are duplicate entries in the metadata return or the information is already written to mf_lookup,
-        the data product's metadata is skipped. The information could already exist b/c multiple requests to ARM metadata can be made.
-        For example, overlapping bbox or a named location that also occurs in a bbox.
+    """Parse ARM ``met.b1`` metadata into the monitoring-feature lookup.
 
-    Required metadata fields are site + facility identifiers and names, geolocations.
-    The measured variables are optional but are used in the MeasurementTimeseriesTVPObservation query so if they are not provided,
-        we assume the data are not available.
+    Each valid record is keyed by ``{site identifier}-{facility identifier}``
+    and stores the feature name, WGS84 coordinates, parent site, and measured
+    ARM variables. Duplicate records are ignored, which allows overlapping
+    bounding-box queries and named-feature lookups to be combined safely.
+    Records missing identifiers or spatial coverage are skipped and described
+    in ``synthesis_messages``. Missing ``variableMeasured`` metadata is
+    retained as a feature with an empty variable list.
 
-    :param metadata_results: the list of metadata objects returned by ARM. One object for each met.b1 data product
-    :param mf_lookup: the lookup dictionary for parsed arm metadata
-    :param synthesis_messages: list of synthesis messages
-    :return: no return b/c the mf_lookup is updated if needed.
+    :param metadata_results: ARM metadata records, one for each data product.
+    :param mf_lookup: Mutable destination mapping ARM feature IDs to parsed
+        metadata dictionaries.
+    :param synthesis_messages: Mutable list receiving validation diagnostics.
+    :return: ``None``; ``mf_lookup`` is updated in place.
     """
 
     for metadata in metadata_results:
@@ -505,12 +594,17 @@ def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messa
 
 def _load_mf_object(datasource: DataSourcePluginAccess, mf_id: str,
                     mf_info: Dict) -> MonitoringFeature | None:
-    """
+    """Build a BASIN-3D point monitoring feature from parsed ARM metadata.
 
-    :param datasource:
-    :param mf_id:
-    :param mf_info:
-    :return:
+    The returned feature uses the ARM site as its related parent sampling
+    feature, reports WGS84 decimal-degree coordinates, and exposes the ARM
+    ``variableMeasured`` names as observed properties.
+
+    :param datasource: ARM access object that owns the resulting model.
+    :param mf_id: BASIN-3D ARM monitoring-feature identifier.
+    :param mf_info: Parsed metadata dictionary produced by
+        :func:`_parse_arm_metadata`.
+    :return: A BASIN-3D point monitoring feature.
     """
 
     related_sampling_feature = RelatedSamplingFeature(
@@ -543,12 +637,19 @@ def _load_mf_object(datasource: DataSourcePluginAccess, mf_id: str,
 
 
 def _get_selected_arm_metadata(arm_metb1_url: str, query_monitoring_feature: List, synthesis_messages: List) -> Tuple[Set, Dict]:
-    """
+    """Resolve named and bounding-box ARM feature selectors to metadata.
 
-    :param arm_metb1_url:
-    :param query_monitoring_feature:
-    :param synthesis_messages:
-    :return:
+    Bounding-box selectors are queried first and deduplicated. Named selectors
+    already found in those results reuse the existing lookup; missing names
+    cause one full metadata request, after which unresolved names are reported
+    and excluded.
+
+    :param arm_metb1_url: ARM metadata endpoint URL.
+    :param query_monitoring_feature: BASIN-3D monitoring-feature selectors,
+        containing ARM IDs and/or bounding-box tuples.
+    :param synthesis_messages: Mutable list receiving lookup diagnostics.
+    :return: A set of selected ARM feature IDs and the complete parsed lookup
+        used to construct them.
     """
     mf_lookup: Dict = {}
 
@@ -590,8 +691,17 @@ def _build_tvp_results(time_values, data_values, missing_value, unit_conv: int |
     """Build time-value pairs and aligned quality values for one ARM variable.
 
     When ``requested_qualities`` is non-empty, values whose corresponding QC
-    value is not requested are omitted from both result lists.  Conversion and
-    missing-value handling are applied to every retained measurement as before.
+    value is not requested are omitted from both result lists. Conversion and
+    missing-value handling are applied to every retained measurement.
+
+    :param time_values: Ordered timestamps aligned with ``data_values``.
+    :param data_values: ARM measurement values.
+    :param missing_value: ARM fill value that must not be unit converted.
+    :param unit_conv: Multiplicative conversion factor to the BASIN-3D unit.
+    :param quality_values: Optional QC values aligned with the measurements.
+    :param requested_qualities: Optional requested ARM QC values.
+    :return: A tuple containing time-value pairs, retained QC values, and the
+        number of measurements filtered by quality.
     """
     results_TVPs = []
     result_TVP_quality = []
@@ -626,14 +736,29 @@ def _build_tvp_results(time_values, data_values, missing_value, unit_conv: int |
 
 
 class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
-    """Placeholder access for ARM monitoring features."""
+    """Provide BASIN-3D monitoring features that have ARM ``met.b1`` data.
+
+    ARM data products are exposed as point features with IDs in the
+    ``ARM-{site}-{facility}`` form. The access supports listing all available
+    products, selecting named ARM IDs, selecting WGS84 bounding boxes, and
+    combining those selectors with duplicate removal.
+    """
 
     synthesis_model_class = MonitoringFeature
 
     def list(self, query: QueryMonitoringFeature):
-        """List ARM monitoring features.
+        """Yield ARM monitoring features matching a BASIN-3D query.
 
-        ARM monitoring-feature retrieval is not implemented yet.
+        With no monitoring_feature query specification, all locations with ARM
+         ``met.b1`` sites are retrieved. Querying by named facility + site IDs
+        as well as bounding boxes are supported.
+        Unsupported feature types and malformed or incomplete ARM records are
+        reported through the access result's synthesis messages.
+
+        :param query: BASIN-3D monitoring-feature query.
+        :yields: :class:`~basin3d.core.models.MonitoringFeature` instances.
+        :return: A ``StopIteration`` carrying synthesis messages after all
+            matching features have been yielded.
         """
 
         synthesis_messages: List[str] = []
@@ -675,22 +800,31 @@ class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
 
 
 class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
-    """Placeholder access for ARM measurement observations."""
+    """Provide BASIN-3D observations from ARM ``met.b1`` time series.
+
+    The access resolves ARM monitoring features, queries matching data-product
+    files for the requested date range, combines NetCDF responses in a
+    temporary Zarr store, applies configured unit conversions, and optionally
+    filters measurements using ARM QC variables. Temporary stores are removed
+    after each monitoring feature has been processed.
+    """
 
     synthesis_model_class = MeasurementTimeseriesTVPObservation
 
     def _get_unit_conv(self, arm_unit: str, arm_variable: str,
                        synthesis_messages: List) -> Tuple[int | float, str]:
-        """
-        Check if arm_unit provided in the file metadata matches the B3D unit for the variable.
-        If so, return 1.
-        If not, look up the conversion in the lookup table, return the conversion factor
-        If a conversion cannot be found, write a warning message and return 1 and the arm unit.
+        """Determine the conversion from an ARM variable unit to BASIN-3D.
 
-        :param arm_unit:
-        :param arm_variable:
-        :param synthesis_messages:
-        :return: (conversion factor, unit)
+        Known mismatches use :data:`UNIT_LOOKUP`. Exact unit matches return a
+        factor of ``1`` without a warning. Unknown mismatches also return the
+        native ARM unit and factor ``1``, while recording a warning because the
+        values cannot be assessed against the BASIN-3D unit.
+
+        :param arm_unit: Unit reported by the ARM NetCDF variable.
+        :param arm_variable: ARM variable name and BASIN-3D mapping key.
+        :param synthesis_messages: Mutable list receiving unknown-unit
+            warnings.
+        :return: A ``(conversion factor, output unit)`` tuple.
         """
 
         # look up the BASIN3D variable unit
@@ -714,9 +848,25 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         return 1, arm_unit
 
     def list(self, query: QueryMeasurementTimeseriesTVP):
-        """List ARM measurement timeseries TVP observations.
+        """Yield ARM measurement timeseries TVP observations.
 
-        ARM observation retrieval is not implemented yet.
+        The query must include ARM-prefixed monitoring features or bounding box
+        coordinates. Requested observed properties are matched against each
+        feature's ARM metadata; corresponding ``qc_`` variables are retrieved
+        when present. ARM met.b1 are minute resolution and thus only the
+        aggregation_duration='MINUTE' is supported.
+        Results contain converted time-value pairs, optional QC values,
+        the requested aggregation metadata, and ARM point monitoring features.
+        Missing data, unavailable QC variables, invalid temporary storage, and retrieval
+        errors are reported through synthesis messages.
+
+        :param query: BASIN-3D measurement-timeseries query, including feature
+            selectors, observed properties, dates, aggregation duration, and
+            optional result-quality filters.
+        :yields: :class:`~basin3d.core.models.MeasurementTimeseriesTVPObservation`
+            instances for variables with usable ARM data.
+        :return: A ``StopIteration`` carrying synthesis messages after all
+            selected features have been processed.
         """
         synthesis_messages: list = []
         synthesis_citations: List[str] = []
@@ -886,7 +1036,12 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
 @basin3d_plugin
 class ARMDataSourcePlugin(DataSourcePluginPoint):
-    """Atmospheric Radiation Measurement Data Source plugin scaffold."""
+    """Register the Atmospheric Radiation Measurement data source plugin.
+
+    The plugin exposes ARM point monitoring features and ARM measurement
+    timeseries through :class:`ARMMonitoringFeatureAccess` and
+    :class:`ARMMeasurementTimeseriesTVPObservationAccess`.
+    """
 
     title = 'Atmospheric Radiation Measurement Data Source Plugin'
     plugin_access_classes = (ARMMonitoringFeatureAccess, ARMMeasurementTimeseriesTVPObservationAccess)
@@ -894,7 +1049,7 @@ class ARMDataSourcePlugin(DataSourcePluginPoint):
     feature_types = ['POINT']
 
     class DataSourceMeta:
-        """Metadata used to construct the ARM BASIN-3D data source."""
+        """Static identity and endpoint metadata for the ARM data source."""
 
         id = 'ARM'
         location = 'https://metadata-api.svcs.arm.gov'

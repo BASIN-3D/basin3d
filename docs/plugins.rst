@@ -6,6 +6,8 @@ Data Sources Plugins
   | :ref:`USGS Daily and Continuous Water Data <usgs_plugin>`
   | :ref:`EPA Water Quality eXchange (WQX) <epa_plugin>`
   | :ref:`ESS-DIVE Hydrologic Monitoring Reporting Format (RF) <essdive_plugin>`
+  | :ref:`Atmospheric Radiation Measurement (ARM) <arm_plugin>`
+  | :ref:`AmeriFlux FLUXNET <ameriflux_plugin>`
 
 .. _usgs_plugin:
 
@@ -491,3 +493,273 @@ https://github.com/ess-dive-workspace/essdive-hydrologic-monitoring/blob/main/Hy
 **Vocabulary Mapping File** `essdive_mapping.csv <https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/essdive_mapping.csv>`_
 
 **Citation** Goldman A E ; Ren H ; Torgeson J ; Zhou H (2021): ESS-DIVE Reporting Format for Hydrologic Monitoring Data and Metadata. Environmental Systems Science Data Infrastructure for a Virtual Ecosystem (ESS-DIVE). doi:10.15485/1822940
+
+.. _arm_plugin:
+
+Atmospheric Radiation Measurement (ARM)
+----------------------------------------
+The `Atmospheric Radiation Measurement (ARM) <https://www.arm.gov/>`_ user facility provides atmospheric observations from research sites and facilities.
+
+The ARM plugin uses ARM ``met.b1`` data-product metadata to provide BASIN-3D point monitoring features and retrieves minute-resolution NetCDF time series through the ARM ``armlive`` services.
+
+**Data Usage** https://www.arm.gov/working-with-arm/acknowledging-arm/doi-guidance-for-datastreams
+
+
+Section 1: Data Source Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1. Install basin3d with the ARM dependencies. (See :doc:`/getting_started` for additional information):
+
+.. code-block:: console
+
+    $ pip install "basin3d[arm]"
+
+2. Configure ARM credentials as environment variables before starting Python. See https://www.arm.gov/user-program for how to get an ARM user account. Get your token at https://adc.arm.gov/armlive/
+
+.. code-block:: console
+
+    $ export ARM_USER_NAME=<replace_with_your_arm_user_name>
+    $ export ARM_USER_TOKEN=<replace_with_your_arm_user_token>
+
+3. Configure the local storage for temporary Zarr stores. The directory must already exist and be writable. If this variable is not set, BASIN-3D uses the current working directory. It is also recommended to configure the BASIN-3D database to use local file storage as well.
+
+.. code-block:: console
+
+    $ export BASIN3D_LOCAL_TEMP_DIR=<existing_writable_directory>
+    $ export BASIN3D_USE_FILE_DB=yes
+
+
+Section 2: Using the ARM plugin in BASIN-3D
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. Start python::
+
+    $ python
+
+2. Import the ARM plugin::
+
+    >>> from basin3d.plugins import arm
+
+3. Register the plugin (and any other plugins you have imported)::
+
+    >>> from basin3d import synthesis
+    >>> synthesizer = synthesis.register()
+
+4. Find ARM monitoring features. ARM supports ``POINT`` features. Monitoring feature identifiers use the ``ARM-<site>-<facility>`` form. To list all available ARM monitoring features::
+
+    >>> monitoring_features = synthesizer.monitoring_features(datasource='ARM', feature_type='POINT')
+    >>> for monitoring_feature in monitoring_features:
+    ...     print(f'{monitoring_feature.id} --- {monitoring_feature.name}')
+
+   To request named features, provide one or more ARM identifiers in ``monitoring_feature``::
+
+      >>> monitoring_features = synthesizer.monitoring_features(
+      ...     datasource='ARM', monitoring_feature=['ARM-GUC-M1'], feature_type='POINT')
+
+   To request features by a WGS84 bounding box, use western longitude, southern latitude, eastern longitude, and northern latitude::
+
+      >>> monitoring_features = synthesizer.monitoring_features(
+      ...     datasource='ARM', monitoring_feature=[(<west>, <south>, <east>, <north>)], feature_type='POINT')
+
+5. Request ARM measurement timeseries. ARM ``met.b1`` observations support ``MINUTE`` aggregation. Observed-property values must use the BASIN-3D vocabulary mapped in ``arm_mapping.csv``::
+
+    >>> observations = synthesizer.measurement_timeseries_tvp_observations(
+    ...     monitoring_feature=['ARM-<site>-<facility>'],
+    ...     observed_property=['AT', 'W_SPD'],
+    ...     start_date='<YYYY-MM-DD>',
+    ...     end_date='<YYYY-MM-DD>',
+    ...     aggregation_duration='MINUTE')
+    >>> for observation in observations:
+    ...     print(observation.feature_of_interest.id, observation.observed_property)
+
+   ``result_quality`` may be supplied to filter values using matching ARM ``qc_`` variables when those variables are available.
+
+6. Synthesized ARM observations include citation information supplied by ARM metadata. Follow the official ARM data-use policy when citing results::
+
+   >>> print(observations.synthesis_response.citations)
+
+
+Section 3: Usage Notes
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+  **BASIN-3D capabilities that cannot be supported or are limited for the ARM data source include:**
+
+    | - Only ``POINT`` monitoring features are supported.
+    |
+    | - ARM ``met.b1`` data are minute-resolution observations; ``MINUTE`` is the supported ``aggregation_duration``.
+    |
+    | - Measurement queries must specify ARM monitoring feature identifiers or bounding boxes.
+    |
+    | - Result-quality filtering uses ARM ``qc_`` variables when available. If a requested variable has no corresponding QC variable, the data are returned without QC filtering and a synthesis message is recorded.
+    |
+    | - Known ARM-to-BASIN-3D unit conversions are applied from the plugin lookup. If a unit mismatch is not known, the ARM native unit is returned and a warning is recorded.
+    |
+    | - ARM data are downloaded as NetCDF files and combined in a temporary Zarr store. The per-request store is removed after processing; the configured parent directory is preserved.
+
+Data Considerations
+""""""""""""""""""""
+  * ARM monitoring feature metadata is acquired from the ARM metadata service.
+  * Measurement files are selected through the ARM ``armlive/query`` service and downloaded through the ARM ``armlive/mod`` service.
+  * Available observed properties and their BASIN-3D mappings are listed in the ARM vocabulary mapping file below.
+  * Large queries may take significant time and storage to process.
+
+Location Considerations
+"""""""""""""""""""""""""""""
+  * ARM monitoring features are represented as point locations.
+  * Named monitoring feature selection and bounding-box selection can be combined without duplication.
+  * Named monitoring features have format ARM-{site identifier}-{facility identifier}, e.g., ARM-SGP-E12
+
+Section 4: Data Source Info
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**Metadata Service** https://metadata-api.svcs.arm.gov/docs
+
+**ARM Data Services** ``armlive/query`` selects data-product files and ``armlive/mod`` retrieves NetCDF data.
+
+**Vocabulary Mapping File** `arm_mapping.csv <https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/arm_mapping.csv>`_
+
+**User Guide** TODO: add the official ARM met b1 instrument information.
+
+**Vocabulary definitions** ARM ``met.b1`` variables are described at the `ARM Data & Metadata API Services ~/variables <https://metadata-api.svcs.arm.gov/variables?data_product=met&data_level=b1&page_from=0&page_size=100>`_ endpoint.
+
+**Citation** https://www.arm.gov/working-with-arm/acknowledging-arm/doi-guidance-for-datastreams
+
+
+.. _ameriflux_plugin:
+
+AmeriFlux FLUXNET
+-----------------
+The AmeriFlux FLUXNET data product is continuous flux/met data generated by researchers in the `AmeriFlux network <https://ameriflux.lbl.gov/>`_. Site metadata are exposed as BASIN-3D point monitoring features, and FLUXNET ZIP archives are processed into BASIN-3D measurement timeseries.
+
+**Data Usage** AmeriFlux FLUXNET data are available under the `AmeriFlux CC-BY 4.0 data use policy <https://ameriflux.lbl.gov/data/data-policy/#data-use>`_.
+
+
+Section 1: Data Source Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1. Install basin3d with the AmeriFlux dependencies (See :doc:`/getting_started` for additional information):
+
+.. code-block:: console
+
+    $ pip install "basin3d[ameriflux]"
+
+2. Configure the required AmeriFlux user identity before starting Python:
+
+.. code-block:: console
+
+    $ export AMF_USER_NAME=<replace_with_your_ameriflux_user_name>
+    $ export AMF_USER_EMAIL=<replace_with_your_ameriflux_email>
+
+3. Configure the optional data-use settings to provide to AmeriFlux. The implementation accepts the intended-use values ``synthesis``, ``model``, ``remote_sensing``, ``other_research``, ``education``, and ``other``.
+
+.. code-block:: console
+
+    $ export AMF_DATA_INTENDED_USE=<intended_use>
+    $ export AMF_DATA_USE_DESCRIPTION=<description_of_intended_use>
+
+4. Configure the local storage for temporary Zarr stores. The directory must already exist and be writable. If this variable is not set, BASIN-3D uses the current working directory. It is also recommended to configure the BASIN-3D database to use local file storage as well.
+
+.. code-block:: console
+
+    $ export BASIN3D_LOCAL_TEMP_DIR=<existing_writable_directory>
+    $ export BASIN3D_USE_FILE_DB=yes
+
+Visit https://ameriflux.lbl.gov/ to create an AmeriFlux account.
+
+
+Section 2: Using the AmeriFlux plugin in BASIN-3D
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. Start python and import the AmeriFlux plugin::
+
+    $ python
+    >>> from basin3d.plugins import ameriflux
+
+2. Register the plugin (and any other plugins you have imported)::
+
+    >>> from basin3d import synthesis
+    >>> synthesizer = synthesis.register()
+
+3. Find AmeriFlux monitoring features. AmeriFlux sites are represented as ``POINT`` features with AMF-prefixed identifiers, e.g., AMF-US-UMB. To list available sites::
+
+    >>> monitoring_features = synthesizer.monitoring_features(datasource='AMF', feature_type='POINT')
+    >>> for monitoring_feature in monitoring_features:
+    ...     print(f'{monitoring_feature.id} --- {monitoring_feature.name}')
+
+   To request named sites, provide one or more AMF identifiers in ``monitoring_feature``::
+
+      >>> monitoring_features = synthesizer.monitoring_features(
+      ...     datasource='AMF', monitoring_feature=['AMF-<site_id>'], feature_type='POINT')
+
+   To request sites by a WGS84 bounding box, use western longitude, southern latitude, eastern longitude, and northern latitude::
+
+      >>> monitoring_features = synthesizer.monitoring_features(
+      ...     datasource='AMF', monitoring_feature=[(<west>, <south>, <east>, <north>)],
+      ...     feature_type='POINT')
+
+4. Request AmeriFlux FLUXNET measurements. Use a source aggregation duration (HOUR, DAY, MONTH) supported by the query for FLUXNET file resolutions (HH, DD, MM)::
+
+    >>> observations = synthesizer.measurement_timeseries_tvp_observations(
+    ...     monitoring_feature=['AMF-<site_id>'],
+    ...     observed_property=['<ameriflux_variable>'],
+    ...     start_date='<YYYY-MM-DD>',
+    ...     end_date='<YYYY-MM-DD>',
+    ...     aggregation_duration='<aggregation_duration>')
+    >>> for observation in observations:
+    ...     print(observation.feature_of_interest.id, observation.observed_property)
+
+   ``result_quality`` may be supplied when the selected FLUXNET resolution includes a matching QC variable.
+
+5. AmeriFlux citation information is added to the synthesis response when it is returned by the FLUXNET citation service. See more details at `AmeriFlux CC-BY 4.0 data use policy <https://ameriflux.lbl.gov/data/data-policy/#data-use>`_.::
+
+    >>> print(observations.synthesis_response.citations)
+
+
+Section 3: Usage Notes
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+  **BASIN-3D capabilities that cannot be supported or are limited for the AmeriFlux FLUXNET data product include:**
+
+    | - AmeriFlux sites are represented as ``POINT`` monitoring features. Only sites with published AmeriFlux FLUXNET data product are available in BASIN-3D.
+    |
+    | - Parent-feature filtering is not supported.
+    |
+    | - Named-site and bounding-box selectors can be combined without duplicated results.
+    |
+    | - Quality filtering is applied when the selected data resolution has a corresponding QC variable. If QC data are unavailable, values are returned without QC filtering and a synthesis message is recorded.
+    |
+    | - Known unit conversions are applied. For unknown unit mismatches, the AmeriFlux unit is returned and a warning is recorded.
+    |
+    | - Temporary downloaded ZIP files and per-request Zarr stores are removed after processing.
+
+Data Considerations
+"""""""""""""""""""""
+  * Only HH (HOUR), DD (DAY), and MM (MONTH) temporal frequencies are supported.
+  * Site metadata are acquired from the AmeriFlux ``site_info_display/AmeriFlux`` endpoint.
+  * FLUXNET download URLs and checksums are acquired from the AmeriFlux ``data_download`` endpoint using the configured AmeriFlux credentials.
+  * Downloaded ZIP archives are verified before their BIFVARINFO, BIF, and FLUXMET CSV members are processed.
+
+
+Location Considerations
+"""""""""""""""""""""""""""""
+  * AmeriFlux monitoring feature identifiers use the ``AMF-<site_id>`` form.
+  * Monitoring features include WGS84 site coordinates and optional elevation metadata.
+  * A single variable height becomes representative vertical-coordinate information; multiple height changes are described in the feature metadata.
+
+
+Section 4: Data Source Info
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**AmeriFlux API** https://amfcdn.lbl.gov/docs
+
+**Site Metadata** ``site_info_display/AmeriFlux``
+
+**FLUXNET Download Service** ``data_download`` requests the FLUXNET ``FULLSET`` product and returns download URLs with checksums.
+
+**Citation Service** ``citations/FLUXNET`` returns citation records for selected sites.
+
+**User Guide** Pastorello, G., Trotta, C., Canfora, E. et al. The FLUXNET2015 dataset and the ONEFlux processing pipeline for eddy covariance data. Sci Data 7, 225 (2020). https://doi.org/10.1038/s41597-020-0534-3
+
+**Vocabulary definitions** The AmeriFlux FLUXNET data product uses the same variables as the `FLUXNET2015 data product <https://fluxnet.org/data/fluxnet2015-dataset/fullset-data-product/>`_
+
+**Vocabulary Mapping File** `amf_mapping.csv <https://github.com/BASIN-3D/basin3d/blob/main/basin3d/plugins/amf_mapping.csv>`_
+
+**Citation** `AmeriFlux CC-BY 4.0 data use policy <https://ameriflux.lbl.gov/data/data-policy/#data-use>`_.

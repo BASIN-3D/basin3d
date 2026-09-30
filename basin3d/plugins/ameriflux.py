@@ -1,7 +1,14 @@
-"""AmeriFlux data source plugin mockup.
+"""AmeriFlux data source plugin.
 
-This module defines the BASIN-3D plugin shape for AmeriFlux. Data retrieval
-will be implemented in a subsequent change.
+This module maps AmeriFlux site metadata and FLUXNET data products to
+BASIN-3D point monitoring features and measurement timeseries. It retrieves
+site metadata and citations through the AmeriFlux API, requests FLUXNET
+download information, verifies downloaded ZIP archives, and processes BIF and
+data CSV members into temporary xarray/Zarr datasets.
+
+AmeriFlux credentials and data-use settings are read from environment
+variables. The optional ``basin3d[ameriflux]`` dependencies provide the
+NetCDF, xarray, pandas, and Zarr functionality used by the data pipeline.
 """
 import csv
 import hashlib
@@ -39,6 +46,7 @@ logger = monitor.get_logger(__name__)
 
 
 def _require_amf_dependencies():
+    """Raise an actionable error when the optional AmeriFlux dependencies are absent."""
     if xr is None:
         raise ImportError('AmeriFlux plugin dependencies are not installed. Install them with: '
                           'pip install "basin3d[ameriflux]"')
@@ -59,6 +67,8 @@ INTENDED_USE_ENUM = ('synthesis', 'model', 'remote_sensing', 'other_research', '
 
 @dataclass
 class _SiteMetadata:
+    """Normalized AmeriFlux site metadata used to build BASIN-3D features."""
+
     site_id: str
     site_name: str
     description: str
@@ -72,6 +82,8 @@ class _SiteMetadata:
 
 
 class _UnitLookupInfo(TypedDict):
+    """Describe one AmeriFlux-to-BASIN-3D unit conversion entry."""
+
     amf_unit: str
     target_unit: str
     conv: int | float
@@ -97,11 +109,15 @@ AMF_BIF_REQUIRED_FIELDS = {'SITE_ID', 'GROUP_ID', 'VARIABLE_GROUP', 'VARIABLE', 
 
 
 def _get_metadata(url: str, synthesis_messages: List[str]) -> Dict:
-    """
+    """Retrieve and validate a dictionary response from an AmeriFlux endpoint.
 
-    :param url:
-    :param synthesis_messages:
-    :return:
+    Request failures, non-success responses, and non-dictionary JSON bodies
+    are logged and appended to ``synthesis_messages``. The function returns an
+    empty dictionary for those cases.
+
+    :param url: AmeriFlux metadata endpoint URL.
+    :param synthesis_messages: Mutable list receiving request diagnostics.
+    :return: Decoded metadata dictionary, or an empty dictionary on failure.
     """
     results: Dict = {}
 
@@ -135,7 +151,17 @@ def _get_metadata(url: str, synthesis_messages: List[str]) -> Dict:
 
 
 def _post_json(url: str, payload: Dict, synthesis_messages: List) -> Any:
-    """POST a JSON payload and return the decoded response JSON."""
+    """POST a JSON payload and return decoded response data.
+
+    HTTP failures, malformed error responses, and request exceptions are
+    logged and recorded in ``synthesis_messages``. The returned value is an
+    empty dictionary when the request cannot be completed.
+
+    :param url: AmeriFlux endpoint URL.
+    :param payload: JSON-compatible request body.
+    :param synthesis_messages: Mutable list receiving request diagnostics.
+    :return: Decoded response JSON, or an empty dictionary on failure.
+    """
     try:
         response = post_url(url, json=payload, headers={'Content-Type': 'application/json'})
 
@@ -169,11 +195,14 @@ def _post_json(url: str, payload: Dict, synthesis_messages: List) -> Any:
 
 
 def _get_citation_info(url_base: str, site_id_list: List, synthesis_messages: List) -> List:
-    """
+    """Retrieve FLUXNET citation records for a list of AmeriFlux sites.
 
-    :param site_id_list:
-    :param synthesis_messages:
-    :return:
+    :param url_base: Base URL for the AmeriFlux API.
+    :param site_id_list: AmeriFlux site identifiers to include in the request.
+    :param synthesis_messages: Mutable list receiving request and response
+        diagnostics.
+    :return: Citation records from the response, or an empty list when the
+        response does not contain a list under ``values``.
     """
     url = f'{url_base}/citations/FLUXNET'
 
@@ -200,6 +229,14 @@ def _get_citation_info(url_base: str, site_id_list: List, synthesis_messages: Li
 
 
 def _parse_citations(citation_list: List) -> Dict:
+    """Create a site-ID-to-citation lookup from AmeriFlux citation records.
+
+    Records without a ``site_id`` are ignored. The citation value is retained
+    as returned by the service, including a missing or null citation value.
+
+    :param citation_list: Citation dictionaries returned by the AmeriFlux API.
+    :return: Mapping from site identifier to citation text.
+    """
     parsed_citations: Dict = {}
 
     for citation in citation_list:
@@ -214,11 +251,17 @@ def _parse_citations(citation_list: List) -> Dict:
 
 
 def _parse_metadata(metadata: Dict, synthesis_messages: List[str]) -> Dict:
-    """
+    """Normalize AmeriFlux site metadata into ``_SiteMetadata`` records.
 
-    :param metadata:
-    :param synthesis_messages:
-    :return:
+    Only records with published FLUXNET years, a site identifier, and numeric
+    latitude and longitude are retained. Elevation is optional and is set to
+    ``None`` when it cannot be converted. The first and last published years,
+    site name, description, IGBP vegetation type, and AmeriFlux URL are copied
+    into the normalized record.
+
+    :param metadata: AmeriFlux metadata response containing a ``values`` list.
+    :param synthesis_messages: Mutable list receiving validation diagnostics.
+    :return: Mapping from AmeriFlux site ID to :class:`_SiteMetadata`.
     """
 
     parsed_metadata: Dict = {}
@@ -295,12 +338,15 @@ def _parse_metadata(metadata: Dict, synthesis_messages: List[str]) -> Dict:
 
 
 def _inside_bbox(bbox: Tuple[float, float, float, float], lat: float, lon: float) -> bool:
-    """
+    """Return whether a latitude/longitude lies inside an inclusive bounding box.
 
-    :param bbox:
-    :param lat:
-    :param lon:
-    :return:
+    The bounding box uses ``(west, south, east, north)`` ordering.
+
+    :param bbox: Western longitude, southern latitude, eastern longitude, and
+        northern latitude.
+    :param lat: Latitude to test.
+    :param lon: Longitude to test.
+    :return: ``True`` when the point is inside or on the box boundary.
     """
     west, south, east, north = bbox
     return west <= lon <= east and south <= lat <= north
@@ -321,6 +367,20 @@ def _matches_any_bbox(site_info: _SiteMetadata, bounding_boxes: List[tuple]) -> 
 
 def _filter_sites(site_info_lookup: Dict, mf_named_ids: Set[str], mf_bbox_list: List[tuple],
                   query_start_year: int, query_end_year: Optional[int]) -> List[str]:
+    """Select sites matching feature selectors and overlapping query years.
+
+    Named IDs and bounding boxes use OR semantics. A site is retained when its
+    published data range overlaps the requested year range; an omitted end
+    year leaves the range open-ended.
+
+    :param site_info_lookup: Mapping of site IDs to normalized site metadata.
+    :param mf_named_ids: Requested AmeriFlux site IDs.
+    :param mf_bbox_list: Requested bounding boxes in west/south/east/north
+        order.
+    :param query_start_year: Inclusive first year requested.
+    :param query_end_year: Optional inclusive last year requested.
+    :return: Site IDs that satisfy the selector and year-overlap filters.
+    """
 
     filtered_sites = []
 
@@ -342,7 +402,17 @@ def _filter_sites(site_info_lookup: Dict, mf_named_ids: Set[str], mf_bbox_list: 
 
 
 def _get_variable_names(observed_property: str, available_variables: Set[str]) -> List[str]:
-    """Return matching data variables, including indexed soil variables."""
+    """Resolve a BASIN-3D query variable to available FLUXNET variables.
+
+    ``TS_F_MDS`` and ``SWC_F_MDS`` may appear with numeric suffixes for
+    multiple soil measurements. For those bases, all matching indexed names
+    are returned in numeric order. Other variables return either one exact
+    match or an empty list.
+
+    :param observed_property: Variable name requested by the query.
+    :param available_variables: Variables present in the processed dataset.
+    :return: Matching dataset variable names.
+    """
     if observed_property in INDEXED_VARIABLE_BASES:
         variable_prefix = f'{observed_property}_'
         variable_names = [
@@ -356,7 +426,15 @@ def _get_variable_names(observed_property: str, available_variables: Set[str]) -
 
 
 def _get_height_depth_changes(var_info: List[Dict[str, str]]) -> List[Tuple[float, str | None]]:
-    """Return the initial height and subsequent height changes for a variable."""
+    """Extract the initial sensor height and later height changes.
+
+    The first ``VAR_INFO_HEIGHT`` value is returned without a date. Each later
+    distinct height is paired with its ``VAR_INFO_DATE`` value.
+
+    :param var_info: Variable metadata records from a FLUXNET BIFVARINFO file.
+    :return: Ordered ``(height, change date)`` pairs, or an empty list when
+        no height metadata is present.
+    """
     height_depth_changes: List[Tuple[float, str | None]] = []
     previous_height: float | None = None
 
@@ -377,7 +455,19 @@ def _get_height_depth_changes(var_info: List[Dict[str, str]]) -> List[Tuple[floa
 
 def _format_tvp_timestamp(timestamp: Any, file_resolution: str,
                           utc_offset: str | None = None) -> str:
-    """Format an xarray timestamp at its source data resolution as ISO text."""
+    """Format a source timestamp at the requested FLUXNET resolution.
+
+    Hourly data are formatted to minute precision and receive the supplied
+    UTC offset. Daily, monthly, and yearly data are formatted to their source
+    precision without a timezone suffix.
+
+    :param timestamp: Timestamp value accepted by ``numpy.datetime64``.
+    :param file_resolution: FLUXNET resolution key: ``HH``, ``DD``, ``MM``,
+        or ``YY``.
+    :param utc_offset: Optional decimal-hour offset used for ``HH`` data.
+    :return: ISO-formatted timestamp string.
+    :raises KeyError: If ``file_resolution`` is not a supported resolution key.
+    """
     import numpy as np
 
     timestamp_units: Dict[str, Literal['Y', 'M', 'D', 'm']] = {
@@ -390,7 +480,14 @@ def _format_tvp_timestamp(timestamp: Any, file_resolution: str,
 
 
 def _format_utc_offset(utc_offset: str | None) -> str:
-    """Format a string UTC hour offset as an ISO timezone suffix."""
+    """Convert a decimal-hour UTC offset to an ISO timezone suffix.
+
+    Invalid, missing, or empty offsets return an empty string. Fractional hours
+    are converted to minutes.
+
+    :param utc_offset: String or numeric-looking UTC hour offset.
+    :return: Offset such as ``+05:30`` or ``-08:00``, or an empty string.
+    """
     if not utc_offset:
         return ''
 
@@ -410,7 +507,23 @@ def _build_tvp_results(time_values: List, data_values: Any, unit_conv: int | flo
                        file_resolution: str, utc_offset: str | None = None,
                        quality_values: Any = None,
                        requested_qualities: Optional[List] = None) -> Tuple[List, List, int]:
-    """Build time-value pairs with optional quality filtering and unit conversion."""
+    """Build time-value pairs with optional QC filtering and unit conversion.
+
+    Values whose QC code is not requested are omitted when both a quality
+    array and a quality filter are present. The AMF ``-9999`` missing-value
+    sentinel is preserved instead of being converted. NumPy scalar values are
+    converted to native Python values before creating the result objects.
+
+    :param time_values: Dataset timestamps aligned with ``data_values``.
+    :param data_values: Dataset measurement values.
+    :param unit_conv: Multiplicative conversion factor to the BASIN-3D unit.
+    :param file_resolution: FLUXNET timestamp-resolution key.
+    :param utc_offset: Optional source UTC offset for hourly timestamps.
+    :param quality_values: Optional QC values aligned with the measurements.
+    :param requested_qualities: Optional QC values requested by the query.
+    :return: Time-value pairs, retained QC values, and the count filtered by
+        quality.
+    """
     results_tvp: List[TimeValuePair] = []
     result_quality: List[Any] = []
     filtered_count = 0
@@ -444,11 +557,16 @@ def _build_tvp_results(time_values: List, data_values: Any, unit_conv: int | flo
 
 
 def _get_download_info(base_url: str, sites: List[str], synthesis_messages: List) -> List:
-    """
+    """Request FLUXNET download URLs and checksums for selected sites.
 
-    :param sites:
-    :param synthesis_messages:
-    :return:
+    The request includes the configured user identity, intended-use settings,
+    CCBY4.0 policy, and the FLUXNET FULLSET product. Invalid response shapes
+    are reported through ``synthesis_messages``.
+
+    :param base_url: Base URL for the AmeriFlux API.
+    :param sites: AmeriFlux site identifiers to download.
+    :param synthesis_messages: Mutable list receiving request diagnostics.
+    :return: The response's ``data_urls`` list, or an empty list on failure.
     """
     download_info: List[Dict[str, Any]] = []
 
@@ -493,11 +611,15 @@ def _get_download_info(base_url: str, sites: List[str], synthesis_messages: List
 
 
 def _make_download_lookup(download_info: List, synthesis_messages: List) -> Dict:
-    """
+    """Normalize download records into a site-to-URL/checksum lookup.
 
-    :param download_info:
-    :param synthesis_messages:
-    :return:
+    Records must contain ``site_id``, ``url``, and ``download_checksum``.
+    Invalid records are skipped and described in ``synthesis_messages``.
+
+    :param download_info: Records returned by the AmeriFlux data-download
+        endpoint.
+    :param synthesis_messages: Mutable list receiving validation diagnostics.
+    :return: Mapping from site ID to ``url`` and ``checksum`` values.
     """
     download_lookup = {}
 
@@ -529,7 +651,12 @@ def _make_download_lookup(download_info: List, synthesis_messages: List) -> Dict
 
 
 def _validate_zarr_path(zarr_path: Path, synthesis_messages: List) -> bool:
-    """Validate the parent directory used for temporary Zarr stores."""
+    """Check that a temporary-Zarr parent exists and is writable.
+
+    :param zarr_path: Configured parent directory for temporary stores.
+    :param synthesis_messages: Mutable list receiving validation diagnostics.
+    :return: ``True`` when the path is an existing writable directory.
+    """
     if not zarr_path.exists():
         msg = (f'AMF zarr path does not exist: {zarr_path}. The local directory for temporary files should be '
                'set as the environmental variable: BASIN3D_LOCAL_TEMP_DIR. Please double check your configuration.')
@@ -556,7 +683,14 @@ def _validate_zarr_path(zarr_path: Path, synthesis_messages: List) -> bool:
 
 
 def _create_zarr_temp_dir(zarr_path_str: str, synthesis_messages: List) -> Path | None:
-    """Create a per-request temporary directory beneath the configured Zarr path."""
+    """Create a per-request temporary directory beneath the configured parent.
+
+    :param zarr_path_str: Parent directory path from
+        ``BASIN3D_LOCAL_TEMP_DIR`` or the system temporary directory.
+    :param synthesis_messages: Mutable list receiving validation and creation
+        diagnostics.
+    :return: New ``basin3d-amf-`` directory, or ``None`` on failure.
+    """
     zarr_path = Path(zarr_path_str)
     if not _validate_zarr_path(zarr_path, synthesis_messages):
         return None
@@ -571,7 +705,17 @@ def _create_zarr_temp_dir(zarr_path_str: str, synthesis_messages: List) -> Path 
 
 
 def _download_zip_to_temp(url: str, checksum: str, synthesis_messages: List[str]) -> Path | None:
-    """Stream a ZIP response to a temporary file and return its path."""
+    """Stream and checksum-verify an AmeriFlux ZIP download.
+
+    Supported checksum algorithms are MD5, SHA-1, and SHA-256, supplied
+    either by digest length or as an ``algorithm:digest`` string. Failed
+    downloads and checksum mismatches are removed when possible.
+
+    :param url: Download URL returned by the AmeriFlux service.
+    :param checksum: Expected checksum string.
+    :param synthesis_messages: Mutable list receiving download diagnostics.
+    :return: Temporary ZIP path after successful verification, or ``None``.
+    """
     response = None
     zip_path = None
 
@@ -651,7 +795,20 @@ def _get_zip_members(archive: zipfile.ZipFile, data_member_prefix: str,
                      lookup_member_prefix: str, bif_member_prefix: str,
                      synthesis_messages: List[str]) -> Tuple[zipfile.ZipInfo, zipfile.ZipInfo,
                                                              zipfile.ZipInfo] | None:
-    """Find the requested CSV members without extracting the archive."""
+    """Find exactly one data, variable-info, and BIF member in an archive.
+
+    Members are selected by filename prefix and are not extracted by this
+    function. A missing member or a prefix matching multiple members is
+    recorded in ``synthesis_messages`` and returns ``None``.
+
+    :param archive: Open AmeriFlux ZIP archive.
+    :param data_member_prefix: Prefix for the FLUXMET data CSV.
+    :param lookup_member_prefix: Prefix for the FLUXNET BIFVARINFO CSV.
+    :param bif_member_prefix: Prefix for the site BIF CSV.
+    :param synthesis_messages: Mutable list receiving archive diagnostics.
+    :return: The three matching ZIP members in data, lookup, BIF order, or
+        ``None`` when the archive is not structurally valid.
+    """
     def find_member(prefix: str) -> zipfile.ZipInfo | None:
         members = [member for member in archive.infolist() if member.filename.startswith(prefix)]
         if len(members) == 1:
@@ -673,7 +830,17 @@ def _get_zip_members(archive: zipfile.ZipFile, data_member_prefix: str,
 
 def _read_lookup_csv(archive: zipfile.ZipFile, lookup_member: zipfile.ZipInfo,
                      synthesis_messages: List[str]) -> Dict[str, List[Dict[str, str]]]:
-    """Read adjacent BIFVARINFO rows into variable metadata groups."""
+    """Read BIFVARINFO rows and group variable metadata by variable name.
+
+    Rows in ``GRP_VAR_INFO`` groups are collected until the group ID changes
+    or another variable group begins. Groups without ``VAR_INFO_VARNAME`` are
+    skipped.
+
+    :param archive: Open AmeriFlux ZIP archive.
+    :param lookup_member: BIFVARINFO member to read.
+    :param synthesis_messages: Mutable list receiving CSV diagnostics.
+    :return: Mapping from FLUXNET variable name to its metadata records.
+    """
     lookup: Dict[str, List[Dict[str, str]]] = {}
     current_group: Dict[str, str] = {}
     current_group_id = None
@@ -725,7 +892,19 @@ def _read_lookup_csv(archive: zipfile.ZipFile, lookup_member: zipfile.ZipInfo,
 
 def _read_bif_csv_rows(archive: zipfile.ZipFile, bif_member: zipfile.ZipInfo,
                        file_type: str, synthesis_messages: List[str]) -> List[Dict[str, str]] | None:
-    """Read and validate rows from an AmeriFlux BIF CSV member."""
+    """Decode and validate rows from an AmeriFlux BIF-format CSV member.
+
+    UTF-8 is preferred and Windows-1252 is used as a fallback. The required
+    BIF columns are checked before rows are returned.
+
+    :param archive: Open AmeriFlux ZIP archive.
+    :param bif_member: CSV member to read.
+    :param file_type: Label used in diagnostics, such as ``BIF`` or
+        ``BIFVARINFO``.
+    :param synthesis_messages: Mutable list receiving CSV diagnostics.
+    :return: CSV rows as dictionaries, or ``None`` when decoding or validation
+        fails.
+    """
     logger.info(f'Processing AMF {file_type} file {bif_member.filename}.')
 
     try:
@@ -756,7 +935,13 @@ def _read_bif_csv_rows(archive: zipfile.ZipFile, bif_member: zipfile.ZipInfo,
 
 def _read_bif_utc_offset(archive: zipfile.ZipFile, bif_member: zipfile.ZipInfo,
                          synthesis_messages: List[str]) -> str | None:
-    """Read the string UTC offset from a site BIF CSV."""
+    """Read the ``UTC_OFFSET`` value from a site BIF CSV.
+
+    :param archive: Open AmeriFlux ZIP archive.
+    :param bif_member: Site BIF CSV member.
+    :param synthesis_messages: Mutable list receiving missing-field diagnostics.
+    :return: Stripped UTC offset text, or ``None`` when it is absent.
+    """
     rows = _read_bif_csv_rows(archive, bif_member, 'BIF', synthesis_messages)
     if rows is None:
         return None
@@ -775,7 +960,15 @@ def _read_bif_utc_offset(archive: zipfile.ZipFile, bif_member: zipfile.ZipInfo,
 
 
 def _dataframe_chunk_to_xarray(dataframe: Any, timestamp_column: str) -> Any:
-    """Convert one data CSV chunk into an xarray Dataset."""
+    """Convert one parsed FLUXNET CSV chunk into an xarray dataset.
+
+    The requested timestamp column is parsed, made the dataset's ``time``
+    index, and retained in the dataset attributes as ``timestamp_column``.
+
+    :param dataframe: Pandas dataframe containing one CSV chunk.
+    :param timestamp_column: Column containing source timestamps.
+    :return: Xarray dataset indexed by ``time``.
+    """
     import pandas as pd
 
     dataframe[timestamp_column] = pd.to_datetime(dataframe[timestamp_column])
@@ -791,7 +984,24 @@ def _data_csv_to_zarr(archive: zipfile.ZipFile, data_member: zipfile.ZipInfo,
                       timestamp_format: str, start_date: Any, end_date: Any,
                       chunk_size: int,
                       synthesis_messages: List[str]) -> Any | None:
-    """Convert a data CSV to a disk-backed xarray Dataset in chunks."""
+    """Filter a FLUXNET data CSV and append chunks to a Zarr store.
+
+    Chunks are parsed using ``timestamp_format`` and filtered to the inclusive
+    start date and optional inclusive end date. The resulting dataset is
+    opened from the Zarr store after all matching chunks are written.
+
+    :param archive: Open AmeriFlux ZIP archive.
+    :param data_member: FLUXMET data CSV member.
+    :param zarr_path: Temporary Zarr store directory.
+    :param timestamp_column: Source timestamp column, based on resolution.
+    :param timestamp_format: Format used to parse source timestamps.
+    :param start_date: Inclusive query start date.
+    :param end_date: Optional inclusive query end date.
+    :param chunk_size: Number of CSV rows read per pandas chunk.
+    :param synthesis_messages: Mutable list receiving processing diagnostics.
+    :return: Opened xarray dataset, or ``None`` when no rows match or an error
+        occurs.
+    """
     _require_amf_dependencies()
     import pandas as pd
 
@@ -858,7 +1068,27 @@ def _process_download_zip(url: str, checksum: str, data_member_prefix: str,
                           end_date: Any, zarr_path: Path,
                           bif_member_prefix: str, synthesis_messages: List[str],
                           chunk_size: int = 10000) -> Tuple[Dict, Any | None, str | None]:
-    """Download a ZIP and process its lookup and data CSV members."""
+    """Download and process the FLUXNET ZIP for one AmeriFlux site.
+
+    The returned values contain variable metadata, a date-filtered xarray
+    dataset backed by the supplied Zarr path, and the BIF UTC offset. The
+    downloaded ZIP is removed after processing.
+
+    :param url: AmeriFlux FLUXNET ZIP URL.
+    :param checksum: Expected ZIP checksum.
+    :param data_member_prefix: FLUXMET member prefix.
+    :param lookup_member_prefix: BIFVARINFO member prefix.
+    :param timestamp_column: Source data timestamp column.
+    :param timestamp_format: Source timestamp parsing format.
+    :param start_date: Inclusive query start date.
+    :param end_date: Optional inclusive query end date.
+    :param zarr_path: Temporary Zarr store path.
+    :param bif_member_prefix: Site BIF member prefix.
+    :param synthesis_messages: Mutable list receiving processing diagnostics.
+    :param chunk_size: Number of CSV rows processed per chunk.
+    :return: ``(variable-info lookup, dataset, UTC offset)``. The dataset is
+        ``None`` when processing fails.
+    """
     lookup: Dict[str, List[Dict[str, str]]] = {}
     utc_offset = None
     zip_path = _download_zip_to_temp(url, checksum, synthesis_messages)
@@ -891,13 +1121,17 @@ def _process_download_zip(url: str, checksum: str, data_member_prefix: str,
 
 def _load_mf_object(datasource: DataSourcePluginAccess, site_info: _SiteMetadata,
                     observed_properties: List, height_depth: List | None = None) -> MonitoringFeature | None:
-    """
+    """Build a BASIN-3D point monitoring feature from normalized site metadata.
 
-    :param datasource:
-    :param site_info:
-    :param observed_properties:
-    :param height_depth:
-    :return:
+    WGS84 coordinates and optional mean-sea-level elevation are included. A
+    single height/depth value becomes the representative vertical coordinate;
+    multiple changes are described in the feature description.
+
+    :param datasource: Access object that owns the resulting feature.
+    :param site_info: Normalized AmeriFlux site metadata.
+    :param observed_properties: AmeriFlux variables exposed by the feature.
+    :param height_depth: Optional ordered height/depth changes for a variable.
+    :return: A BASIN-3D point monitoring feature.
     """
 
     coord = Coordinate(
@@ -947,12 +1181,30 @@ def _load_mf_object(datasource: DataSourcePluginAccess, site_info: _SiteMetadata
 
 
 class AMFMonitoringFeatureAccess(DataSourcePluginAccess):
-    """Access for AmeriFlux monitoring features."""
+    """Provide AmeriFlux site metadata as BASIN-3D point features.
+
+    Sites can be selected by AMF-prefixed site ID, by WGS84 bounding box, or
+    by leaving the monitoring-feature selector empty to list all available
+    sites. Parent-feature filtering is not supported.
+    """
 
     synthesis_model_class = MonitoringFeature
 
     def list(self, query: QueryMonitoringFeature):
-        """Return an iterator of monitoring features available for query."""
+        """Yield AmeriFlux monitoring features matching a query.
+
+        Metadata is acquired from the AmeriFlux site-information endpoint and
+        normalized before named and bounding-box selectors are applied. Named
+        and bounding-box selectors have OR semantics. Returned features expose
+        the available mapped AmeriFlux variables and include site coordinates,
+        elevation, description, and vegetation information when available.
+
+        :param query: BASIN-3D monitoring-feature query.
+        :yields: BASIN-3D point :class:`~basin3d.core.models.MonitoringFeature`
+            objects.
+        :return: A ``StopIteration`` carrying synthesis messages and citations
+            after all matching features have been yielded.
+        """
 
         synthesis_messages: List[str] = []
         synthesis_citations: List[str] = []
@@ -1015,13 +1267,31 @@ class AMFMonitoringFeatureAccess(DataSourcePluginAccess):
 
 
 class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
-    """Access for AmeriFlux measurement time series."""
+    """Provide BASIN-3D observations from AmeriFlux FLUXNET data products.
+
+    The access requests site downloads, validates and processes FLUXNET ZIP
+    archives, resolves variable metadata and sensor heights, applies unit and
+    quality handling, and yields point measurement timeseries. Temporary ZIP
+    files and per-request Zarr stores are removed after processing.
+    """
 
     synthesis_model_class = MeasurementTimeseriesTVPObservation
 
     def _get_unit_conv(self, amf_unit: str | None, amf_variable: str,
                        synthesis_messages: List) -> Tuple[int | float, str | None]:
-        """Return the AMF-to-BASIN-3D conversion factor and output unit."""
+        """Determine the conversion from an AmeriFlux unit to BASIN-3D.
+
+        Known unit pairs use :data:`AMF_UNIT_LOOKUP`. Missing units return a
+        factor of ``1`` and no output unit. Unknown mismatches return the AMF
+        unit and factor ``1`` while recording a warning.
+
+        :param amf_unit: Unit reported in FLUXNET variable metadata.
+        :param amf_variable: AmeriFlux variable used to find its BASIN-3D
+            mapping.
+        :param synthesis_messages: Mutable list receiving unknown-unit
+            warnings.
+        :return: ``(conversion factor, output unit)``.
+        """
         if amf_unit is None:
             return 1, None
 
@@ -1041,14 +1311,25 @@ class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         return 1, amf_unit
 
     def list(self, query: QueryMeasurementTimeseriesTVP):
-        """
-        Return an iterator of measurement time series observations available for query.
-        Every data product will have the observed properties with the exception of TS and SWC.
-        TS and SWC have variable numbers of measurements with prefix indices. Will need to loop thru.
-        The height and depth information will be in the VAR_INFO file.
-        Need to filter on quality where the QC variables exist.
-        :param query:
-        :return:
+        """Yield AmeriFlux FLUXNET measurement timeseries observations.
+
+        The query requires configured ``AMF_USER_NAME`` and
+        ``AMF_USER_EMAIL`` values and monitoring-feature selectors. The
+        FLUXNET product supports the mean statistic and the source aggregation
+        resolutions represented by ``HH``, ``DD``, and ``MM``. Indexed
+        soil-temperature and soil-water-content variables may produce more
+        than one observation per requested property. Sensor height changes are
+        taken from BIFVARINFO metadata, and QC filtering is applied when the
+        selected resolution has a matching QC variable.
+
+        :param query: BASIN-3D measurement-timeseries query containing feature
+            selectors, observed properties, dates, aggregation duration, and
+            optional statistic and result-quality filters.
+        :yields: BASIN-3D
+            :class:`~basin3d.core.models.MeasurementTimeseriesTVPObservation`
+            objects with point features and optional QC results.
+        :return: A ``StopIteration`` carrying synthesis messages and citations
+            after all selected sites and variables have been processed.
         """
 
         synthesis_messages: list = []
@@ -1289,14 +1570,19 @@ class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
 @basin3d_plugin
 class AMFDataSourcePlugin(DataSourcePluginPoint):
-    """AmeriFlux Data Source Plugin mockup."""
+    """Register the AmeriFlux data source plugin.
+
+    The plugin exposes AmeriFlux site metadata and FLUXNET measurement
+    timeseries through :class:`AMFMonitoringFeatureAccess` and
+    :class:`AMFMeasurementTimeseriesTVPObservationAccess`.
+    """
 
     title = 'AmeriFlux Data Source Plugin'
     plugin_access_classes = (AMFMonitoringFeatureAccess, AMFMeasurementTimeseriesTVPObservationAccess)
     feature_types = ['POINT']
 
     class DataSourceMeta:
-        """Metadata used to construct the AmeriFlux BASIN-3D data source."""
+        """Static identity and endpoint metadata for the AmeriFlux source."""
 
         id = 'AMF'
         location = 'https://amfcdn.lbl.gov/api/v2'
