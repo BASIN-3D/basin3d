@@ -12,6 +12,7 @@ import os
 import requests
 import shutil
 import tempfile
+from html.parser import HTMLParser
 from typing import Any
 
 try:
@@ -29,11 +30,31 @@ from basin3d.core import monitor
 from basin3d.core.models import (AbsoluteCoordinate, Coordinate, GeographicCoordinate, HorizontalCoordinate,
                                  MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature,
                                  TimeMetadataMixin, TimeValuePair, ResultListTVP)
-from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, separate_list_types
+from basin3d.core.plugin import (DataSourcePluginAccess, DataSourcePluginPoint, PluginIteratorResult,
+                                 basin3d_plugin, separate_list_types)
 from basin3d.core.schema.enum import FeatureTypeEnum, SpatialSamplingShapes
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 
 logger = monitor.get_logger(__name__)
+
+
+class _HTMLTextParser(HTMLParser):
+    """Collect text content while ignoring HTML tags."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.text = []
+
+    def handle_data(self, data):
+        self.text.append(data)
+
+
+def _remove_html_tags(value: str) -> str:
+    """Return the text content of an HTML-formatted string."""
+    parser = _HTMLTextParser()
+    parser.feed(value)
+    parser.close()
+    return ''.join(parser.text)
 
 
 def _require_arm_dependencies():
@@ -444,12 +465,14 @@ def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messa
             feature_name = spatial_coverage['name']
             latitude = geo['latitude']
             longitude = geo['longitude']
+            citation = _remove_html_tags(metadata['citation'])
 
             required_values = {
                 'containedInPlace.name': parent_name,
                 'spatialCoverage.name': feature_name,
                 'geo.latitude': latitude,
                 'geo.longitude': longitude,
+                'citation': citation,
             }
             missing_values = [field for field, value in required_values.items() if value is None or value == '']
             if missing_values:
@@ -475,6 +498,7 @@ def _parse_arm_metadata(metadata_results: List, mf_lookup: Dict, synthesis_messa
             'site_name': parent_name,
             'lat': latitude,
             'long': longitude,
+            'citation': citation,
             'variables': var_list,
         }
 
@@ -613,6 +637,7 @@ class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
         """
 
         synthesis_messages: List[str] = []
+        synthesis_citations: List[str] = []
 
         # if parent feature is specified and not in the supported types, return nothing.
         if query.feature_type and query.feature_type not in ARMDataSourcePlugin.feature_types:
@@ -620,7 +645,7 @@ class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
                    f'Only feature types {ARMDataSourcePlugin.feature_types} are supported.')
             logger.warning(msg)
             synthesis_messages = [msg]
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         # the current number of data products is 65 (and has been for the past 1+ years).
         arm_metb1_url = f'{self.datasource.location}/metadata/data_product?data_product=met&page_from=0&page_size=100'
@@ -643,9 +668,10 @@ class ARMMonitoringFeatureAccess(DataSourcePluginAccess):
         for mf_id in mf_set:
             mf_info = mf_lookup.get(mf_id, {})
             mf_obj = _load_mf_object(self, mf_id, mf_info)
+            synthesis_citations.append(mf_info['citation'])
             yield mf_obj
 
-        return StopIteration(synthesis_messages)
+        return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
 
 class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
@@ -693,14 +719,15 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         ARM observation retrieval is not implemented yet.
         """
         synthesis_messages: list = []
+        synthesis_citations: List[str] = []
         if not _validate_zarr_path(Path(LOCAL_TEMP_DIR), synthesis_messages):
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         if not query.monitoring_feature:
             msg = f'No monitoring features for ARM were specified or they were not specified with the {self.datasource.id_prefix} prefix.'
             logger.warning(msg)
             synthesis_messages.append(msg)
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         arm_metb1_url = f'{self.datasource.location}/metadata/data_product?data_product=met&page_from=0&page_size=100'
 
@@ -844,6 +871,9 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         # clear memory
                         del result_TVP_quality
 
+                        if mf_info['citation'] not in synthesis_citations:
+                            synthesis_citations.append(mf_info['citation'])
+
                         yield measurement_timeseries_tvp_observation
 
             finally:
@@ -851,7 +881,7 @@ class ARMMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 if zarr_path is not None and zarr_path.exists():
                     shutil.rmtree(zarr_path)
 
-        return StopIteration(synthesis_messages)
+        return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
 
 @basin3d_plugin

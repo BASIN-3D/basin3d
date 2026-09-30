@@ -59,7 +59,8 @@ from basin3d.core.connection import HTTPConnectionApiKey
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, GeographicCoordinate, \
     MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
     TimeMetadataMixin, TimeValuePair, ResultListTVP, HorizontalCoordinate
-from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, separate_list_types
+from basin3d.core.plugin import (DataSourcePluginAccess, DataSourcePluginPoint, PluginIteratorResult,
+                                 basin3d_plugin, separate_list_types)
 from basin3d.core.schema.enum import FeatureTypeEnum
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.types import SpatialSamplingShapes
@@ -614,6 +615,18 @@ def _calculate_date_ranges(start_date: date, end_date: date,
     return ranges
 
 
+def _get_citation():
+    """
+    USGS waterdata ciation info: https://waterdata.usgs.gov/citation/
+    :return:
+    """
+    today = date.today()
+    access_date = f'{today:%B} {today.day}, {today.year}'
+    return ('U.S. Geological Survey, [2024], USGS Water Data for the Nation: '
+            'U.S. Geological Survey National Water Information System database, '
+            f'accessed [{access_date}], at https://doi.org/10.5066/F7P55KJN')
+
+
 class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
     """
     Access for mapping USGS HUC Units to :class:`~basin3d.core.models.MonitoringFeature` objects.
@@ -642,6 +655,9 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
             objects
         """
         synthesis_messages: List[str] = []
+        synthesis_citations: List[str] = []
+
+        citation_str = _get_citation()
 
         feature_type = isinstance(query.feature_type,
                                   FeatureTypeEnum) and query.feature_type.value or query.feature_type
@@ -673,7 +689,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                        f'specified feature_type {feature_type}')
                 logger.warning(msg)
                 synthesis_messages.append(msg)
-                return StopIteration(synthesis_messages)
+                return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
             elif not feature_type or feature_type != FeatureTypeEnum.POINT:
 
@@ -754,6 +770,9 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
                         feature_type=feature_type,
                         synthesis_messages=synthesis_messages)
 
+                    if not synthesis_citations:
+                        synthesis_citations.append(citation_str)
+
                     yield monitoring_feature
 
             # no feature_type specified and/or feature_type == POINT
@@ -817,6 +836,9 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
 
                 if not has_pagination_error and unique_sites:
                     for v in unique_sites.values():
+                        if not synthesis_citations:
+                            synthesis_citations.append(citation_str)
+
                         yield _load_point_obj(datasource=self, json_obj=v,
                                               observed_property_variables=observed_property_ml_lookup,
                                               synthesis_messages=synthesis_messages)
@@ -831,7 +853,7 @@ class USGSMonitoringFeatureAccess(DataSourcePluginAccess):
             synthesis_messages.append(f"Feature type {feature_type} not supported by {self.datasource.name}.")
             logger.warning(f"Feature type {feature_type} not supported by {self.datasource.name}.")
 
-        return StopIteration(synthesis_messages)
+        return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
     def get(self, query: QueryMonitoringFeature):
         """ Get a single Monitoring Feature object
@@ -880,11 +902,14 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         :return: a generator object that yields :class:`~basin3d.synthesis.models.measurement.MeasurementTimeseriesTVPObservation` objects
         """
         synthesis_messages: list = []
+        synthesis_citations: List[str] = []
         if not query.monitoring_feature:
             msg = f'No monitoring features for USGS were specified or they were not specified with the {self.datasource.id_prefix} prefix.'
             logger.warning(msg)
             synthesis_messages.append(msg)
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
+
+        citation_str = _get_citation()
 
         tsm_computation_period_identifier = 'Daily'
         api_endpoint = 'daily'
@@ -946,7 +971,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             usgs_site_response, has_pagination_error = _get_usgs_results(http_conn, url, synthesis_messages)
 
             if has_pagination_error:
-                return StopIteration(synthesis_messages)
+                return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
             if usgs_site_response:
                 _filter_timeseries_metadata(usgs_site_response, query, observed_properties,
@@ -991,7 +1016,7 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             ml_results, has_pagination_error = _get_usgs_results(http_conn, ml_url, synthesis_messages, request_page_limit=PAGE_REQUEST_LIMIT)
 
             if has_pagination_error:
-                return StopIteration(synthesis_messages)
+                return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
             ml_lookup = {}
             for ml_result in ml_results:
@@ -1139,9 +1164,12 @@ class USGSMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         statistic=statistic_id
                     )
 
+                    if not synthesis_citations:
+                        synthesis_citations.append(citation_str)
+
                     yield measurement_timeseries_tvp_observation
 
-        return StopIteration(synthesis_messages)
+        return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
 
 @basin3d_plugin

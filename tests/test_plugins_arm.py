@@ -155,6 +155,12 @@ def test_measurement_timeseries_tvp_observation_named_sites(
     expected_message = 'SGP-E12 does not have any files that match the query parameters. Skipping'
     actual_messages = [message.msg for message in observations.synthesis_response.messages]
     assert actual_messages.count(expected_message) == 1
+    citations = observations.synthesis_response.citations
+    unique_monitoring_feature_ids = {
+        result.feature_of_interest.id for result in results
+    }
+    assert len(citations) == len(set(citations))
+    assert len(citations) == len(unique_monitoring_feature_ids)
 
 
 def mock_no_result_measurement_endpoints(tmp_path, monkeypatch, data_query_resources):
@@ -198,6 +204,7 @@ def test_measurement_timeseries_tvp_observation_no_matching_observed_property(tm
     assert results == []
     assert metadata_and_query_urls == []
     assert mod_get.call_count == 0
+    assert observations.synthesis_response.citations == []
 
     actual_messages = {message.msg for message in observations.synthesis_response.messages}
     assert 'Translated query for datasource ARM is not valid.' in actual_messages
@@ -221,6 +228,7 @@ def test_measurement_timeseries_tvp_observation_no_matching_monitoring_feature(t
     assert results == []
     assert metadata_and_query_urls == []
     assert mod_get.call_count == 0
+    assert observations.synthesis_response.citations == []
 
     actual_messages = {message.msg for message in observations.synthesis_response.messages}
     assert 'No monitoring features for ARM were specified or they were not specified with the ARM prefix.' in actual_messages
@@ -336,6 +344,7 @@ def test_measurement_timeseries_tvp_observation_named_sites_empty_results(tmp_pa
         'SGP-E12 does not have any files that match the query parameters. Skipping',
         'SGP-E15 does not have any files that match the query parameters. Skipping',
     }.issubset(actual_messages)
+    assert observations.synthesis_response.citations == []
 
 
 @pytest.mark.parametrize(
@@ -395,6 +404,13 @@ def test_measurement_timeseries_tvp_observation_bbox(query, tmp_path, monkeypatc
         for observation in results
     }
     assert set(observations_by_site) == set(data_resources)
+
+    citations = observations.synthesis_response.citations
+    unique_monitoring_feature_ids = {
+        observation.feature_of_interest.id for observation in results
+    }
+    assert len(citations) == len(set(citations))
+    assert len(citations) == len(unique_monitoring_feature_ids)
 
     for location, (_, data_resource, expected_length) in data_resources.items():
         observation = observations_by_site[location]
@@ -462,6 +478,7 @@ def test_measurement_timeseries_tvp_observation_bbox_empty_variables(tmp_path, m
     actual_messages = [message.msg for message in observations.synthesis_response.messages]
     expected_message = 'The metadata for SGP-E36 does not specify any variables. Skipping'
     assert actual_messages.count(expected_message) == 1
+    assert observations.synthesis_response.citations == []
 
 
 def test_measurement_timeseries_tvp_observation_missing_qc_variable(tmp_path, monkeypatch):
@@ -543,6 +560,7 @@ def test_monitoring_features_unsupported_feature_type():
     assert [message.msg for message in monitoring_features.synthesis_response.messages] == [
         "ARM does not specified feature type: BASIN. Only feature types ['POINT'] are supported."
     ]
+    assert monitoring_features.synthesis_response.citations == []
 
 
 @pytest.mark.parametrize(
@@ -597,4 +615,7 @@ def test_monitoring_features(query, expected_count, expected_metadata_calls, mon
     for monitoring_feature in results:
         assert monitoring_feature.feature_type == FeatureTypeEnum.POINT
 
+    citations = monitoring_features.synthesis_response.citations
+    assert len(citations) == len(set(citations))
+    assert len(citations) == len(results)
     assert metadata_calls == expected_metadata_calls

@@ -41,11 +41,19 @@ def test_measurement_timeseries_tvp_observations_arm():
 
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
         count = 0
+        yielded_observations = []
         for timeseries in measurement_timeseries_tvp_observations:
             timeseries.to_json()
+            yielded_observations.append(timeseries)
             count += 1
 
         assert count == 1
+        citations = measurement_timeseries_tvp_observations.synthesis_response.citations
+        unique_monitoring_feature_ids = {
+            observation.feature_of_interest.id for observation in yielded_observations
+        }
+        assert len(citations) == len(set(citations))
+        assert len(citations) == len(unique_monitoring_feature_ids)
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -86,15 +94,23 @@ def test_measurement_timeseries_tvp_observations_arm():
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query4)
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
         count = 0
+        yielded_observations = []
         for timeseries in measurement_timeseries_tvp_observations:
             timeseries.to_json()
             result_values = timeseries.result.value
             assert len(result_values) == 48955
             mf = timeseries.feature_of_interest
             assert mf.id == "ARM-SGP-E15"
+            yielded_observations.append(timeseries)
             count += 1
 
         assert count == 1
+        citations = measurement_timeseries_tvp_observations.synthesis_response.citations
+        unique_monitoring_feature_ids = {
+            observation.feature_of_interest.id for observation in yielded_observations
+        }
+        assert len(citations) == len(set(citations))
+        assert len(citations) == len(unique_monitoring_feature_ids)
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -110,11 +126,19 @@ def test_measurement_timeseries_tvp_observations_arm():
     measurement_timeseries_tvp_observations = synthesizer.measurement_timeseries_tvp_observations(**query5)
     if isinstance(measurement_timeseries_tvp_observations, Iterator):
         count = 0
+        yielded_observations = []
         for timeseries in measurement_timeseries_tvp_observations:
             timeseries.to_json()
+            yielded_observations.append(timeseries)
             count += 1
 
         assert count == 6
+        citations = measurement_timeseries_tvp_observations.synthesis_response.citations
+        unique_monitoring_feature_ids = {
+            observation.feature_of_interest.id for observation in yielded_observations
+        }
+        assert len(citations) == len(set(citations))
+        assert len(citations) == len(unique_monitoring_feature_ids)
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -141,12 +165,15 @@ def test_arm_monitoring_features(query, expected_count):
     synthesizer = register(['basin3d.plugins.arm.ARMDataSourcePlugin'])
     monitoring_features = synthesizer.monitoring_features(**query)
 
-    count = 0
+    yielded_monitoring_features = []
     for mf in monitoring_features:
-        count += 1
+        yielded_monitoring_features.append(mf)
         print(
             f"{mf.id} ({mf.feature_type}) {mf.description} {mf.coordinates and [(p.x, p.y) for p in mf.coordinates.absolute.horizontal_position]}")
         if 'feature_type' in query:
             assert mf.feature_type == query['feature_type'].upper()
 
-    assert count == expected_count
+    assert len(yielded_monitoring_features) == expected_count
+    citations = monitoring_features.synthesis_response.citations
+    assert len(citations) == len(set(citations))
+    assert len(citations) == len(yielded_monitoring_features)

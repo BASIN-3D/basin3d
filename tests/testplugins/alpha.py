@@ -4,7 +4,7 @@ from typing import Any, List
 from basin3d.core.models import AbsoluteCoordinate, AltitudeCoordinate, Coordinate, DepthCoordinate, \
     GeographicCoordinate, MeasurementTimeseriesTVPObservation, MonitoringFeature, RelatedSamplingFeature, \
     RepresentativeCoordinate, SpatialSamplingShapes, VerticalCoordinate, ResultListTVP
-from basin3d.core.plugin import DataSourcePluginPoint, basin3d_plugin, DataSourcePluginAccess
+from basin3d.core.plugin import DataSourcePluginPoint, PluginIteratorResult, basin3d_plugin, DataSourcePluginAccess
 from basin3d.core.schema.enum import FeatureTypeEnum, TimeFrequencyEnum
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 
@@ -30,16 +30,19 @@ class AlphaMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
 
         """
         synthesis_messages: List[str] = []
+        synthesis_citations: List[str] = []
         data: List[Any] = []
         quality: List[Any] = []
 
         if query.monitoring_feature == ['region']:
+            synthesis_messages.append("FOO")
             return StopIteration({"message": "FOO"})
 
         supported_monitoring_features = [f'{num}' for num in range(1, 5)]
 
         if not any([loc_id in supported_monitoring_features for loc_id in query.monitoring_feature]):
-            return StopIteration({"message": "No data from data source matches monitoring features specified."})
+            synthesis_messages.append("No data from data source matches monitoring features specified.")
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         location_indices = []
         for loc_id in query.monitoring_feature:
@@ -148,7 +151,9 @@ class AlphaMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 result=ResultListTVP(plugin_access=self, value=result_value, result_quality=result_value_quality)
             )
 
-        return StopIteration(synthesis_messages)
+            synthesis_citations.append(f'citation-{num}')
+
+        return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
 
 class AlphaMonitoringFeatureAccess(DataSourcePluginAccess):
@@ -162,6 +167,8 @@ class AlphaMonitoringFeatureAccess(DataSourcePluginAccess):
         Get Monitoring Feature Info
         """
         assert query
+        synthesis_messages: List[str] = []
+        synthesis_citations: List[str] = []
 
         monitoring_feature_list = query.monitoring_feature
         feature_type = query.feature_type
@@ -188,8 +195,10 @@ class AlphaMonitoringFeatureAccess(DataSourcePluginAccess):
 
         if monitoring_feature_list and 'Region1' in monitoring_feature_list:
             if feature_type == FeatureTypeEnum.REGION:
+                synthesis_citations.append('citation-region')
                 yield obj_region
         elif feature_type == FeatureTypeEnum.REGION:
+            synthesis_citations.append('citation-region')
             yield obj_region
 
         obj_point = self.synthesis_model_class(
@@ -225,11 +234,14 @@ class AlphaMonitoringFeatureAccess(DataSourcePluginAccess):
 
         if not feature_type or feature_type == FeatureTypeEnum.POINT:
             if monitoring_feature_list and '1' in monitoring_feature_list:
+                synthesis_citations.append('citation-point')
                 yield obj_point
             elif not monitoring_feature_list:
+                synthesis_citations.append('citation-point')
                 yield obj_point
 
-        return StopIteration(['message1', 'message2', 'message3'])
+        synthesis_messages.extend(['message1', 'message2', 'message3'])
+        return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
     def get(self, query: QueryMonitoringFeature):
 
