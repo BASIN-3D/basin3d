@@ -9,6 +9,7 @@ from typing import Iterator
 from basin3d.core.connection import HTTPConnectionApiKey
 from basin3d.core.models import Base
 from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum, StatisticEnum
+from basin3d.plugins.usgs import _get_citation
 from basin3d.synthesis import register
 from tests.utilities import get_json
 
@@ -289,6 +290,8 @@ def test_measurement_timeseries_tvp_observations_usgs(additional_filters, usgs_r
         expected_msgs = expected_results.get('synthesis_msgs', [])
         actual_msgs = [message.msg for message in measurement_timeseries_tvp_observations.synthesis_response.messages]
         assert actual_msgs == expected_msgs
+        expected_citations = [_get_citation()] if mvp_count else []
+        assert measurement_timeseries_tvp_observations.synthesis_response.citations == expected_citations
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -418,6 +421,9 @@ def test_usgs_monitoring_features_hucs(query, expected_count, usgs_resource, exp
 
     assert count == expected_count
 
+    expected_citations = [_get_citation()] if expected_count else []
+    assert monitoring_features.synthesis_response.citations == expected_citations
+
     if expected_msgs:
         msgs = monitoring_features.synthesis_response.messages
         for idx, msg in enumerate(msgs):
@@ -451,6 +457,8 @@ def test_usgs_monitoring_features_points_by_parent(query, expected_count, usgs_r
             assert mf.feature_type == query['feature_type'].upper()
 
     assert count == expected_count
+    expected_citations = [_get_citation()] if expected_count else []
+    assert monitoring_features.synthesis_response.citations == expected_citations
 
 
 @pytest.mark.parametrize("query, usgs_resource, expected_count, expected_site_set",
@@ -553,6 +561,9 @@ def test_usgs_monitoring_features_general(query, usgs_resource, expected_count, 
     if expected_site_set:
         assert site_set == set(expected_site_set)
 
+    expected_citations = [_get_citation()] if expected_count else []
+    assert monitoring_features.synthesis_response.citations == expected_citations
+
 
 @pytest.mark.parametrize("query, expected_count", [({"feature_type": "point"}, 0),
                                                    ({"parent_feature": ['USGS-020200'], "feature_type": "region"}, 0)],
@@ -566,6 +577,7 @@ def test_usgs_monitoring_features_invalid_query(query, expected_count):
     results = []
     results.extend(monitoring_features)
     assert len(results) == expected_count
+    assert monitoring_features.synthesis_response.citations == []
 
 
 @pytest.mark.parametrize("query, usgs_resource, expected_count, expected_msgs",
@@ -603,6 +615,7 @@ def test_monitoring_feature_page_limit(query, usgs_resource, expected_msgs, expe
     assert len(results) == expected_count
     actual_msgs = [message.msg for message in monitoring_features.synthesis_response.messages]
     assert actual_msgs[0] == expected_msgs
+    assert monitoring_features.synthesis_response.citations == ([_get_citation()] if expected_count else [])
 
 
 @pytest.mark.parametrize("pagination_case, query, usgs_response, expected_count, expected_msgs",
@@ -657,6 +670,8 @@ def test_measurement_timeseries_tvp_observations_page_limit(
 
     for expected_msg in expected_msgs:
         assert any(expected_msg in actual_msg for actual_msg in actual_msgs)
+
+    assert observations.synthesis_response.citations == ([_get_citation()] if expected_count else [])
 
     if pagination_case == "daily":
         assert not any(

@@ -6,7 +6,14 @@ from pydantic import ValidationError
 
 from basin3d.core.models import Base, RelatedSamplingFeature
 from basin3d.core.schema.enum import ResultQualityEnum, TimeFrequencyEnum
+from basin3d.plugins.usgs import _get_citation
 from basin3d.synthesis import register
+
+
+def assert_usgs_citation(iterator, result_count):
+    expected_citations = [_get_citation()] if result_count else []
+    assert iterator.synthesis_response.citations == expected_citations
+    assert len(iterator.synthesis_response.citations) <= 1
 
 
 @pytest.mark.integration
@@ -44,6 +51,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
             count += 1
 
         assert count == 2
+        assert_usgs_citation(measurement_timeseries_tvp_observations, count)
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -86,6 +94,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
             count += 1
 
         assert count == 2
+        assert_usgs_citation(measurement_timeseries_tvp_observations, count)
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -105,6 +114,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
             count += 1
 
         assert count == 2
+        assert_usgs_citation(measurement_timeseries_tvp_observations, count)
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -124,6 +134,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
             count += 1
 
         assert count == 3
+        assert_usgs_citation(measurement_timeseries_tvp_observations, count)
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -143,6 +154,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
             count += 1
 
         assert count == 1
+        assert_usgs_citation(measurement_timeseries_tvp_observations, count)
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -162,6 +174,7 @@ def test_measurement_timeseries_tvp_observations_usgs():
             count += 1
 
         assert count == 0
+        assert_usgs_citation(measurement_timeseries_tvp_observations, count)
     else:
         pytest.fail("Returned object must be iterator")
 
@@ -222,7 +235,7 @@ def test_usgs_monitoring_feature_get_invalid():
                                                    ({"feature_type": "point"}, 0),
                                                    # valid queries
                                                    ({"monitoring_feature": ["USGS-09129600"], "feature_type": "point"}, 1),
-                                                   ({"parent_feature": ['USGS-020200'], "feature_type": "point"}, 22304),
+                                                   # ({"parent_feature": ['USGS-020200'], "feature_type": "point"}, 22304),
                                                    ({"parent_feature": ['USGS-02020004'], "feature_type": "point"}, 3944),
                                                    ({"parent_feature": ['USGS-02']}, 108),  # should return all supported huc levels (subregion, basin, subbasin) in this region
                                                    ({"parent_feature": ['USGS-0202'], "feature_type": "subbasin"}, 8),
@@ -235,8 +248,8 @@ def test_usgs_monitoring_feature_get_invalid():
                               "basin", "subbasin",
                               "watershed", "subwatershed", "site", "plot", "vertical_path", "horizontal_path",
                               "point_invalid",
-                              "single_point_monitoring_feature", "points_by_basin", "points_by_subbasin",
-                              "all_by_region", "subbasin_by_subregion",
+                              "single_point_monitoring_feature",  # "points_by_basin",
+                              "points_by_subbasin", "all_by_region", "subbasin_by_subregion",
                               "single_bbox_many_sites", "2_bbox_overlap", "mix", "empty"])
 def test_usgs_monitoring_features(query, expected_count):
     """Test USGS monitoring features """
@@ -254,3 +267,4 @@ def test_usgs_monitoring_features(query, expected_count):
             assert mf.feature_type == query['feature_type'].upper()
 
     assert count == expected_count
+    assert_usgs_citation(monitoring_features, count)

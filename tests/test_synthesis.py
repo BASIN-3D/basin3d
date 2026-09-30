@@ -95,6 +95,7 @@ def test_monitoring_features():
         assert monitoring_features.synthesis_response is not None
         assert monitoring_features.synthesis_response.dict() == {'data': None,
                                                                  'messages': [],
+                                                                 'citations': [],
                                                                  'query': {'datasource': None,
                                                                            'feature_type': None,
                                                                            'id': None,
@@ -117,6 +118,7 @@ def test_monitoring_features():
                                                                               {'level': 'WARN',
                                                                                'msg': 'message3',
                                                                                'where': ['Alpha', 'MonitoringFeature']}],
+                                                                 'citations': ['citation-point'],
                                                                  'query': {'datasource': None,
                                                                            'feature_type': None,
                                                                            'id': None,
@@ -127,6 +129,55 @@ def test_monitoring_features():
         assert count == 1
     else:
         assert monitoring_features is not None
+
+
+@pytest.mark.parametrize("query, expected_citation",
+                         [({"monitoring_feature": ["Region1"], "feature_type": "region"}, "citation-region"),
+                          ({"monitoring_feature": ["1"], "feature_type": "point"}, "citation-point")],
+                         ids=["region-citation", "point-citation"])
+def test_monitoring_features_citations(query, expected_citation):
+    """Test citations collected for Alpha monitoring feature results."""
+
+    synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
+    monitoring_features = synthesizer.monitoring_features(**query)
+
+    assert isinstance(monitoring_features, DataSourceModelIterator)
+    assert monitoring_features.synthesis_response.citations == []
+
+    list(monitoring_features)
+
+    assert monitoring_features.synthesis_response.citations == [expected_citation]
+
+
+def test_measurement_timeseries_tvp_observations_citations_are_order_independent():
+    """Test Alpha measurement citations are collected regardless of order."""
+
+    synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
+    observations = synthesizer.measurement_timeseries_tvp_observations(
+        monitoring_feature=['A-1', 'A-2'], observed_property=['ACT'], start_date='2016-02-01')
+
+    assert isinstance(observations, DataSourceModelIterator)
+    assert observations.synthesis_response.citations == []
+
+    assert len(list(observations)) == 2
+    assert sorted(observations.synthesis_response.citations) == ['citation-1', 'citation-2']
+
+
+@pytest.mark.parametrize("monitoring_feature, expected_message",
+                         [('unsupported', 'No data from data source matches monitoring features specified.')],
+                         ids=['no-data-error'])
+def test_measurement_timeseries_tvp_observations_early_exit_has_no_citations(monitoring_feature, expected_message):
+    """Test Alpha measurement early exits return messages without citations."""
+
+    synthesizer = register(['tests.testplugins.alpha.AlphaSourcePlugin'])
+    observations = synthesizer.measurement_timeseries_tvp_observations(
+        monitoring_feature=[monitoring_feature], observed_property=['ACT'], start_date='2016-02-01')
+
+    assert isinstance(observations, DataSourceModelIterator)
+    list(observations)
+
+    assert observations.synthesis_response.citations == []
+    assert observations.synthesis_response.messages[0].msg == expected_message
 
 
 @pytest.mark.parametrize("query", [{"id": "A-123"}, {"id": "A-123", "feature_type": "region"}],

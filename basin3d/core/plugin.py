@@ -14,7 +14,7 @@
 
 """
 from types import MethodType
-from typing import Dict
+from typing import Dict, List, NamedTuple
 
 from basin3d.core import monitor
 from basin3d.core.catalog import CatalogSqlAlchemy
@@ -22,6 +22,13 @@ from basin3d.core.models import DataSource
 from basin3d.core.schema.enum import FeatureTypeEnum
 
 logger = monitor.get_logger(__name__)
+
+
+class PluginIteratorResult(NamedTuple):
+    """Messages and citations returned when a plugin iterator completes."""
+
+    messages: List[str]
+    citations: List[str]
 
 
 def get_feature_type(feature_type, return_format="enum"):

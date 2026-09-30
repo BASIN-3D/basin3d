@@ -17,7 +17,7 @@ from typing import Iterator, List, Optional
 
 from basin3d.core import monitor
 from basin3d.core.models import Base, MeasurementTimeseriesTVPObservation, MonitoringFeature
-from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint
+from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, PluginIteratorResult
 from basin3d.core.schema.enum import MessageLevelEnum, AggregationDurationEnum
 from basin3d.core.schema.query import QueryBase, QueryMeasurementTimeseriesTVP, \
     QueryMonitoringFeature, SynthesisMessage, SynthesisResponse
@@ -138,8 +138,13 @@ class DataSourceModelIterator(MonitorMixin, Iterator):
                     # ignore sub iterator StopIteration exception
                     # Get any warnings that may have been generated
                     if hasattr(se, "value") and se.value and se.value.args:
-                        if isinstance(se.value.args[0], (list, tuple, set)):
-                            for m in se.value.args[0]:
+                        plugin_result = se.value.args[0]
+                        if isinstance(plugin_result, PluginIteratorResult):
+                            for m in plugin_result.messages:
+                                self.warn(message=m)
+                            self._synthesis_response.citations.extend(plugin_result.citations)
+                        elif isinstance(plugin_result, (list, tuple, set)):
+                            for m in plugin_result:
                                 self.warn(message=m)
                         else:
                             self.warn("Synthesis generated warnings but they are in the wrong format")

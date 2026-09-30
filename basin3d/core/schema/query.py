@@ -244,6 +244,8 @@ class SynthesisResponse(BaseModel):
                                                                     "via Iterator.")
     messages: List[Optional[SynthesisMessage]] = Field([], title="Messages",
                                                        description="The synthesis messages for this response")
+    citations: List[Optional[str]] = Field([], title="Citations",
+                                           description="The citations for this response")
 
     class Config:
         # output fields to camelcase

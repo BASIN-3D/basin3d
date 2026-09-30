@@ -13,9 +13,10 @@ from basin3d.core.models import GeographicCoordinate, MeasurementTimeseriesTVPOb
 from basin3d.core.schema.enum import FeatureTypeEnum, NO_MAPPING_TEXT, SpatialSamplingShapes
 from basin3d.plugins.arm import (ARMDataSourcePlugin, _batch_files, _get_arm_data_files,
                                  _collect_to_zarr, _create_zarr_temp_dir, _fetch_timeseries,
-                                 _get_arm_metadata, _get_arm_request, _get_mf_files,
-                                 _get_selected_arm_metadata, _load_mf_object,
-                                 _parse_arm_metadata, _build_tvp_results, _validate_zarr_path)
+                                  _get_arm_metadata, _get_arm_request, _get_mf_files,
+                                  _get_selected_arm_metadata, _load_mf_object,
+                                  _parse_arm_metadata, _build_tvp_results, _remove_html_tags,
+                                  _validate_zarr_path)
 
 
 class DummyResponse:
@@ -1125,6 +1126,7 @@ def arm_metadata_record(**overrides):
             {'name': 'air_temperature'},
             {'name': 'wind_speed'},
         ],
+        'citation': 'ARM <span id="site">citation</span>.',
     }
     record.update(overrides)
     return record
@@ -1145,8 +1147,25 @@ def test_parse_arm_metadata_adds_valid_record():
             'site_name': 'Eastern North Atlantic',
             'lat': 39.0916,
             'long': -28.0257,
+            'citation': 'ARM citation.',
             'variables': ['air_temperature', 'wind_speed'],
         },
+    }
+    assert synthesis_messages == []
+
+
+def test_parse_arm_metadata_keeps_citation_for_each_monitoring_feature():
+    first_record = arm_metadata_record()
+    second_record = arm_metadata_record()
+    second_record['spatialCoverage']['identifier'] = 'C2'
+    second_record['citation'] = 'ARM second citation.'
+    mf_lookup = {}
+    synthesis_messages = []
+
+    _parse_arm_metadata([first_record, second_record], mf_lookup, synthesis_messages)
+
+    assert {mf_info['citation'] for mf_info in mf_lookup.values()} == {
+        'ARM citation.', 'ARM second citation.'
     }
     assert synthesis_messages == []
 
@@ -1184,7 +1203,8 @@ def test_parse_arm_metadata_skips_duplicate_before_extracting_remaining_metadata
      ('spatialCoverage', 'identifier'),
      ('spatialCoverage', 'name'),
      ('spatialCoverage', 'geo', 'latitude'),
-     ('spatialCoverage', 'geo', 'longitude')])
+     ('spatialCoverage', 'geo', 'longitude'),
+     ('citation',)])
 def test_parse_arm_metadata_warns_and_skips_missing_spatial_value(missing_path):
     record = arm_metadata_record()
     target = record
@@ -1201,6 +1221,15 @@ def test_parse_arm_metadata_warns_and_skips_missing_spatial_value(missing_path):
     assert len(synthesis_messages) == 1
     mock_logger.assert_called_once_with(synthesis_messages[0])
     assert 'missing required' in synthesis_messages[0]
+
+
+@pytest.mark.parametrize(
+    'value,expected',
+    [('plain citation', 'plain citation'),
+     ('citation <span id="site">for ARM</span>.', 'citation for ARM.'),
+     ('<p>citation <strong>with</strong> nested tags</p>', 'citation with nested tags')])
+def test_remove_html_tags(value, expected):
+    assert _remove_html_tags(value) == expected
 
 
 def test_parse_arm_metadata_warns_and_skips_empty_spatial_value():

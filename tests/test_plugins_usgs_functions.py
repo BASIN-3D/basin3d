@@ -6,10 +6,22 @@ import pytest
 
 from basin3d.plugins.usgs import (_calculate_date_ranges, _convert_discharge,
                                   _filter_timeseries_metadata, _get_huc_lookup,
+                                  _get_citation,
                                   _get_monitoring_location_observed_properties, _get_unique_sites,
                                   _get_usgs_results, _load_huc_obj, _load_point_obj,
                                   _parse_usgs_response, _tsm_query_filter)
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP
+
+
+def test_get_citation_formats_access_date():
+    with patch('basin3d.plugins.usgs.date') as mock_date:
+        mock_date.today.return_value = date(2024, 4, 8)
+
+        assert _get_citation() == (
+            'U.S. Geological Survey, [2024], USGS Water Data for the Nation: '
+            'U.S. Geological Survey National Water Information System database, '
+            'accessed [April 8, 2024], at https://doi.org/10.5066/F7P55KJN'
+        )
 
 
 # ================================
