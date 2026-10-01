@@ -1,0 +1,52 @@
+{
+    "values": [
+        {
+            "site_id": "US-Vcs",
+            "authors": null,
+            "title": null,
+            "publication_year": null,
+            "publisher": null,
+            "doi": null,
+            "doi_url": null,
+            "citation": null
+        },
+        {
+            "site_id": "US-MEF",
+            "authors": [
+                {
+                    "first_name": "John",
+                    "last_name": "Frank"
+                },
+                {
+                    "first_name": "George",
+                    "last_name": "Valentine"
+                }
+            ],
+            "title": "AmeriFlux FLUXNET-1F US-MEF Manitou Experimental Forest, Ver. v1.3_r1 (2024-2025)",
+            "publication_year": 2026,
+            "publisher": "AmeriFlux AMP",
+            "doi": "10.17190/AMF/3027364",
+            "doi_url": "http://doi.org/10.17190/AMF/3027364",
+            "citation": "John Frank, George Valentine (2026), AmeriFlux FLUXNET-1F US-MEF Manitou Experimental Forest, Ver. v1.3_r1 (2024-2025), AmeriFlux AMP, (Dataset). https://doi.org/10.17190/AMF/3027364"
+        },
+        {
+            "site_id": "US-Me7",
+            "authors": [
+                {
+                    "first_name": "Chad",
+                    "last_name": "Hanson"
+                },
+                {
+                    "first_name": "Chris",
+                    "last_name": "Still"
+                }
+            ],
+            "title": "AmeriFlux FLUXNET-1F US-Me7 Metolius Low Burn Severity Subcanopy, Ver. v1.3_r1 (2022-2023)",
+            "publication_year": 2026,
+            "publisher": "AmeriFlux AMP",
+            "doi": "10.17190/AMF/3027360",
+            "doi_url": "http://doi.org/10.17190/AMF/3027360",
+            "citation": "Chad Hanson, Chris Still (2026), AmeriFlux FLUXNET-1F US-Me7 Metolius Low Burn Severity Subcanopy, Ver. v1.3_r1 (2022-2023), AmeriFlux AMP, (Dataset). https://doi.org/10.17190/AMF/3027360"
+        }
+    ]
+}

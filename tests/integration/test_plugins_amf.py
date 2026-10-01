@@ -2,7 +2,6 @@ import os
 from typing import Iterator
 
 import pytest
-from pydantic import ValidationError
 
 from basin3d.core.schema.enum import FeatureTypeEnum
 from basin3d.synthesis import register
@@ -46,6 +45,7 @@ def test_amf_monitoring_features(query, expected_count):
     assert all(feature.id.startswith('AMF-') for feature in results)
     assert all(feature.feature_type == FeatureTypeEnum.POINT for feature in results)
     assert len({feature.id for feature in results}) == expected_count
+    assert monitoring_features.synthesis_response.citations == []
 
 
 @pytest.mark.integration
@@ -75,23 +75,24 @@ def test_amf_monitoring_features_unsupported_metadata(query, expected_message):
     reason='AMF_USER_NAME and AMF_USER_EMAIL are required for AmeriFlux data requests.',
 )
 @pytest.mark.parametrize(
-    'query, expected_site',
+    'query, expected_site, expected_results, expected_citation_count',
     [pytest.param({
         'monitoring_feature': ['AMF-US-Me7', 'AMF-US-MEF'],
         'observed_property': ['AT'],
         'start_date': '2023-12-25',
         'end_date': '2023-12-31',
         'aggregation_duration': 'DAY',
-    }, ['AMF-US-Me7', 'AMF-US-MEF'], id='me7-daily'),
+    }, ['AMF-US-Me7'], 1, 1, id='me7-daily'),
      pytest.param({
          'monitoring_feature': ['AMF-US-MEF'],
          'observed_property': ['APA'],
          'start_date': '2024-01-01',
          'end_date': '2024-01-15',
          'aggregation_duration': 'MONTH',
-     }, ['AMF-US-MEF'], id='mef-month')],
+     }, ['AMF-US-MEF'], 1, 1, id='mef-month')],
 )
-def test_amf_measurement_timeseries_tvp_observations(query, expected_site):
+def test_amf_measurement_timeseries_tvp_observations(
+        query, expected_site, expected_results,expected_citation_count):
     synthesizer = register(['basin3d.plugins.ameriflux.AMFDataSourcePlugin'])
     observations = synthesizer.measurement_timeseries_tvp_observations(**query)
 
@@ -99,9 +100,10 @@ def test_amf_measurement_timeseries_tvp_observations(query, expected_site):
     results = list(observations)
 
     assert results
-    assert len(results) == 2
+    assert len(results) == expected_results
     assert all(observation.feature_of_interest.id in expected_site for observation in results)
     assert all(observation.result.value for observation in results)
+    assert len(observations.synthesis_response.citations) == expected_citation_count
 
 
 @pytest.mark.integration
@@ -119,16 +121,19 @@ def test_amf_measurement_timeseries_tvp_observation_hourly():
     }
     synthesizer = register(['basin3d.plugins.ameriflux.AMFDataSourcePlugin'])
 
-    results = list(synthesizer.measurement_timeseries_tvp_observations(**query))
+    observations = synthesizer.measurement_timeseries_tvp_observations(**query)
+
+    results = list(observations)
 
     assert results
     assert len(results) == 1
     assert results[0].feature_of_interest.id == 'AMF-US-Me7'
     assert results[0].result is not None
-    assert len(results[0].result.value) == 48
+    assert len(results[0].result.value) == 96
     assert results[0].result.result_quality is not None
-    assert len(results[0].result.result_quality) == 48
+    assert len(results[0].result.result_quality) == 96
     assert len(results[0].result.value) == len(results[0].result.result_quality)
     assert all(observation.result.value for observation in results)
     assert all('T' in result.timestamp for observation in results
                for result in observation.result.value)
+    assert len(observations.synthesis_response.citations) == 1

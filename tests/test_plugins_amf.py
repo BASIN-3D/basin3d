@@ -1,13 +1,11 @@
 import json
 import re
-from copy import deepcopy
 from pathlib import Path
 from pydantic import ValidationError
 from unittest.mock import Mock
 
 import pytest
 
-from basin3d.core.models import Observation
 from basin3d.core.schema.enum import FeatureTypeEnum, ResultQualityEnum
 from basin3d.synthesis import register
 
@@ -15,6 +13,7 @@ from basin3d.synthesis import register
 RESOURCE_DIR = Path(__file__).parent / 'resources'
 AMF_METADATA_RESOURCE = 'amf_site_info_display_AmeriFlux.json'
 AMF_DOWNLOAD_RESOURCE = 'amf_data_download_response.json'
+AMF_CITATION_RESOURCE = 'amf_citations_example.json'
 AMF_ZIP_RESOURCES = {
     'US-Me7': 'AMF_US-Me7_FLUXNET_2022-2023_v1.3_r1.zip',
     'US-MEF': 'AMF_US-MEF_FLUXNET_2024-2025_v1.3_r1.zip',
@@ -66,6 +65,12 @@ def amf_download_response(site_ids):
          'data_product': 'FLUXNET'}
         for site_id in site_ids]
     return response
+
+
+def amf_post_response(url, payload):
+    if url.endswith('/citations/FLUXNET'):
+        return json_response(load_resource(AMF_CITATION_RESOURCE))
+    return json_response(amf_download_response(payload['site_ids']))
 
 
 def register_amf_plugin():
@@ -148,6 +153,7 @@ def test_monitoring_features(query, expected_count, expected_site_ids, monkeypat
     assert all(feature.id.startswith('AMF-') for feature in results)
     assert all(feature.feature_type == FeatureTypeEnum.POINT for feature in results)
     assert len(actual_site_ids) == len(set(actual_site_ids))
+    assert monitoring_features.synthesis_response.citations == []
 
 
 @pytest.mark.parametrize(
@@ -213,7 +219,7 @@ def test_measurement_timeseries_tvp_observation(
     monkeypatch.setattr('basin3d.plugins.ameriflux.get_url', get_response)
     monkeypatch.setattr(
         'basin3d.plugins.ameriflux.post_url',
-        lambda *args, **kwargs: json_response(amf_download_response(site_ids)))
+        lambda url, json, **kwargs: amf_post_response(url, json))
 
     synthesizer = register_amf_plugin()
     observations = synthesizer.measurement_timeseries_tvp_observations(
@@ -224,7 +230,19 @@ def test_measurement_timeseries_tvp_observation(
         aggregation_duration=aggregation_duration)
     results = list(observations)
 
+    expected_citations = [
+        citation['citation']
+        for citation in load_resource(AMF_CITATION_RESOURCE)['values']
+        if citation['site_id'] in site_ids]
+    actual_citations = observations.synthesis_response.citations
+    yielded_site_ids = {
+        result.feature_of_interest.id.removeprefix('AMF-')
+        for result in results}
+
     assert len(results) == 4
+    assert set(actual_citations) == set(expected_citations)
+    assert len(actual_citations) == len(yielded_site_ids)
+    assert len(actual_citations) == len(set(actual_citations))
     assert set(observation.feature_of_interest.id for observation in results) == {
         'AMF-US-Me7', 'AMF-US-MEF'}
     for site_id in ('AMF-US-Me7', 'AMF-US-MEF'):
@@ -255,6 +273,47 @@ def test_measurement_timeseries_tvp_observation(
     assert all('No data variable found for PA at' in msg for msg in synthesis_message_texts(observations))
 
 
+def test_measurement_timeseries_tvp_observation_uses_fallback_for_missing_citation(
+        monkeypatch, tmp_path):
+    site_ids = ['US-MEF']
+    configure_amf_measurement_access(monkeypatch, tmp_path)
+
+    def get_response(url, stream=False):
+        if stream:
+            return streaming_response(AMF_ZIP_RESOURCES['US-MEF'])
+        return json_response(load_resource(AMF_METADATA_RESOURCE))
+
+    def post_response(url, json, **kwargs):
+        if url.endswith('/citations/FLUXNET'):
+            citation_response = load_resource(AMF_CITATION_RESOURCE)
+            citation_response['values'] = [
+                citation for citation in citation_response['values']
+                if citation['site_id'] != 'US-MEF']
+            return json_response(citation_response)
+        return json_response(amf_download_response(json['site_ids']))
+
+    monkeypatch.setattr('basin3d.plugins.ameriflux.get_url', get_response)
+    monkeypatch.setattr('basin3d.plugins.ameriflux.post_url', post_response)
+
+    synthesizer = register_amf_plugin()
+    observations = synthesizer.measurement_timeseries_tvp_observations(
+        monitoring_feature=['AMF-US-MEF'],
+        observed_property=['AT'],
+        start_date='2024-01-01',
+        end_date='2024-01-01',
+        aggregation_duration='HOUR')
+    results = list(observations)
+
+    expected_citation = (
+        'No AMF FLUXNET citation found for US-MEF. '
+        'See ameriflux.lbl.gov to find citation information.')
+    assert results
+    assert all(result.feature_of_interest.id == 'AMF-US-MEF' for result in results)
+    assert observations.synthesis_response.citations == [expected_citation]
+    assert len(observations.synthesis_response.citations) == len(
+        set(observations.synthesis_response.citations))
+
+
 @pytest.mark.parametrize(
     'result_quality, start_date, end_date, expected_observation_count, expected_value_count, expected_quality, expected_filtered_count',
     [pytest.param([ResultQualityEnum.ESTIMATED], '2022-06-16', '2022-06-17', 1, 25,
@@ -283,7 +342,7 @@ def test_measurement_timeseries_tvp_observation_hourly_quality(
     monkeypatch.setattr('basin3d.plugins.ameriflux.get_url', get_response)
     monkeypatch.setattr(
         'basin3d.plugins.ameriflux.post_url',
-        lambda *args, **kwargs: json_response(amf_download_response(site_ids)))
+        lambda url, json, **kwargs: amf_post_response(url, json))
 
     synthesizer = register_amf_plugin()
     query = {
@@ -297,6 +356,15 @@ def test_measurement_timeseries_tvp_observation_hourly_quality(
         query['result_quality'] = result_quality
     observations = synthesizer.measurement_timeseries_tvp_observations(**query)
     results = list(observations)
+
+    expected_citation = next(
+        citation['citation']
+        for citation in load_resource(AMF_CITATION_RESOURCE)['values']
+        if citation['site_id'] == site_ids[0])
+    if results:
+        assert observations.synthesis_response.citations == [expected_citation]
+    else:
+        assert observations.synthesis_response.citations == []
 
     assert len(results) == expected_observation_count
     messages = synthesis_message_texts(observations)
@@ -349,7 +417,7 @@ def test_measurement_timeseries_tvp_observation_indexed_variables(
     monkeypatch.setattr('basin3d.plugins.ameriflux.get_url', get_response)
     monkeypatch.setattr(
         'basin3d.plugins.ameriflux.post_url',
-        lambda *args, **kwargs: json_response(amf_download_response(site_ids)))
+        lambda url, json, **kwargs: amf_post_response(url, json))
 
     synthesizer = register_amf_plugin()
     observations = synthesizer.measurement_timeseries_tvp_observations(
@@ -359,6 +427,14 @@ def test_measurement_timeseries_tvp_observation_indexed_variables(
         end_date='2024-01-01',
         aggregation_duration='HOUR')
     results = list(observations)
+
+    expected_citation = next(
+        citation['citation']
+        for citation in load_resource(AMF_CITATION_RESOURCE)['values']
+        if citation['site_id'] == site_ids[0])
+    assert observations.synthesis_response.citations == [expected_citation]
+    assert len(observations.synthesis_response.citations) == len(
+        set(observations.synthesis_response.citations))
 
     expected_variables = [f'{source_prefix}_{index}' for index in range(1, 4)]
     assert len(results) == len(expected_variables)

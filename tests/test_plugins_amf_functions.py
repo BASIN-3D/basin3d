@@ -157,6 +157,234 @@ def test_get_metadata_records_json_exception(monkeypatch):
     ]
 
 
+def test_post_json_returns_response_json(monkeypatch):
+    expected_json = {'result': 'ok'}
+    response = SimpleNamespace(status_code=200, json=lambda: expected_json)
+    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
+    synthesis_messages = []
+
+    result = ameriflux._post_json(
+        'https://amf.amf/test', {'site_ids': ['US-ABC']}, synthesis_messages)
+
+    assert result == expected_json
+    assert synthesis_messages == []
+
+
+@pytest.mark.parametrize('response_json, response_text, expected_detail', [
+    pytest.param({'message': 'request rejected'}, 'fallback text', 'request rejected',
+                 id='json-message'),
+    pytest.param({'error': 'request failed'}, 'fallback text', 'request failed',
+                 id='json-error'),
+    pytest.param({}, 'response text', 'response text', id='text-fallback'),
+])
+def test_post_json_records_http_error_detail(
+        monkeypatch, response_json, response_text, expected_detail):
+    url = 'https://amf.amf/test'
+    response = SimpleNamespace(
+        status_code=400,
+        json=lambda: response_json,
+        text=response_text,
+    )
+    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
+    synthesis_messages = []
+
+    result = ameriflux._post_json(url, {}, synthesis_messages)
+
+    assert result == {}
+    assert synthesis_messages == [
+        f'AMF POST request for {url} returned error code 400: {expected_detail}.'
+    ]
+
+
+@pytest.mark.parametrize('response, expected_status', [
+    pytest.param(None, 'NO RESPONSE', id='no-response'),
+    pytest.param(SimpleNamespace(status_code=400), '400', id='http-error'),
+])
+def test_post_json_records_http_failure(monkeypatch, response, expected_status):
+    url = 'https://amf.amf/test'
+    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
+    synthesis_messages = []
+
+    result = ameriflux._post_json(url, {}, synthesis_messages)
+
+    assert result == {}
+    assert synthesis_messages == [
+        f'AMF POST request for {url} returned error code {expected_status}.'
+    ]
+
+
+def test_post_json_records_request_exception(monkeypatch):
+    def raise_error(*args, **kwargs):
+        raise RuntimeError('request failed')
+
+    url = 'https://amf.amf/test'
+    monkeypatch.setattr(ameriflux, 'post_url', raise_error)
+    synthesis_messages = []
+
+    result = ameriflux._post_json(url, {}, synthesis_messages)
+
+    assert result == {}
+    assert synthesis_messages == [
+        f'AMF POST request for {url} failed: request failed'
+    ]
+
+
+def test_post_json_records_json_exception(monkeypatch):
+    def raise_json_error():
+        raise ValueError('invalid JSON')
+
+    url = 'https://amf.amf/test'
+    response = SimpleNamespace(status_code=200, json=raise_json_error)
+    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
+    synthesis_messages = []
+
+    result = ameriflux._post_json(url, {}, synthesis_messages)
+
+    assert result == {}
+    assert synthesis_messages == [
+        f'AMF POST request for {url} failed: invalid JSON'
+    ]
+
+
+def test_get_citation_info_returns_values_and_builds_request(monkeypatch):
+    url_base = 'https://amf.amf/api'
+    site_ids = ['US-ABC', 'US-XYZ']
+    expected_citations = [
+        {'site_id': 'US-ABC', 'citation': 'Citation A'},
+        {'site_id': 'US-XYZ', 'citation': 'Citation B'},
+    ]
+    synthesis_messages = []
+    request = {}
+
+    def post_request(url, payload, messages):
+        request.update(url=url, payload=payload, messages=messages)
+        return {'values': expected_citations}
+
+    monkeypatch.setattr(ameriflux, '_post_json', post_request)
+
+    result = ameriflux._get_citation_info(
+        url_base, site_ids, synthesis_messages)
+
+    assert result == expected_citations
+    assert request == {
+        'url': f'{url_base}/citations/FLUXNET',
+        'payload': {'site_ids': site_ids},
+        'messages': synthesis_messages,
+    }
+    assert synthesis_messages == []
+
+
+@pytest.mark.parametrize('citation_response', [
+    pytest.param({}, id='empty-dictionary'),
+    pytest.param({'values': []}, id='empty-values'),
+])
+def test_get_citation_info_returns_empty_for_empty_response(
+        monkeypatch, citation_response):
+    synthesis_messages = []
+    monkeypatch.setattr(
+        ameriflux, '_post_json', lambda *args, **kwargs: citation_response)
+
+    result = ameriflux._get_citation_info(
+        'https://amf.amf/api', ['US-ABC'], synthesis_messages)
+
+    assert result == []
+    assert synthesis_messages == []
+
+
+@pytest.mark.parametrize('citation_response', [
+    pytest.param([], id='list'),
+    pytest.param(None, id='none'),
+    pytest.param('invalid', id='string'),
+])
+def test_get_citation_info_records_non_dictionary_response(
+        monkeypatch, citation_response):
+    url = 'https://amf.amf/api/citations/FLUXNET'
+    synthesis_messages = []
+    monkeypatch.setattr(
+        ameriflux, '_post_json', lambda *args, **kwargs: citation_response)
+
+    result = ameriflux._get_citation_info(
+        'https://amf.amf/api', ['US-ABC'], synthesis_messages)
+
+    assert result == []
+    assert synthesis_messages == [
+        f'AMF citation response from {url} was not in expected Dictionary format.'
+    ]
+
+
+@pytest.mark.parametrize('citation_response', [
+    pytest.param({'values': None}, id='none'),
+    pytest.param({'values': 'invalid'}, id='string'),
+    pytest.param({'values': {}}, id='dictionary'),
+])
+def test_get_citation_info_records_invalid_values(
+        monkeypatch, citation_response):
+    synthesis_messages = []
+    monkeypatch.setattr(
+        ameriflux, '_post_json', lambda *args, **kwargs: citation_response)
+
+    result = ameriflux._get_citation_info(
+        'https://amf.amf/api', ['US-ABC'], synthesis_messages)
+
+    assert result == []
+    assert synthesis_messages == [
+        'AMF citation information was not in expected format. '
+        'Cannot extract citation information.'
+    ]
+
+
+def test_get_citation_info_preserves_post_error(monkeypatch):
+    synthesis_messages = ['AMF POST request failed']
+    monkeypatch.setattr(ameriflux, '_post_json', lambda *args, **kwargs: {})
+
+    result = ameriflux._get_citation_info(
+        'https://amf.amf/api', ['US-ABC'], synthesis_messages)
+
+    assert result == []
+    assert synthesis_messages == ['AMF POST request failed']
+
+
+def test_parse_citations_maps_site_ids_to_citations():
+    citation_list = [
+        {'site_id': 'US-ABC', 'citation': 'Citation A'},
+        {'site_id': 'US-XYZ', 'citation': 'Citation B'},
+    ]
+
+    # The AmeriFlux API is expected to return one citation record per unique site ID.
+    assert ameriflux._parse_citations(citation_list) == {
+        'US-ABC': 'Citation A',
+        'US-XYZ': 'Citation B',
+    }
+
+
+def test_parse_citations_returns_empty_dictionary_for_empty_input():
+    assert ameriflux._parse_citations([]) == {}
+
+
+def test_parse_citations_skips_records_without_site_id():
+    citation_list = [
+        {'site_id': 'US-ABC', 'citation': 'Citation A'},
+        {'citation': 'Citation without site ID'},
+        {'site_id': None, 'citation': 'Citation with null site ID'},
+    ]
+
+    assert ameriflux._parse_citations(citation_list) == {
+        'US-ABC': 'Citation A',
+    }
+
+
+def test_parse_citations_preserves_missing_citation_value():
+    assert ameriflux._parse_citations([{'site_id': 'US-ABC'}]) == {
+        'US-ABC': None,
+    }
+
+
+def test_parse_citations_preserves_empty_citation():
+    assert ameriflux._parse_citations([
+        {'site_id': 'US-ABC', 'citation': ''},
+    ]) == {'US-ABC': ''}
+
+
 # ================================
 # TESTS for _parse_metadata
 
@@ -993,15 +1221,13 @@ def test_get_unit_conv_warns_for_unexpected_mismatched_units(monkeypatch):
 
 def test_get_download_info_returns_data_urls_and_builds_payload(monkeypatch):
     response_data = [{'site_id': 'Test-A', 'url': 'https://amf.amf/data.zip'}]
-    response = SimpleNamespace(status_code=200, json=lambda: {
-        'data_urls': response_data})
     request = {}
 
-    def post_request(url, **kwargs):
-        request.update(url=url, **kwargs)
-        return response
+    def post_request(url, payload, synthesis_messages):
+        request.update(url=url, payload=payload, synthesis_messages=synthesis_messages)
+        return {'data_urls': response_data}
 
-    monkeypatch.setattr(ameriflux, 'post_url', post_request)
+    monkeypatch.setattr(ameriflux, '_post_json', post_request)
     monkeypatch.setattr(ameriflux, 'AMF_USER_NAME', 'test-user')
     monkeypatch.setattr(ameriflux, 'AMF_USER_EMAIL', 'test@amf.amf')
     monkeypatch.setattr(ameriflux, 'AMF_DATA_INTENDED_USE_ENUM', 'synthesis')
@@ -1014,7 +1240,7 @@ def test_get_download_info_returns_data_urls_and_builds_payload(monkeypatch):
     assert result == response_data
     assert request == {
         'url': 'https://amf.amf/api/data_download',
-        'json': {
+        'payload': {
             'user_id': 'test-user',
             'user_email': 'test@amf.amf',
             'site_ids': ['Test-A'],
@@ -1024,7 +1250,7 @@ def test_get_download_info_returns_data_urls_and_builds_payload(monkeypatch):
             'data_product': 'FLUXNET',
             'data_variant': 'FULLSET',
         },
-        'headers': {'Content-Type': 'application/json'},
+        'synthesis_messages': synthesis_messages,
     }
     assert synthesis_messages == []
 
@@ -1035,160 +1261,22 @@ def test_get_download_info_returns_data_urls_and_builds_payload(monkeypatch):
 ])
 def test_get_download_info_uses_defaults_for_invalid_metadata(
         monkeypatch, intended_use):
-    response = SimpleNamespace(status_code=200, json=lambda: {'data_urls': []})
     request = {}
 
-    def post_request(url, **kwargs):
-        request.update(kwargs)
-        return response
+    def post_request(url, payload, synthesis_messages):
+        request.update(payload)
+        return {'data_urls': []}
 
-    monkeypatch.setattr(ameriflux, 'post_url', post_request)
+    monkeypatch.setattr(ameriflux, '_post_json', post_request)
     monkeypatch.setattr(ameriflux, 'AMF_DATA_INTENDED_USE_ENUM', intended_use)
     monkeypatch.setattr(ameriflux, 'AMF_DATA_USE_DESC', None)
 
     result = ameriflux._get_download_info('https://amf.amf/api', [], [])
 
     assert result == []
-    assert request['json']['intended_use'] == ameriflux.INTENDED_USE_ENUM[-1]
-    assert request['json']['description'] == (
+    assert request['intended_use'] == ameriflux.INTENDED_USE_ENUM[-1]
+    assert request['description'] == (
         f'{ameriflux.DEFAULT_USE_DESC} (data accessed via BASIN-3D)')
-
-
-@pytest.mark.parametrize('response, expected_status', [
-    pytest.param(SimpleNamespace(status_code=400), '400', id='http-error'),
-    pytest.param(None, 'NO RESPONSE', id='no-response'),
-])
-def test_get_download_info_records_http_failure(
-        monkeypatch, response, expected_status):
-    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
-    synthesis_messages = []
-
-    result = ameriflux._get_download_info(
-        'https://amf.amf/api', ['Test-A'], synthesis_messages)
-
-    assert result == []
-    assert synthesis_messages == [
-        'AMF download request for https://amf.amf/api/data_download '
-        f'returned error code {expected_status}.'
-    ]
-
-
-@pytest.mark.parametrize('response_json, response_text, expected_detail', [
-    pytest.param({'message': 'invalid request'}, None, 'invalid request',
-                 id='json-message'),
-    pytest.param({'error': 'service unavailable'}, None, 'service unavailable',
-                 id='json-error'),
-    pytest.param({}, 'download service unavailable',
-                 'download service unavailable', id='text-fallback'),
-])
-def test_get_download_info_includes_http_error_detail(
-        monkeypatch, response_json, response_text, expected_detail):
-    response = SimpleNamespace(
-        status_code=400,
-        json=lambda: response_json,
-        text=response_text,
-    )
-    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
-    synthesis_messages = []
-
-    result = ameriflux._get_download_info(
-        'https://amf.amf/api', ['Test-A'], synthesis_messages)
-
-    assert result == []
-    assert synthesis_messages == [
-        'AMF download request for https://amf.amf/api/data_download '
-        f'returned error code 400: {expected_detail}.'
-    ]
-
-
-def test_get_download_info_prefers_json_message_over_error_and_text(monkeypatch):
-    response = SimpleNamespace(
-        status_code=400,
-        json=lambda: {'message': 'invalid request', 'error': 'service unavailable'},
-        text='raw response detail',
-    )
-    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
-    synthesis_messages = []
-
-    ameriflux._get_download_info(
-        'https://amf.amf/api', ['Test-A'], synthesis_messages)
-
-    assert synthesis_messages == [
-        'AMF download request for https://amf.amf/api/data_download '
-        'returned error code 400: invalid request.'
-    ]
-
-
-def test_get_download_info_uses_text_when_json_extraction_fails(monkeypatch):
-    def raise_json_error():
-        raise ValueError('invalid JSON')
-
-    response = SimpleNamespace(
-        status_code=400,
-        json=raise_json_error,
-        text='raw response detail',
-    )
-    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
-    synthesis_messages = []
-
-    result = ameriflux._get_download_info(
-        'https://amf.amf/api', ['Test-A'], synthesis_messages)
-
-    assert result == []
-    assert synthesis_messages == [
-        'AMF download request for https://amf.amf/api/data_download '
-        'returned error code 400: raw response detail.'
-    ]
-
-
-def test_get_download_info_uses_status_only_without_error_detail(monkeypatch):
-    response = SimpleNamespace(status_code=400, json=lambda: {})
-    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
-    synthesis_messages = []
-
-    result = ameriflux._get_download_info(
-        'https://amf.amf/api', ['Test-A'], synthesis_messages)
-
-    assert result == []
-    assert synthesis_messages == [
-        'AMF download request for https://amf.amf/api/data_download '
-        'returned error code 400.'
-    ]
-
-
-def test_get_download_info_records_post_exception(monkeypatch):
-    def raise_error(*args, **kwargs):
-        raise RuntimeError('request failed')
-
-    monkeypatch.setattr(ameriflux, 'post_url', raise_error)
-    synthesis_messages = []
-
-    result = ameriflux._get_download_info(
-        'https://amf.amf/api', ['Test-A'], synthesis_messages)
-
-    assert result == []
-    assert synthesis_messages == [
-        'AMF download request for https://amf.amf/api/data_download '
-        'failed: request failed'
-    ]
-
-
-def test_get_download_info_records_json_exception(monkeypatch):
-    def raise_json_error():
-        raise ValueError('invalid JSON')
-
-    response = SimpleNamespace(status_code=200, json=raise_json_error)
-    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
-    synthesis_messages = []
-
-    result = ameriflux._get_download_info(
-        'https://amf.amf/api', ['Test-A'], synthesis_messages)
-
-    assert result == []
-    assert synthesis_messages == [
-        'AMF download request for https://amf.amf/api/data_download '
-        'failed: invalid JSON'
-    ]
 
 
 @pytest.mark.parametrize('response_json, expected_message', [
@@ -1205,8 +1293,7 @@ def test_get_download_info_records_json_exception(monkeypatch):
 ])
 def test_get_download_info_records_invalid_response_data(
         monkeypatch, response_json, expected_message):
-    response = SimpleNamespace(status_code=200, json=lambda: response_json)
-    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
+    monkeypatch.setattr(ameriflux, '_post_json', lambda *args, **kwargs: response_json)
     synthesis_messages = []
 
     result = ameriflux._get_download_info(
@@ -1217,8 +1304,7 @@ def test_get_download_info_records_invalid_response_data(
 
 
 def test_get_download_info_returns_empty_for_missing_data_urls(monkeypatch):
-    response = SimpleNamespace(status_code=200, json=lambda: {'status': 'ok'})
-    monkeypatch.setattr(ameriflux, 'post_url', lambda *args, **kwargs: response)
+    monkeypatch.setattr(ameriflux, '_post_json', lambda *args, **kwargs: {'status': 'ok'})
     synthesis_messages = []
 
     result = ameriflux._get_download_info(
