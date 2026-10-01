@@ -1,5 +1,17 @@
 # Changelog
 
+## Version 1.4.0
+Adds connections for ARM met.b1 data products and AmeriFlux FLUXNET data products. Adds citation support for USGS, ARM and AmeriFlux connections. Enables file-backed storage for BASIN-3D database and improves connection handling. Documentation is updated.
+- Configuring user account information is required for both ARM and AmeriFlux data acquisition. See Documentation for details.
+- ARM and AmeriFlux specific package dependencies must be installed. See Documentation for details.
+- It is recommended to configure local storage directories for temporary storage used in the ARM and AmeriFlux connections. It is also recommended to configure the file-backed BASIN-3D database option. See Documentation for details.
+
++ Issue 235 - Add connection for ARM met data
++ Issue 237 - SQLAlchemy connection pool reaches limit; lingering unclosed sessions
++ Issue 240 - Add citation support
++ Issue 241 - Add connection for AmeriFlux FLUXNET data product
++ Issue 244 - rate-limiting on some valid urls causing docs linkcheck to fail
+
 ## Version 1.3.1
 Updates USGS plugin to use new USGS Water Data APIs. Basic BASIN-3D functionality remains the same, with the following feature enhancements. Documentation is updated with details.
 - Acquiring and configuring a personal USGS API Key is recommended to ease request rate limits.
