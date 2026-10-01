@@ -28,7 +28,8 @@ from basin3d.core.models import (AbsoluteCoordinate, AltitudeCoordinate, Coordin
                                  HorizontalCoordinate, RepresentativeCoordinate,
                                  MeasurementTimeseriesTVPObservation, MonitoringFeature, DepthCoordinate,
                                  ResultListTVP, TimeMetadataMixin, TimeValuePair)
-from basin3d.core.plugin import DataSourcePluginAccess, DataSourcePluginPoint, basin3d_plugin, separate_list_types
+from basin3d.core.plugin import (DataSourcePluginAccess, DataSourcePluginPoint, PluginIteratorResult,
+                                 basin3d_plugin, separate_list_types)
 from basin3d.core.schema.enum import FeatureTypeEnum, StatisticEnum
 from basin3d.core.schema.query import QueryMeasurementTimeseriesTVP, QueryMonitoringFeature
 from basin3d.core.types import SpatialSamplingShapes
@@ -131,6 +132,85 @@ def _get_metadata(url: str, synthesis_messages: List[str]) -> Dict:
         logger.error(msg)
         synthesis_messages.append(msg)
         return results
+
+
+def _post_json(url: str, payload: Dict, synthesis_messages: List) -> Any:
+    """POST a JSON payload and return the decoded response JSON."""
+    try:
+        response = post_url(url, json=payload, headers={'Content-Type': 'application/json'})
+
+        if not response or response.status_code != 200:
+            status_code = response.status_code if response else 'NO RESPONSE'
+            error_detail = None
+            if response:
+                try:
+                    response_error = response.json()
+                    if isinstance(response_error, dict):
+                        error_detail = response_error.get('message') or response_error.get('error')
+                except Exception:
+                    pass
+
+                if not error_detail:
+                    error_detail = getattr(response, 'text', None)
+
+            detail = f': {error_detail}' if error_detail else ''
+            msg = f'AMF POST request for {url} returned error code {status_code}{detail}.'
+            logger.error(msg)
+            synthesis_messages.append(msg)
+            return {}
+
+        return response.json()
+
+    except Exception as e:
+        msg = f'AMF POST request for {url} failed: {e}'
+        logger.error(msg)
+        synthesis_messages.append(msg)
+        return {}
+
+
+def _get_citation_info(url_base: str, site_id_list: List, synthesis_messages: List) -> List:
+    """
+
+    :param site_id_list:
+    :param synthesis_messages:
+    :return:
+    """
+    url = f'{url_base}/citations/FLUXNET'
+
+    payload = {'site_ids': site_id_list}
+
+    citation_response = _post_json(url, payload, synthesis_messages)
+
+    if not isinstance(citation_response, dict):
+        msg = f'AMF citation response from {url} was not in expected Dictionary format.'
+        logger.error(msg)
+        synthesis_messages.append(msg)
+        return []
+
+    citation_list = citation_response.get('values', [])
+
+    if isinstance(citation_list, list):
+        return citation_list
+
+    msg = 'AMF citation information was not in expected format. Cannot extract citation information.'
+    logger.error(msg)
+    synthesis_messages.append(msg)
+
+    return []
+
+
+def _parse_citations(citation_list: List) -> Dict:
+    parsed_citations: Dict = {}
+
+    for citation in citation_list:
+
+        site_id = citation.get('site_id', None)
+        if site_id is None:
+            continue
+
+        parsed_citations[site_id] = citation.get('citation', None)
+
+    return parsed_citations
 
 
 def _parse_metadata(metadata: Dict, synthesis_messages: List[str]) -> Dict:
@@ -386,58 +466,30 @@ def _get_download_info(base_url: str, sites: List[str], synthesis_messages: List
                "intended_use": intended_use, "description": use_desc,
                "data_policy": "CCBY4.0", "data_product": "FLUXNET", "data_variant": "FULLSET"}
 
-    try:
-        response = post_url(url, json=payload, headers={'Content-Type': 'application/json'})
+    response_json = _post_json(url, payload, synthesis_messages)
 
-        if not response or response.status_code != 200:
-            status_code = response.status_code if response else 'NO RESPONSE'
-            error_detail = None
-            if response:
-                try:
-                    response_error = response.json()
-                    if isinstance(response_error, dict):
-                        error_detail = response_error.get('message') or response_error.get('error')
-                except Exception:
-                    pass
+    if not response_json:
+        return download_info
 
-                if not error_detail:
-                    error_detail = getattr(response, 'text', None)
-
-            detail = f': {error_detail}' if error_detail else ''
-            msg = (f'AMF download request for {url} returned error code '
-                   f'{status_code}{detail}.')
-            logger.error(msg)
-            synthesis_messages.append(msg)
-            return download_info
-
-        response_json = response.json()
-
-        if not isinstance(response_json, Dict):
-            response_class = response_json.__class__.__name__
-            msg = (f'AMF download response for {url} was not in expected dictionary format. '
-                   f'It was {response_class} class.')
-            logger.error(msg)
-            synthesis_messages.append(msg)
-            return download_info
-
-        data_urls = response_json.get('data_urls', [])
-
-        if not isinstance(data_urls, List):
-            response_class = data_urls.__class__.__name__
-            msg = (f'AMF download response for {url} did not contain data_urls as a list. '
-                   f'It was {response_class} class.')
-            logger.error(msg)
-            synthesis_messages.append(msg)
-            return download_info
-
-        return data_urls
-
-    except Exception as e:
-        msg = f'AMF download request for {url} failed: {e}'
+    if not isinstance(response_json, Dict):
+        response_class = response_json.__class__.__name__
+        msg = (f'AMF download response for {url} was not in expected dictionary format. '
+               f'It was {response_class} class.')
         logger.error(msg)
         synthesis_messages.append(msg)
+        return download_info
 
-    return download_info
+    data_urls = response_json.get('data_urls', [])
+
+    if not isinstance(data_urls, List):
+        response_class = data_urls.__class__.__name__
+        msg = (f'AMF download response for {url} did not contain data_urls as a list. '
+               f'It was {response_class} class.')
+        logger.error(msg)
+        synthesis_messages.append(msg)
+        return download_info
+
+    return data_urls
 
 
 def _make_download_lookup(download_info: List, synthesis_messages: List) -> Dict:
@@ -903,12 +955,13 @@ class AMFMonitoringFeatureAccess(DataSourcePluginAccess):
         """Return an iterator of monitoring features available for query."""
 
         synthesis_messages: List[str] = []
+        synthesis_citations: List[str] = []
 
         if query.parent_feature is not None:
             msg = 'AmeriFlux does not support filtering monitoring features by parent feature specification.'
             logger.warning(msg)
             synthesis_messages.append(msg)
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         feature_type = isinstance(query.feature_type,
                                   FeatureTypeEnum) and query.feature_type.value or query.feature_type
@@ -923,7 +976,7 @@ class AMFMonitoringFeatureAccess(DataSourcePluginAccess):
                 msg = f'No metadata found for {metadata_url}'
                 logger.warning(msg)
                 synthesis_messages.append(msg)
-                return StopIteration(synthesis_messages)
+                return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
             metadata_lookup = _parse_metadata(metadata, synthesis_messages)
 
@@ -958,7 +1011,7 @@ class AMFMonitoringFeatureAccess(DataSourcePluginAccess):
             logger.warning(msg)
             synthesis_messages.append(msg)
 
-        return StopIteration(synthesis_messages)
+        return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
 
 class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
@@ -999,27 +1052,28 @@ class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
         """
 
         synthesis_messages: list = []
+        synthesis_citations: List[str] = []
 
         if AMF_USER_NAME is None or AMF_USER_EMAIL is None:
             msg = 'No AmeriFlux username or email configured in the environment variables. Cannot acquire AmeriFlux data.'
             logger.error(msg)
             synthesis_messages.append(msg)
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         if not _validate_zarr_path(Path(LOCAL_TEMP_DIR), synthesis_messages):
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         if not query.monitoring_feature:
             msg = f'No monitoring features for AmeriFlux were specified or they were not specified with the {self.datasource.id_prefix} prefix.'
             logger.warning(msg)
             synthesis_messages.append(msg)
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         if query.statistic and StatisticEnum.MEAN not in query.statistic:
             msg = f'AmeriFlux FLUXNET data product only supports statistic {StatisticEnum.MEAN}.'
             logger.warning(msg)
             synthesis_messages.append(msg)
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         # Create the site_info lookup
         metadata_url = f'{self.datasource.location}/site_info_display/AmeriFlux'
@@ -1030,7 +1084,7 @@ class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             msg = f'No metadata found for {metadata_url}'
             logger.warning(msg)
             synthesis_messages.append(msg)
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
         metadata_lookup = _parse_metadata(metadata, synthesis_messages)
 
@@ -1052,7 +1106,11 @@ class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
             msg = 'No data matches query specification.'
             logger.info(msg)
             synthesis_messages.append(msg)
-            return StopIteration(synthesis_messages)
+            return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
+
+        # Get citation information
+        citation_info = _get_citation_info(self.datasource.location, site_list, synthesis_messages)
+        citation_lookup = _parse_citations(citation_info)
 
         # Get the download information
         data_download_info = _get_download_info(self.datasource.location, site_list, synthesis_messages)
@@ -1080,6 +1138,11 @@ class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 logger.warning(msg)
                 synthesis_messages.append(msg)
                 continue
+
+            site_citation = citation_lookup.get(site_id)
+            if not site_citation:
+                site_citation = (f'No AMF FLUXNET citation found for {site_id}. '
+                                 'See ameriflux.lbl.gov to find citation information.')
 
             site_url = download_site_lookup[site_id].get('url')
             zip_checksum = download_site_lookup[site_id].get('checksum')
@@ -1207,6 +1270,9 @@ class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                         if file_resolution == 'HH':
                             observation.time_reference_position = TimeMetadataMixin.TIME_REFERENCE_START
 
+                        if site_citation not in synthesis_citations:
+                            synthesis_citations.append(site_citation)
+
                         yield observation
 
             finally:
@@ -1218,7 +1284,7 @@ class AMFMeasurementTimeseriesTVPObservationAccess(DataSourcePluginAccess):
                 if zarr_path is not None and zarr_path.exists():
                     shutil.rmtree(zarr_path)
 
-        return StopIteration(synthesis_messages)
+        return StopIteration(PluginIteratorResult(synthesis_messages, synthesis_citations))
 
 
 @basin3d_plugin
